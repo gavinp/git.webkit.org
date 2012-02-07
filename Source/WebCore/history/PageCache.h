@@ -71,8 +71,6 @@ namespace WebCore {
         PageCache(); // Use pageCache() instead.
         ~PageCache(); // Not implemented to make sure nobody accidentally calls delete -- WebCore does not delete singletons.
         
-        static bool canCachePageContainingThisFrame(Frame*);
-
         void addToLRUList(HistoryItem*); // Adds to the head of the list.
         void removeFromLRUList(HistoryItem*);
 

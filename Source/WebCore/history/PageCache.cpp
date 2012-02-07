@@ -42,6 +42,7 @@
 #include "HistoryItem.h"
 #include "Logging.h"
 #include "Page.h"
+#include "PageCachePolicy.h"
 #include "Settings.h"
 #include "SharedWorkerRepository.h"
 #include "SystemTime.h"
@@ -54,177 +55,6 @@ using namespace std;
 namespace WebCore {
 
 static const double autoreleaseInterval = 3;
-
-#ifndef NDEBUG
-
-static String& pageCacheLogPrefix(int indentLevel)
-{
-    static int previousIndent = -1;
-    DEFINE_STATIC_LOCAL(String, prefix, ());
-    
-    if (indentLevel != previousIndent) {    
-        previousIndent = indentLevel;
-        prefix.truncate(0);
-        for (int i = 0; i < previousIndent; ++i)
-            prefix += "    ";
-    }
-    
-    return prefix;
-}
-
-static void pageCacheLog(const String& prefix, const String& message)
-{
-    LOG(PageCache, "%s%s", prefix.utf8().data(), message.utf8().data());
-}
-    
-#define PCLOG(...) pageCacheLog(pageCacheLogPrefix(indentLevel), makeString(__VA_ARGS__))
-    
-static bool logCanCacheFrameDecision(Frame* frame, int indentLevel)
-{
-    // Only bother logging for frames that have actually loaded and have content.
-    if (frame->loader()->stateMachine()->creatingInitialEmptyDocument())
-        return false;
-    KURL currentURL = frame->loader()->documentLoader() ? frame->loader()->documentLoader()->url() : KURL();
-    if (currentURL.isEmpty())
-        return false;
-    
-    PCLOG("+---");
-    KURL newURL = frame->loader()->provisionalDocumentLoader() ? frame->loader()->provisionalDocumentLoader()->url() : KURL();
-    if (!newURL.isEmpty())
-        PCLOG(" Determining if frame can be cached navigating from (", currentURL.string(), ") to (", newURL.string(), "):");
-    else
-        PCLOG(" Determining if subframe with URL (", currentURL.string(), ") can be cached:");
-    
-    bool cannotCache = false;
-    
-    do {
-        if (!frame->loader()->documentLoader()) {
-            PCLOG("   -There is no DocumentLoader object");
-            cannotCache = true;
-            break;
-        }
-        if (!frame->loader()->documentLoader()->mainDocumentError().isNull()) {
-            PCLOG("   -Main document has an error");
-            cannotCache = true;
-        }
-        if (frame->loader()->subframeLoader()->containsPlugins() && !frame->page()->settings()->pageCacheSupportsPlugins()) {
-            PCLOG("   -Frame contains plugins");
-            cannotCache = true;
-        }
-        if (frame->document()->url().protocolIs("https")) {
-            PCLOG("   -Frame is HTTPS");
-            cannotCache = true;
-        }
-        if (frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent)) {
-            PCLOG("   -Frame has an unload event listener");
-            cannotCache = true;
-        }
-#if ENABLE(SQL_DATABASE)
-        if (frame->document()->hasOpenDatabases()) {
-            PCLOG("   -Frame has open database handles");
-            cannotCache = true;
-        }
-#endif
-#if ENABLE(SHARED_WORKERS)
-        if (SharedWorkerRepository::hasSharedWorkers(frame->document())) {
-            PCLOG("   -Frame has associated SharedWorkers");
-            cannotCache = true;
-        }
-#endif
-        if (frame->document()->usingGeolocation()) {
-            PCLOG("   -Frame uses Geolocation");
-            cannotCache = true;
-        }
-        if (!frame->loader()->history()->currentItem()) {
-            PCLOG("   -No current history item");
-            cannotCache = true;
-        }
-        if (frame->loader()->quickRedirectComing()) {
-            PCLOG("   -Quick redirect is coming");
-            cannotCache = true;
-        }
-        if (frame->loader()->documentLoader()->isLoadingInAPISense()) {
-            PCLOG("   -DocumentLoader is still loading in API sense");
-            cannotCache = true;
-        }
-        if (frame->loader()->documentLoader()->isStopping()) {
-            PCLOG("   -DocumentLoader is in the middle of stopping");
-            cannotCache = true;
-        }
-        if (!frame->document()->canSuspendActiveDOMObjects()) {
-            PCLOG("   -The document cannot suspect its active DOM Objects");
-            cannotCache = true;
-        }
-        if (!frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache()) {
-            PCLOG("   -The DocumentLoader uses an application cache");
-            cannotCache = true;
-        }
-        if (!frame->loader()->client()->canCachePage()) {
-            PCLOG("   -The client says this frame cannot be cached");
-            cannotCache = true; 
-        }
-    } while (false);
-    
-    for (Frame* child = frame->tree()->firstChild(); child; child = child->tree()->nextSibling())
-        if (!logCanCacheFrameDecision(child, indentLevel + 1))
-            cannotCache = true;
-    
-    PCLOG(cannotCache ? " Frame CANNOT be cached" : " Frame CAN be cached");
-    PCLOG("+---");
-    
-    return !cannotCache;
-}
-    
-static void logCanCachePageDecision(Page* page)
-{
-    // Only bother logging for main frames that have actually loaded and have content.
-    if (page->mainFrame()->loader()->stateMachine()->creatingInitialEmptyDocument())
-        return;
-    KURL currentURL = page->mainFrame()->loader()->documentLoader() ? page->mainFrame()->loader()->documentLoader()->url() : KURL();
-    if (currentURL.isEmpty())
-        return;
-    
-    int indentLevel = 0;    
-    PCLOG("--------\n Determining if page can be cached:");
-    
-    bool cannotCache = !logCanCacheFrameDecision(page->mainFrame(), 1);
-    
-    FrameLoadType loadType = page->mainFrame()->loader()->loadType();
-    if (!page->backForward()->isActive()) {
-        PCLOG("   -The back/forward list is disabled or has 0 capacity");
-        cannotCache = true;
-    }
-    if (!page->settings()->usesPageCache()) {
-        PCLOG("   -Page settings says b/f cache disabled");
-        cannotCache = true;
-    }
-#if ENABLE(DEVICE_ORIENTATION)
-    if (page->deviceMotionController() && page->deviceMotionController()->isActive()) {
-        PCLOG("   -Page is using DeviceMotion");
-        cannotCache = true;
-    }
-    if (page->deviceOrientationController() && page->deviceOrientationController()->isActive()) {
-        PCLOG("   -Page is using DeviceOrientation");
-        cannotCache = true;
-    }
-#endif
-    if (loadType == FrameLoadTypeReload) {
-        PCLOG("   -Load type is: Reload");
-        cannotCache = true;
-    }
-    if (loadType == FrameLoadTypeReloadFromOrigin) {
-        PCLOG("   -Load type is: Reload from origin");
-        cannotCache = true;
-    }
-    if (loadType == FrameLoadTypeSame) {
-        PCLOG("   -Load type is: Same");
-        cannotCache = true;
-    }
-    
-    PCLOG(cannotCache ? " Page CANNOT be cached\n--------" : " Page CAN be cached\n--------");
-}
-
-#endif 
 
 PageCache* pageCache()
 {
@@ -244,64 +74,12 @@ PageCache::PageCache()
 {
 }
     
-bool PageCache::canCachePageContainingThisFrame(Frame* frame)
-{
-    for (Frame* child = frame->tree()->firstChild(); child; child = child->tree()->nextSibling()) {
-        if (!canCachePageContainingThisFrame(child))
-            return false;
-    }
-    
-    return frame->loader()->documentLoader()
-        && frame->loader()->documentLoader()->mainDocumentError().isNull()
-        // Do not cache error pages (these can be recognized as pages with substitute data or unreachable URLs).
-        && !(frame->loader()->documentLoader()->substituteData().isValid() && !frame->loader()->documentLoader()->substituteData().failingURL().isEmpty())
-        && (!frame->loader()->subframeLoader()->containsPlugins() || frame->page()->settings()->pageCacheSupportsPlugins())
-        && !frame->document()->url().protocolIs("https")
-        && (!frame->domWindow() || !frame->domWindow()->hasEventListeners(eventNames().unloadEvent))
-#if ENABLE(SQL_DATABASE)
-        && !frame->document()->hasOpenDatabases()
-#endif
-#if ENABLE(SHARED_WORKERS)
-        && !SharedWorkerRepository::hasSharedWorkers(frame->document())
-#endif
-        && !frame->document()->usingGeolocation()
-        && frame->loader()->history()->currentItem()
-        && !frame->loader()->quickRedirectComing()
-        && !frame->loader()->documentLoader()->isLoadingInAPISense()
-        && !frame->loader()->documentLoader()->isStopping()
-        && frame->document()->canSuspendActiveDOMObjects()
-        // FIXME: We should investigating caching frames that have an associated
-        // application cache. <rdar://problem/5917899> tracks that work.
-        && frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache()
-        && frame->loader()->client()->canCachePage();
-}
-    
 bool PageCache::canCache(Page* page)
 {
     if (!page)
         return false;
     
-#ifndef NDEBUG
-    logCanCachePageDecision(page);
-#endif
-    
-    // Cache the page, if possible.
-    // Don't write to the cache if in the middle of a redirect, since we will want to
-    // store the final page we end up on.
-    // No point writing to the cache on a reload or loadSame, since we will just write
-    // over it again when we leave that page.
-    FrameLoadType loadType = page->mainFrame()->loader()->loadType();
-    
-    return canCachePageContainingThisFrame(page->mainFrame())
-        && page->backForward()->isActive()
-        && page->settings()->usesPageCache()
-#if ENABLE(DEVICE_ORIENTATION)
-        && !(page->deviceMotionController() && page->deviceMotionController()->isActive())
-        && !(page->deviceOrientationController() && page->deviceOrientationController()->isActive())
-#endif
-        && loadType != FrameLoadTypeReload
-        && loadType != FrameLoadTypeReloadFromOrigin
-        && loadType != FrameLoadTypeSame;
+    return PageCachePolicy(page).CanCachePage();
 }
 
 void PageCache::setCapacity(int capacity)
