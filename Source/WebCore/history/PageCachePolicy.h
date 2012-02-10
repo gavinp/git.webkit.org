@@ -7,6 +7,7 @@
 #include <wtf/FastAllocBase.h>
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/PassOwnPtr.h>
 #include <loader/FrameLoaderTypes.h>
 
 /* encapsulate policy for page cache, plus give implementations
@@ -20,9 +21,13 @@ namespace WebCore {
     class PageCachePolicy  {
         WTF_MAKE_NONCOPYABLE(PageCachePolicy); WTF_MAKE_FAST_ALLOCATED;
     public:
-        PageCachePolicy(Page*);
+        typedef PassOwnPtr<PageCachePolicy> (FactoryFunction)(Page*);
 
+        PageCachePolicy(Page*);
         bool CanCachePage();
+
+        static PassOwnPtr<PageCachePolicy> DefaultFactoryFunction(Page*);
+        static FactoryFunction* GetFactory();
 
     protected:
         void PolicyLog(const String&);
@@ -63,6 +68,7 @@ namespace WebCore {
     private:
         bool CanCacheFrame(Frame*);
         
+        static FactoryFunction* s_factory;
         Page* m_page;
         int m_logIndentLevel;
     };

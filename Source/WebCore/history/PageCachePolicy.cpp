@@ -19,6 +19,8 @@ using namespace std;
 
 namespace WebCore {
 
+PageCachePolicy::FactoryFunction* PageCachePolicy::s_factory = PageCachePolicy::DefaultFactoryFunction;
+
 PageCachePolicy::PageCachePolicy(Page* page) 
     : m_backForwardIsActive(page->backForward()->isActive())
     , m_settingsAllowPageCache(page->settings()->usesPageCache())
@@ -32,9 +34,13 @@ PageCachePolicy::PageCachePolicy(Page* page)
 {
 }
 
-void PageCachePolicy::PolicyLog(const String& message)
+PassOwnPtr<PageCachePolicy> PageCachePolicy::DefaultFactoryFunction(Page* page)
 {
-    LOG(PageCache, "%*s%s", m_logIndentLevel*4, "", message.utf8().data());
+    return adoptPtr(new PageCachePolicy(page));
+}
+
+PageCachePolicy::FactoryFunction* PageCachePolicy::GetFactory() {
+    return s_factory;
 }
 
 bool PageCachePolicy::CanCachePage()
@@ -49,6 +55,11 @@ bool PageCachePolicy::CanCachePage()
     else
         PolicyLog(" Page CANNOT be cached\n--------");
     return canCacheMainFrame && canCachePage;
+}
+
+void PageCachePolicy::PolicyLog(const String& message)
+{
+    LOG(PageCache, "%*s%s", m_logIndentLevel*4, "", message.utf8().data());
 }
 
 bool PageCachePolicy::CanCachePageImpl() {

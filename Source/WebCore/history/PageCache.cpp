@@ -43,10 +43,10 @@
 #include "Logging.h"
 #include "Page.h"
 #include "PageCachePolicy.h"
-#include "Settings.h"
 #include "SharedWorkerRepository.h"
 #include "SystemTime.h"
 #include <wtf/CurrentTime.h>
+#include <wtf/OwnPtr.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringConcatenate.h>
 
@@ -79,7 +79,9 @@ bool PageCache::canCache(Page* page)
     if (!page)
         return false;
     
-    return PageCachePolicy(page).CanCachePage();
+    OwnPtr<PageCachePolicy> page_cache_policy = PageCachePolicy::GetFactory()(page);
+
+    return page_cache_policy->CanCachePage();
 }
 
 void PageCache::setCapacity(int capacity)
