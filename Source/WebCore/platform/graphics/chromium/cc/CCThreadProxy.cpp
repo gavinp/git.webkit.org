@@ -43,7 +43,9 @@ using namespace WTF;
 
 namespace {
 
-static const size_t textureUpdatesPerFrame = 0;
+// Number of textures to update with each call to
+// scheduledActionUpdateMoreResources().
+static const size_t textureUpdatesPerFrame = 5;
 
 } // anonymous namespace
 
@@ -129,6 +131,19 @@ void CCThreadProxy::requestReadbackOnImplThread(ReadbackRequest* request)
     }
     m_readbackRequestOnImplThread = request;
     m_schedulerOnImplThread->setNeedsForcedRedraw();
+}
+
+void CCThreadProxy::startPageScaleAnimation(const IntSize& targetPosition, bool useAnchor, float scale, double durationSec)
+{
+    ASSERT(CCProxy::isMainThread());
+    CCProxy::implThread()->postTask(createCCThreadTask(this, &CCThreadProxy::requestStartPageScaleAnimationOnImplThread, targetPosition, useAnchor, scale, durationSec));
+}
+
+void CCThreadProxy::requestStartPageScaleAnimationOnImplThread(IntSize targetPosition, bool useAnchor, float scale, double durationSec)
+{
+    ASSERT(CCProxy::isImplThread());
+    if (m_layerTreeHostImpl)
+        m_layerTreeHostImpl->startPageScaleAnimation(targetPosition, useAnchor, scale, monotonicallyIncreasingTime() * 1000.0, durationSec * 1000.0);
 }
 
 GraphicsContext3D* CCThreadProxy::context()
@@ -248,6 +263,7 @@ void CCThreadProxy::setNeedsRedraw()
 {
     ASSERT(isMainThread());
     TRACE_EVENT("CCThreadProxy::setNeedsRedraw", this, 0);
+    CCProxy::implThread()->postTask(createCCThreadTask(this, &CCThreadProxy::setFullRootLayerDamageOnImplThread));
     CCProxy::implThread()->postTask(createCCThreadTask(this, &CCThreadProxy::setNeedsRedrawOnImplThread));
 }
 
@@ -397,7 +413,8 @@ void CCThreadProxy::beginFrameAndCommit(int sequenceNumber, double frameBeginTim
     // updateLayers.
     m_commitRequested = false;
 
-    m_layerTreeHost->updateLayers();
+    if (!m_layerTreeHost->updateLayers())
+        return;
 
     // Before applying scrolls and calling animate, we set m_animateRequested to false.
     // If it is true now, it means setNeedAnimate was called again. Call setNeedsCommit
@@ -461,7 +478,7 @@ void CCThreadProxy::scheduledActionUpdateMoreResources()
 {
     TRACE_EVENT("CCThreadProxy::scheduledActionUpdateMoreResources", this, 0);
     ASSERT(m_currentTextureUpdaterOnImplThread);
-    m_currentTextureUpdaterOnImplThread->update(m_layerTreeHostImpl->context(), textureUpdatesPerFrame > 0 ? textureUpdatesPerFrame : 99999);
+    m_currentTextureUpdaterOnImplThread->update(m_layerTreeHostImpl->context(), textureUpdatesPerFrame);
 }
 
 void CCThreadProxy::scheduledActionCommit()
@@ -594,9 +611,15 @@ void CCThreadProxy::layerTreeHostClosedOnImplThread(CCCompletionEvent* completio
     completion->signal();
 }
 
-bool CCThreadProxy::partialTextureUpdateCapability() const
+void CCThreadProxy::setFullRootLayerDamageOnImplThread()
 {
-    return !textureUpdatesPerFrame;
+    ASSERT(isImplThread());
+    m_layerTreeHostImpl->setFullRootLayerDamage();
+}
+
+size_t CCThreadProxy::maxPartialTextureUpdates() const
+{
+    return textureUpdatesPerFrame;
 }
 
 } // namespace WebCore

@@ -128,6 +128,14 @@ public:
     void setWithScriptStateAttributeRaises(const WebDOMTestObj&);
     WebDOMTestObj withScriptExecutionContextAttributeRaises() const;
     void setWithScriptExecutionContextAttributeRaises(const WebDOMTestObj&);
+    WebDOMTestObj withScriptExecutionContextAndScriptStateAttribute() const;
+    void setWithScriptExecutionContextAndScriptStateAttribute(const WebDOMTestObj&);
+    WebDOMTestObj withScriptExecutionContextAndScriptStateAttributeRaises() const;
+    void setWithScriptExecutionContextAndScriptStateAttributeRaises(const WebDOMTestObj&);
+    WebDOMTestObj withScriptExecutionContextAndScriptStateWithSpacesAttribute() const;
+    void setWithScriptExecutionContextAndScriptStateWithSpacesAttribute(const WebDOMTestObj&);
+    WebDOMTestObj withScriptArgumentsAndCallStackAttribute() const;
+    void setWithScriptArgumentsAndCallStackAttribute(const WebDOMTestObj&);
     WebDOMString scriptStringAttr() const;
 #if ENABLE(Condition1)
     int conditionalAttr1() const;
@@ -183,9 +191,16 @@ public:
     void withScriptStateVoidException();
     WebDOMTestObj withScriptStateObjException();
     void withScriptExecutionContext();
+    void withScriptExecutionContextAndScriptState();
+    WebDOMTestObj withScriptExecutionContextAndScriptStateObjException();
+    WebDOMTestObj withScriptExecutionContextAndScriptStateWithSpaces();
+    void withScriptArgumentsAndCallStack();
     void methodWithOptionalArg(int opt);
     void methodWithNonOptionalArgAndOptionalArg(int nonOpt, int opt);
     void methodWithNonOptionalArgAndTwoOptionalArgs(int nonOpt, int opt1, int opt2);
+    void methodWithOptionalString(const WebDOMString& str);
+    void methodWithOptionalStringIsUndefined(const WebDOMString& str);
+    void methodWithOptionalStringIsNullString(const WebDOMString& str);
     WebDOMString conditionalMethod1();
     void conditionalMethod2();
     void conditionalMethod3();

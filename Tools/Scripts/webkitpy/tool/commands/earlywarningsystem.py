@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from webkitpy.common.config.committers import CommitterList
-from webkitpy.common.config.ports import WebKitPort
+from webkitpy.common.config.ports import DeprecatedPort
 from webkitpy.common.system.deprecated_logging import error, log
 from webkitpy.common.system.executive import ScriptError
 from webkitpy.tool.bot.expectedfailures import ExpectedFailures
@@ -44,7 +44,7 @@ class AbstractEarlyWarningSystem(AbstractReviewQueue, EarlyWarningSystemTaskDele
 
     def __init__(self):
         AbstractReviewQueue.__init__(self)
-        self.port = WebKitPort.port(self.port_name)
+        self.port = DeprecatedPort.port(self.port_name)
 
     def should_proceed_with_work_item(self, patch):
         return True
@@ -184,24 +184,6 @@ class ChromiumLinuxEWS(AbstractChromiumEWS):
 
 class ChromiumWindowsEWS(AbstractChromiumEWS):
     name = "cr-win-ews"
-
-
-# For platforms that we can't run inside a VM (like Mac OS X), we require
-# patches to be uploaded by committers, who are generally trustworthy folk. :)
-class AbstractCommitterOnlyEWS(AbstractEarlyWarningSystem):
-    def process_work_item(self, patch):
-        if not patch.attacher() or not patch.attacher().can_commit:
-            self._did_error(patch, "%s cannot process patches from non-committers :(" % self.name)
-            return False
-        return AbstractEarlyWarningSystem.process_work_item(self, patch)
-
-
-# FIXME: Inheriting from AbstractCommitterOnlyEWS is kinda a hack, but it
-# happens to work because AbstractChromiumEWS and AbstractCommitterOnlyEWS
-# provide disjoint sets of functionality, and Python is otherwise smart
-# enough to handle the diamond inheritance.
-class ChromiumMacEWS(AbstractChromiumEWS, AbstractCommitterOnlyEWS):
-    name = "cr-mac-ews"
 
 
 class MacEWS(AbstractEarlyWarningSystem):

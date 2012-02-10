@@ -26,10 +26,10 @@ module core {
 
     interface [
         JSGenerateIsReachable=ImplElementRoot,
-        HasIndexGetter
+        IndexedGetter
     ] DOMTokenList {
         readonly attribute unsigned long length;
-        [ConvertNullStringTo=Null] DOMString item(in unsigned long index);
+        [TreatReturnedNullStringAs=Null] DOMString item(in unsigned long index);
         boolean contains(in DOMString token) raises(DOMException);
         void add(in DOMString token) raises(DOMException);
         void remove(in DOMString token) raises(DOMException);

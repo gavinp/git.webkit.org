@@ -105,6 +105,19 @@ InspectorTest.selectNodeAndWaitForStyles = function(idValue, callback)
     }
 }
 
+InspectorTest.selectNodeAndWaitForStylesWithComputed = function(idValue, callback)
+{
+    callback = InspectorTest.safeWrap(callback);
+
+    function stylesCallback(targetNode)
+    {
+        InspectorTest.addSniffer(WebInspector.SidebarPane.prototype, "expand", callback);
+        WebInspector.panels.elements.sidebarPanes.computedStyle.expand();
+    }
+
+    InspectorTest.selectNodeAndWaitForStyles(idValue, stylesCallback);
+}
+
 InspectorTest.dumpSelectedElementStyles = function(excludeComputed, excludeMatched, omitLonghands)
 {
     function extractText(element)
@@ -381,6 +394,37 @@ InspectorTest.rangeText = function(range)
     if (!range)
         return "[undefined-undefined]";
     return "[" + range.start + "-" + range.end + "]";
-};
+}
+
+InspectorTest.generateUndoTest = function(testBody)
+{
+    function result(next)
+    {
+        var testNode = InspectorTest.expandedNodeWithId(/function\s([^(]*)/.exec(testBody)[1]);
+        InspectorTest.addResult("Initial:");
+        InspectorTest.dumpElementsTree(testNode);
+
+        testBody(step1);
+
+        function step1()
+        {
+            InspectorTest.addResult("Post-action:");
+            InspectorTest.dumpElementsTree(testNode);
+            DOMAgent.undo(step2);
+        }
+
+        function step2()
+        {
+            InspectorTest.addResult("Post-undo (initial):");
+            InspectorTest.dumpElementsTree(testNode);
+            next();
+        }
+    }
+    result.toString = function()
+    {
+        return testBody.toString();
+    }
+    return result;
+}
 
 };

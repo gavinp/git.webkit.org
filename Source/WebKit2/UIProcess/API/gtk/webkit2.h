@@ -27,8 +27,10 @@
 #include <webkit2/WebKitBackForwardListItem.h>
 #include <webkit2/WebKitDefines.h>
 #include <webkit2/WebKitDownload.h>
+#include <webkit2/WebKitEditingCommands.h>
 #include <webkit2/WebKitEnumTypes.h>
 #include <webkit2/WebKitError.h>
+#include <webkit2/WebKitHitTestResult.h>
 #include <webkit2/WebKitSettings.h>
 #include <webkit2/WebKitURIRequest.h>
 #include <webkit2/WebKitURIResponse.h>

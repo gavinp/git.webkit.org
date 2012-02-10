@@ -195,6 +195,7 @@ WebPageProxy::WebPageProxy(PageClient* pageClient, PassRefPtr<WebProcessProxy> p
     , m_mainFrameHasCustomRepresentation(false)
     , m_mainFrameHasHorizontalScrollbar(false)
     , m_mainFrameHasVerticalScrollbar(false)
+    , m_canShortCircuitHorizontalWheelEvents(true)
     , m_mainFrameIsPinnedToLeftSide(false)
     , m_mainFrameIsPinnedToRightSide(false)
     , m_pageCount(0)
@@ -316,11 +317,7 @@ void WebPageProxy::reattachToWebProcessWithItem(WebBackForwardListItem* item)
     if (!item)
         return;
 
-    SandboxExtension::Handle sandboxExtensionHandle;
-    bool createdExtension = maybeInitializeSandboxExtensionHandle(KURL(KURL(), item->url()), sandboxExtensionHandle);
-    if (createdExtension)
-        process()->willAcquireUniversalFileReadSandboxExtension();
-    process()->send(Messages::WebPage::GoToBackForwardItem(item->itemID(), sandboxExtensionHandle), m_pageID);
+    process()->send(Messages::WebPage::GoToBackForwardItem(item->itemID()), m_pageID);
     process()->responsivenessTimer()->start();
 }
 
@@ -508,15 +505,24 @@ void WebPageProxy::stopLoading()
 
 void WebPageProxy::reload(bool reloadFromOrigin)
 {
-    if (m_backForwardList->currentItem())
-        setPendingAPIRequestURL(m_backForwardList->currentItem()->url());
+    SandboxExtension::Handle sandboxExtensionHandle;
+
+    if (m_backForwardList->currentItem()) {
+        String url = m_backForwardList->currentItem()->url();
+        setPendingAPIRequestURL(url);
+
+        // We may not have an extension yet if back/forward list was reinstated after a WebProcess crash or a browser relaunch
+        bool createdExtension = maybeInitializeSandboxExtensionHandle(KURL(KURL(), url), sandboxExtensionHandle);
+        if (createdExtension)
+            process()->willAcquireUniversalFileReadSandboxExtension();
+    }
 
     if (!isValid()) {
         reattachToWebProcessWithItem(m_backForwardList->currentItem());
         return;
     }
 
-    process()->send(Messages::WebPage::Reload(reloadFromOrigin), m_pageID);
+    process()->send(Messages::WebPage::Reload(reloadFromOrigin, sandboxExtensionHandle), m_pageID);
     process()->responsivenessTimer()->start();
 }
 
@@ -526,19 +532,17 @@ void WebPageProxy::goForward()
         return;
 
     WebBackForwardListItem* forwardItem = m_backForwardList->forwardItem();
-    if (forwardItem)
-        setPendingAPIRequestURL(forwardItem->url());
+    if (!forwardItem)
+        return;
+
+    setPendingAPIRequestURL(forwardItem->url());
 
     if (!isValid()) {
         reattachToWebProcessWithItem(forwardItem);
         return;
     }
 
-    SandboxExtension::Handle sandboxExtensionHandle;
-    bool createdExtension = maybeInitializeSandboxExtensionHandle(KURL(KURL(), forwardItem->url()), sandboxExtensionHandle);
-    if (createdExtension)
-        process()->willAcquireUniversalFileReadSandboxExtension();
-    process()->send(Messages::WebPage::GoForward(forwardItem->itemID(), sandboxExtensionHandle), m_pageID);
+    process()->send(Messages::WebPage::GoForward(forwardItem->itemID()), m_pageID);
     process()->responsivenessTimer()->start();
 }
 
@@ -553,19 +557,17 @@ void WebPageProxy::goBack()
         return;
 
     WebBackForwardListItem* backItem = m_backForwardList->backItem();
-    if (backItem)
-        setPendingAPIRequestURL(backItem->url());
+    if (!backItem)
+        return;
+
+    setPendingAPIRequestURL(backItem->url());
 
     if (!isValid()) {
         reattachToWebProcessWithItem(backItem);
         return;
     }
 
-    SandboxExtension::Handle sandboxExtensionHandle;
-    bool createdExtension = maybeInitializeSandboxExtensionHandle(KURL(KURL(), backItem->url()), sandboxExtensionHandle);
-    if (createdExtension)
-        process()->willAcquireUniversalFileReadSandboxExtension();
-    process()->send(Messages::WebPage::GoBack(backItem->itemID(), sandboxExtensionHandle), m_pageID);
+    process()->send(Messages::WebPage::GoBack(backItem->itemID()), m_pageID);
     process()->responsivenessTimer()->start();
 }
 
@@ -583,11 +585,7 @@ void WebPageProxy::goToBackForwardItem(WebBackForwardListItem* item)
     
     setPendingAPIRequestURL(item->url());
 
-    SandboxExtension::Handle sandboxExtensionHandle;
-    bool createdExtension = maybeInitializeSandboxExtensionHandle(KURL(KURL(), item->url()), sandboxExtensionHandle);
-    if (createdExtension)
-        process()->willAcquireUniversalFileReadSandboxExtension();
-    process()->send(Messages::WebPage::GoToBackForwardItem(item->itemID(), sandboxExtensionHandle), m_pageID);
+    process()->send(Messages::WebPage::GoToBackForwardItem(item->itemID()), m_pageID);
     process()->responsivenessTimer()->start();
 }
 
@@ -1533,7 +1531,7 @@ void WebPageProxy::didReceiveMessage(CoreIPC::Connection* connection, CoreIPC::M
         return;
     }
 
-#if USE(ACCELERATED_COMPOSITING) && USE(TEXTURE_MAPPER)
+#if USE(ACCELERATED_COMPOSITING) && USE(TEXTURE_MAPPER) && USE(TILED_BACKING_STORE)
     if (messageID.is<CoreIPC::MessageClassLayerTreeHostProxy>()) {
         m_drawingArea->didReceiveLayerTreeHostProxyMessage(connection, messageID, arguments);
         return;
@@ -2447,9 +2445,16 @@ void WebPageProxy::backForwardAddItem(uint64_t itemID)
     m_backForwardList->addItem(process()->webBackForwardItem(itemID));
 }
 
-void WebPageProxy::backForwardGoToItem(uint64_t itemID)
+void WebPageProxy::backForwardGoToItem(uint64_t itemID, SandboxExtension::Handle& sandboxExtensionHandle)
 {
-    m_backForwardList->goToItem(process()->webBackForwardItem(itemID));
+    WebBackForwardListItem* item = process()->webBackForwardItem(itemID);
+    if (!item)
+        return;
+
+    bool createdExtension = maybeInitializeSandboxExtensionHandle(KURL(KURL(), item->url()), sandboxExtensionHandle);
+    if (createdExtension)
+        process()->willAcquireUniversalFileReadSandboxExtension();
+    m_backForwardList->goToItem(item);
 }
 
 void WebPageProxy::backForwardItemAtIndex(int32_t index, uint64_t& itemID)
@@ -3377,9 +3382,9 @@ void WebPageProxy::requestNotificationPermission(uint64_t requestID, const Strin
         request->deny();
 }
 
-void WebPageProxy::showNotification(const String& title, const String& body, const String& originString, uint64_t notificationID)
+void WebPageProxy::showNotification(const String& title, const String& body, const String& iconURL, const String& originString, uint64_t notificationID)
 {
-    m_process->context()->notificationManagerProxy()->show(this, title, body, originString, notificationID);
+    m_process->context()->notificationManagerProxy()->show(this, title, body, iconURL, originString, notificationID);
 }
 
 float WebPageProxy::headerHeight(WebFrameProxy* frame)
@@ -3456,7 +3461,7 @@ void WebPageProxy::didFailToInitializePlugin(const String& mimeType)
 
 bool WebPageProxy::willHandleHorizontalScrollEvents() const
 {
-    return m_wheelEventHandlerCount > 0;
+    return !m_canShortCircuitHorizontalWheelEvents;
 }
 
 void WebPageProxy::didFinishLoadingDataForCustomRepresentation(const String& suggestedFilename, const CoreIPC::DataReference& dataReference)

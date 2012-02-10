@@ -1,3 +1,258 @@
+2012-02-09  Andy Wingo  <wingo@igalia.com>
+
+        Eliminate dead code in BytecodeGenerator::resolve()
+        https://bugs.webkit.org/show_bug.cgi?id=78242
+
+        Reviewed by Gavin Barraclough.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::resolve):
+        BytecodeGenerator::shouldOptimizeLocals() is only true for
+        FunctionCode, and thus cannot be true for GlobalCode.
+
+2012-02-09  Andy Wingo  <wingo@igalia.com>
+
+        Remove BytecodeGenerator::isLocal
+        https://bugs.webkit.org/show_bug.cgi?id=78241
+
+        Minor refactor to BytecodeGenerator.
+
+        Reviewed by Gavin Barraclough.
+
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::isLocal):
+        (JSC::BytecodeGenerator::isLocalConstant): Remove now-unused
+        methods.
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ResolveNode::isPure): Use the ResolveResult mechanism
+        instead of isLocal.  This will recognize more resolve nodes as
+        being pure.
+        (JSC::PrefixResolveNode::emitBytecode): Use isReadOnly on the
+        location instead of isLocalConstant.
+
+2012-02-09  Oliver Hunt  <oliver@apple.com>
+
+        The JS Parser scope object needs a VectorTrait specialization
+        https://bugs.webkit.org/show_bug.cgi?id=78308
+
+        Reviewed by Gavin Barraclough.
+
+        This showed up as a periodic crash in various bits of generated code
+        originally, but I've added an assertion in the bytecode generator
+        that makes the effected code much more crash-happy should it go
+        wrong again.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::resolve):
+        * parser/Parser.cpp:
+        * parser/Parser.h:
+        (JSC):
+        * runtime/JSActivation.h:
+        (JSC::JSActivation::isValidScopedLookup):
+        (JSActivation):
+
+2012-02-08  Oliver Hunt  <oliver@apple.com>
+
+        Whoops, fix the build.
+
+        * runtime/Executable.cpp:
+        (JSC::FunctionExecutable::FunctionExecutable):
+
+2012-02-08  Oliver Hunt  <oliver@apple.com>
+
+        Fix issue encountered while debugging stacktraces
+        https://bugs.webkit.org/show_bug.cgi?id=78147
+
+        Reviewed by Gavin Barraclough.
+
+        Debugging is easier if we always ensure that we have a non-null
+        inferred name.
+
+        * runtime/Executable.cpp:
+        (JSC::FunctionExecutable::FunctionExecutable):
+
+2012-02-08  Oliver Hunt  <oliver@apple.com>
+
+        updateTopCallframe in the baseline JIT doesn't provide enough information to the stubs
+        https://bugs.webkit.org/show_bug.cgi?id=78145
+
+        Reviewed by Gavin Barraclough.
+
+        Fix the updateTopCallFrame helper to store additional information
+        that becomes necessary when we are trying to provide more stack
+        frame information.
+
+        * interpreter/CallFrame.h:
+        (JSC::ExecState::bytecodeOffsetForBaselineJIT):
+        (ExecState):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompile):
+        * jit/JIT.h:
+        (JSC::JIT::compileGetByIdProto):
+        (JSC::JIT::compileGetByIdSelfList):
+        (JSC::JIT::compileGetByIdProtoList):
+        (JSC::JIT::compileGetByIdChainList):
+        (JSC::JIT::compileGetByIdChain):
+        (JSC::JIT::compilePutByIdTransition):
+        (JIT):
+        * jit/JITInlineMethods.h:
+        (JSC::JIT::updateTopCallFrame):
+
+2012-02-07  Robert Kroeger  <rjkroege@chromium.org>
+
+        [chromium] Remove the enable marcro for the no longer necessary Chromium
+        gesture recognizer.
+        https://bugs.webkit.org/show_bug.cgi?id=77492
+
+        Reviewed by Adam Barth.
+
+        * wtf/Platform.h:
+
+2012-02-07  Tony Chang  <tony@chromium.org>
+
+        merge DashboardSupportCSSPropertyNames.in into CSSPropertyNames.in
+        https://bugs.webkit.org/show_bug.cgi?id=78036
+
+        Reviewed by Darin Adler.
+
+        * Configurations/FeatureDefines.xcconfig: Add ENABLE_DASHBOARD_SUPPORT to FEATURE_DEFINES.
+
+2012-02-07  Gyuyoung Kim  <gyuyoung.kim@samsung.com>
+
+        [CMAKE] Use *bin* and *lib* directories for executable and libraries.
+        https://bugs.webkit.org/show_bug.cgi?id=77928
+
+        Reviewed by Daniel Bates.
+
+        CMake has used *Programs* directory for executable. In addition, shared libraries are being
+        built in source directory. It is better to set common places in order to maintain executable
+        and libraries. *bin* is for executable and *lib* is for library.
+
+        * shell/CMakeLists.txt: Change *Programs* with *bin*.
+
+2012-02-07  Gavin Barraclough  <barraclough@apple.com>
+
+        Crash on http://www.rickshawbags.com/
+        https://bugs.webkit.org/show_bug.cgi?id=78045
+
+        Reviewed by Darin Adler.
+
+        Problem URL is: http://www.rickshawbags.com/customize/custom-bag#!thl=rickshaw/bag()
+        
+        This is a bug introduced by https://bugs.webkit.org/show_bug.cgi?id=71933,
+        isVariableObject() checks were excluding StaticScopeObjects, this patch
+        inadvertently changed them to be included.
+
+        * runtime/JSType.h:
+            - sort JSType enum such that StaticScopeObjectType comes before VariableObjectType,
+              and thus is excluded from isVariableObject() checks.
+
+2012-02-06  Jer Noble  <jer.noble@apple.com>
+
+        Use CMClock as a timing source for PlatformClock where available.
+        https://bugs.webkit.org/show_bug.cgi?id=77885
+
+        Reviewed by Eric Carlson.
+
+        * wtf/Platform.h: Added WTF_USE_COREMEDIA.
+
+2012-02-06  Filip Pizlo  <fpizlo@apple.com>
+
+        ValueToNumber and ValueToDouble nodes don't do anything and should be removed
+        https://bugs.webkit.org/show_bug.cgi?id=77855
+        <rdar://problem/10811325>
+
+        Reviewed by Gavin Barraclough.
+        
+        Removed ValueToNumber and ValueToDouble, because the only thing they were doing
+        was wasting registers.
+        
+        This looks like a 1% win on V8 (with a 5% win on crypto) and a 2-3% win on Kraken,
+        mostly due to a >10% win on gaussian-blur. No win anywhere else.
+
+        * dfg/DFGAbstractState.cpp:
+        (JSC::DFG::AbstractState::execute):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::getToInt32):
+        (ByteCodeParser):
+        (JSC::DFG::ByteCodeParser::handleMinMax):
+        (JSC::DFG::ByteCodeParser::handleIntrinsic):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGNode.h:
+        (DFG):
+        (JSC::DFG::Node::hasArithNodeFlags):
+        * dfg/DFGPropagator.cpp:
+        (JSC::DFG::Propagator::propagateArithNodeFlags):
+        (JSC::DFG::Propagator::propagateNodePredictions):
+        (JSC::DFG::Propagator::vote):
+        (JSC::DFG::Propagator::doRoundOfDoubleVoting):
+        (Propagator):
+        (JSC::DFG::Propagator::fixupNode):
+        (JSC::DFG::Propagator::canonicalize):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::computeValueRecoveryFor):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+
+2012-02-06  Patrick Gansterer  <paroga@webkit.org>
+
+        Unreviewed WinCE build fix after r106197.
+
+        * tools/CodeProfiling.cpp:
+        (JSC::CodeProfiling::notifyAllocator): getenv() isn't supported by WinCE. Don't call it.
+
+2012-02-05  Gavin Barraclough  <barraclough@apple.com>
+
+        Remove JSObject defineGetter/defineSetter lookupGetter/lookupSetter
+        https://bugs.webkit.org/show_bug.cgi?id=77451
+
+        Reviewed by Sam Weinig.
+
+        These can now all be implemented in terms of defineOwnProperty & getPropertyDescriptor.
+        Also remove initializeGetterSetterProperty, since this is equivalent to putDirectAccessor.
+
+        * JavaScriptCore.exp:
+        * debugger/DebuggerActivation.cpp:
+        (JSC::DebuggerActivation::defineOwnProperty):
+        * debugger/DebuggerActivation.h:
+        (DebuggerActivation):
+        * runtime/ClassInfo.h:
+        (MethodTable):
+        (JSC):
+        * runtime/JSBoundFunction.cpp:
+        (JSC::JSBoundFunction::finishCreation):
+        * runtime/JSCell.cpp:
+        (JSC):
+        * runtime/JSCell.h:
+        (JSCell):
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::getOwnPropertySlot):
+        (JSC::JSFunction::getOwnPropertyDescriptor):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::defineOwnProperty):
+        (JSC):
+        * runtime/JSGlobalObject.h:
+        (JSGlobalObject):
+        * runtime/JSObject.cpp:
+        (JSC):
+        * runtime/JSObject.h:
+        (JSObject):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncDefineGetter):
+        (JSC::objectProtoFuncDefineSetter):
+        (JSC::objectProtoFuncLookupGetter):
+        (JSC::objectProtoFuncLookupSetter):
+
+2012-02-06  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix make distcheck.
+
+        * GNUmakefile.list.am: Add missing files.
+
 2012-02-05  Filip Pizlo  <fpizlo@apple.com>
 
         DFG's child references from one node to another should have room for type information

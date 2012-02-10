@@ -566,10 +566,10 @@ PassRefPtr<ClientRect> Element::getBoundingClientRect()
     return ClientRect::create(result);
 }
     
-LayoutRect Element::screenRect() const
+IntRect Element::screenRect() const
 {
     if (!renderer())
-        return LayoutRect();
+        return IntRect();
     // FIXME: this should probably respect transforms
     return renderer()->view()->frameView()->contentsToScreen(renderer()->absoluteBoundingBoxRectIgnoringTransforms());
 }
@@ -1199,10 +1199,7 @@ ShadowRoot* Element::ensureShadowRoot()
     if (ShadowRoot* existingRoot = shadowRoot())
         return existingRoot;
 
-    ExceptionCode ec = 0;
-    setShadowRoot(ShadowRoot::create(document()), ec);
-    ASSERT(!ec);
-    return shadowRoot();
+    return ShadowRoot::create(this, ShadowRoot::CreatingUserAgentShadowRoot).get();
 }
 
 void Element::removeShadowRoot()

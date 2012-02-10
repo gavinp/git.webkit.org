@@ -82,7 +82,7 @@ void RenderMathMLBlock::paint(PaintInfo& info, const LayoutPoint& paintOffset)
     if (info.context->paintingDisabled() || info.phase != PaintPhaseForeground)
         return;
 
-    LayoutPoint adjustedPaintOffset = paintOffset + location();
+    IntPoint adjustedPaintOffset = roundedIntPoint(paintOffset + location());
 
     GraphicsContextStateSaver stateSaver(*info.context);
     
@@ -108,7 +108,6 @@ void RenderMathMLBlock::paint(PaintInfo& info, const LayoutPoint& paintOffset)
     info.context->drawLine(LayoutPoint(adjustedPaintOffset.x(), adjustedPaintOffset.y() + baseline), LayoutPoint(adjustedPaintOffset.x() + offsetWidth(), adjustedPaintOffset.y() + baseline));
 }
 #endif // ENABLE(DEBUG_MATH_LAYOUT)
-
 
 }    
 

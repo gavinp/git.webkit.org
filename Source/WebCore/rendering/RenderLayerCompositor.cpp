@@ -983,8 +983,19 @@ void RenderLayerCompositor::frameViewDidScroll()
     if (RenderLayerBacking* backing = rootRenderLayer()->backing())
         backing->graphicsLayer()->visibleRectChanged();
 
-    if (m_scrollLayer)
-        m_scrollLayer->setPosition(FloatPoint(-scrollPosition.x(), -scrollPosition.y()));
+    if (!m_scrollLayer)
+        return;
+
+#if ENABLE(THREADED_SCROLLING)
+    // If there's a scrolling coordinator that manages scrolling for this frame view,
+    // it will also manage updating the scroll layer position.
+    if (ScrollingCoordinator* scrollingCoordinator = this->scrollingCoordinator()) {
+        if (scrollingCoordinator->coordinatesScrollingForFrameView(frameView))
+            return;
+    }
+#endif
+
+    m_scrollLayer->setPosition(FloatPoint(-scrollPosition.x(), -scrollPosition.y()));
 }
 
 String RenderLayerCompositor::layerTreeAsText(bool showDebugInfo)
@@ -1231,6 +1242,18 @@ void RenderLayerCompositor::updateRootLayerPosition()
         FrameView* frameView = m_renderView->frameView();
         m_clipLayer->setSize(frameView->visibleContentRect(false /* exclude scrollbars */).size());
     }
+
+#if ENABLE(RUBBER_BANDING)
+    if (m_contentShadowLayer) {
+        m_contentShadowLayer->setPosition(m_rootContentLayer->position());
+
+        FloatSize rootContentLayerSize = m_rootContentLayer->size();
+        if (m_contentShadowLayer->size() != rootContentLayerSize) {
+            m_contentShadowLayer->setSize(rootContentLayerSize);
+            ScrollbarTheme::theme()->setUpContentShadowLayer(m_contentShadowLayer.get());
+        }
+    }
+#endif
 }
 
 void RenderLayerCompositor::didStartAcceleratedAnimation(CSSPropertyID property)
@@ -1261,7 +1284,7 @@ bool RenderLayerCompositor::shouldPropagateCompositingToEnclosingFrame() const
     // Parent document content needs to be able to render on top of a composited frame, so correct behavior
     // is to have the parent document become composited too. However, this can cause problems on platforms that
     // use native views for frames (like Mac), so disable that behavior on those platforms for now.
-    HTMLFrameOwnerElement* ownerElement = enclosingFrameElement();
+    HTMLFrameOwnerElement* ownerElement = m_renderView->document()->ownerElement();
     RenderObject* renderer = ownerElement ? ownerElement->renderer() : 0;
 
     // If we are the top-level frame, don't propagate.
@@ -1290,14 +1313,6 @@ bool RenderLayerCompositor::shouldPropagateCompositingToEnclosingFrame() const
     }
 
     return false;
-}
-
-HTMLFrameOwnerElement* RenderLayerCompositor::enclosingFrameElement() const
-{
-    if (HTMLFrameOwnerElement* ownerElement = m_renderView->document()->ownerElement())
-        return (ownerElement->hasTagName(iframeTag) || ownerElement->hasTagName(frameTag) || ownerElement->hasTagName(objectTag)) ? ownerElement : 0;
-
-    return 0;
 }
 
 bool RenderLayerCompositor::needsToBeComposited(const RenderLayer* layer) const
@@ -1552,6 +1567,11 @@ bool RenderLayerCompositor::requiresCompositingForPosition(RenderObject* rendere
     if (container != m_renderView)
         return false;
 
+    // Fixed position elements that are invisible in the current view don't get their own layer.
+    FrameView* frameView = m_renderView->frameView();
+    if (frameView && !layer->absoluteBoundingBox().intersects(LayoutRect(frameView->scrollXForFixedPosition(), frameView->scrollYForFixedPosition(), frameView->layoutWidth(), frameView->layoutHeight())))
+        return false;
+
     return true;
 }
 
@@ -1613,7 +1633,7 @@ void RenderLayerCompositor::paintContents(const GraphicsLayer* graphicsLayer, Gr
         context.save();
         context.translate(-scrollCorner.x(), -scrollCorner.y());
         LayoutRect transformedClip = clip;
-        transformedClip.moveBy(scrollCorner.location());
+        transformedClip.moveBy(roundedIntPoint(scrollCorner.location()));
         m_renderView->frameView()->paintScrollCorner(&context, transformedClip);
         context.restore();
 #if PLATFORM(CHROMIUM) && ENABLE(RUBBER_BANDING)
@@ -1730,6 +1750,21 @@ bool RenderLayerCompositor::requiresOverhangAreasLayer() const
 
     return false;
 }
+
+bool RenderLayerCompositor::requiresContentShadowLayer() const
+{
+    // We don't want a layer if this is a subframe.
+    if (m_renderView->document()->ownerElement())
+        return false;
+
+#if PLATFORM(MAC) && ENABLE(THREADED_SCROLLING)
+    // On Mac, we want a content shadow layer if we have a scrolling coordinator.
+    if (scrollingCoordinator())
+        return true;
+#endif
+
+    return false;
+}
 #endif
 
 void RenderLayerCompositor::updateOverflowControlsLayers()
@@ -1753,6 +1788,23 @@ void RenderLayerCompositor::updateOverflowControlsLayers()
     } else if (m_layerForOverhangAreas) {
         m_layerForOverhangAreas->removeFromParent();
         m_layerForOverhangAreas = nullptr;
+    }
+
+    if (requiresContentShadowLayer()) {
+        if (!m_contentShadowLayer) {
+            m_contentShadowLayer = GraphicsLayer::create(this);
+#ifndef NDEBUG
+            m_contentShadowLayer->setName("content shadow");
+#endif
+            m_contentShadowLayer->setSize(m_rootContentLayer->size());
+            m_contentShadowLayer->setPosition(m_rootContentLayer->position());
+            ScrollbarTheme::theme()->setUpContentShadowLayer(m_contentShadowLayer.get());
+
+            m_scrollLayer->addChildBelow(m_contentShadowLayer.get(), m_rootContentLayer.get());
+        }
+    } else if (m_contentShadowLayer) {
+        m_contentShadowLayer->removeFromParent();
+        m_contentShadowLayer = nullptr;
     }
 #endif
 

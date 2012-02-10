@@ -38,10 +38,9 @@ using namespace MathMLNames;
     
 static const double gOverSpacingAdjustment = 0.5;
     
-RenderMathMLUnderOver::RenderMathMLUnderOver(Node* expression) 
-    : RenderMathMLBlock(expression) 
+RenderMathMLUnderOver::RenderMathMLUnderOver(Element* element)
+    : RenderMathMLBlock(element)
 {
-    Element* element = static_cast<Element*>(expression);
     // Determine what kind of under/over expression we have by element name
     
     if (element->hasLocalName(MathMLNames::munderTag))
@@ -244,13 +243,13 @@ void RenderMathMLUnderOver::layout()
     RenderBlock::layout();
 }
 
-int RenderMathMLUnderOver::baselinePosition(FontBaseline, bool firstLine, LineDirectionMode direction, LinePositionMode linePositionMode) const
+LayoutUnit RenderMathMLUnderOver::baselinePosition(FontBaseline, bool firstLine, LineDirectionMode direction, LinePositionMode linePositionMode) const
 {
     RenderObject* current = firstChild();
     if (!current || linePositionMode == PositionOfInteriorLineBoxes)
         return RenderBlock::baselinePosition(AlphabeticBaseline, firstLine, direction, linePositionMode);
 
-    int baseline = 0;
+    LayoutUnit baseline = 0;
     switch (m_kind) {
     case UnderOver:
     case Over:
@@ -291,6 +290,5 @@ int RenderMathMLUnderOver::nonOperatorHeight() const
 }
 
 }
-
 
 #endif // ENABLE(MATHML)

@@ -152,9 +152,10 @@ sub GetCoreObject {
 
 sub SkipAttribute {
     my $attribute = shift;
-    
-    if ($attribute->signature->extendedAttributes->{"CustomGetter"} ||
-        $attribute->signature->extendedAttributes->{"CustomSetter"}) {
+
+    if ($attribute->signature->extendedAttributes->{"Custom"}
+        || $attribute->signature->extendedAttributes->{"CustomGetter"}
+        || $attribute->signature->extendedAttributes->{"CustomSetter"}) {
         return 1;
     }
 
@@ -187,8 +188,7 @@ sub SkipFunction {
     my $prefix = shift;
 
     my $functionName = "webkit_dom_" . $decamelize . "_" . $prefix . decamelize($function->signature->name);
-    my $isCustomFunction = $function->signature->extendedAttributes->{"Custom"} ||
-        $function->signature->extendedAttributes->{"CustomArgumentHandling"};
+    my $isCustomFunction = $function->signature->extendedAttributes->{"Custom"};
 
     if ($isCustomFunction &&
         $functionName ne "webkit_dom_node_replace_child" &&
@@ -737,10 +737,6 @@ sub GenerateFunction {
 
     my @callImplParams;
 
-    # skip some custom functions for now
-    my $isCustomFunction = $function->signature->extendedAttributes->{"Custom"} ||
-                       $function->signature->extendedAttributes->{"CustomArgumentHandling"};
-
     foreach my $param (@{$function->parameters}) {
         my $paramIDLType = $param->type;
         if ($paramIDLType eq "EventListener" || $paramIDLType eq "MediaQueryListListener") {
@@ -867,7 +863,7 @@ sub GenerateFunction {
 
             push(@cBody, "    }\n");
         }
-        $returnParamName = "converted_".$paramName if $param->extendedAttributes->{"Return"};
+        $returnParamName = "converted_".$paramName if $param->extendedAttributes->{"CustomReturn"};
     }
 
     my $assign = "";

@@ -101,6 +101,9 @@ max 1120
 """
             return DriverOutput(text, '', '', '', crash=crash, timeout=timeout)
 
+        def start(self):
+            """do nothing"""
+
         def stop(self):
             """do nothing"""
 
@@ -157,9 +160,6 @@ max 1120
         class TestDriverWithStopCount(MainTest.TestDriver):
             stop_count = 0
 
-            def __init__(self):
-                TestDriverWithStopCount.sotp_count = 0
-
             def stop(self):
                 TestDriverWithStopCount.stop_count += 1
 
@@ -172,6 +172,29 @@ max 1120
 
         unexpected_result_count = runner._run_tests_set(tests, runner._port)
         self.assertEqual(TestDriverWithStopCount.stop_count, 6)
+
+    def test_run_test_set_kills_drt_per_run(self):
+        class TestDriverWithStartCount(MainTest.TestDriver):
+            start_count = 0
+
+            def start(self):
+                TestDriverWithStartCount.start_count += 1
+
+        buildbot_output = array_stream.ArrayStream()
+        runner = self.create_runner(buildbot_output, args=["--pause-before-testing"], driver_class=TestDriverWithStartCount)
+
+        dirname = runner._base_path + '/inspector/'
+        tests = [dirname + 'pass.html']
+
+        try:
+            output = OutputCapture()
+            output.capture_output()
+            unexpected_result_count = runner._run_tests_set(tests, runner._port)
+            self.assertEqual(TestDriverWithStartCount.start_count, 1)
+        finally:
+            _, stderr, logs = output.restore_output()
+            self.assertEqual(stderr, "Ready to run test?\n")
+            self.assertEqual(logs, "Running inspector/pass.html (1 of 1)\n\n")
 
     def test_run_test_set_for_parser_tests(self):
         buildbot_output = array_stream.ArrayStream()
@@ -306,6 +329,19 @@ max 1120
         runner._host.filesystem.files[filename] = 'a content'
         tests = runner._collect_tests()
         self.assertEqual(len(tests), 1)
+
+    def test_collect_tests(self):
+        runner = self.create_runner(args=['PerformanceTests/test1.html', 'test2.html'])
+
+        def add_file(filename):
+            runner._host.filesystem.files[runner._host.filesystem.join(runner._base_path, filename)] = 'some content'
+
+        add_file('test1.html')
+        add_file('test2.html')
+        add_file('test3.html')
+        runner._host.filesystem.chdir(runner._port.perf_tests_dir()[:runner._port.perf_tests_dir().rfind(runner._host.filesystem.sep)])
+        tests = [runner._port.relative_perf_test_filename(test) for test in runner._collect_tests()]
+        self.assertEqual(sorted(tests), ['test1.html', 'test2.html'])
 
     def test_collect_tests_with_skipped_list(self):
         runner = self.create_runner()

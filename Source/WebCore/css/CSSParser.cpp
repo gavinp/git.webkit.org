@@ -2049,7 +2049,7 @@ bool CSSParser::parseValue(int propId, bool important)
             }
         }
         break;
-    case CSSPropertyWebkitLineGridSnap:
+    case CSSPropertyWebkitLineSnap:
         if (id == CSSValueNone || id == CSSValueBaseline || id == CSSValueContain)
             validPrimitive = true;
         break;
@@ -3376,7 +3376,7 @@ PassRefPtr<CSSValue> CSSParser::parseAnimationDelay()
 PassRefPtr<CSSValue> CSSParser::parseAnimationDirection()
 {
     CSSParserValue* value = m_valueList->current();
-    if (value->id == CSSValueNormal || value->id == CSSValueAlternate)
+    if (value->id == CSSValueNormal || value->id == CSSValueAlternate || value->id == CSSValueReverse || value->id == CSSValueAlternateReverse)
         return cssValuePool()->createIdentifierValue(value->id);
     return 0;
 }
@@ -4949,9 +4949,7 @@ bool CSSParser::fastParseColor(RGBA32& rgb, const String& name, bool strict)
     
 inline double CSSParser::parsedDouble(CSSParserValue *v, ReleaseParsedCalcValueCondition releaseCalc)
 {
-    // FIXME calc (http://webkit.org/b/16662): evaluate calc here, eg
-    // const double result = m_parsedCalculation ? m_parsedCalculation->doubleValue() : v->fValue;
-    const double result = m_parsedCalculation ? 0 : v->fValue;
+    const double result = m_parsedCalculation ? m_parsedCalculation->doubleValue() : v->fValue;
     if (releaseCalc == ReleaseParsedCalcValue)
         m_parsedCalculation.release();
     return result;

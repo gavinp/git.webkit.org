@@ -2090,7 +2090,7 @@ void Editor::markAndReplaceFor(PassRefPtr<SpellCheckRequest> request, const Vect
             RefPtr<Range> misspellingRange = paragraph.subrange(resultLocation, resultLength);
             if (!m_spellingCorrector->isSpellingMarkerAllowed(misspellingRange))
                 continue;
-            misspellingRange->startContainer()->document()->markers()->addMarker(misspellingRange.get(), DocumentMarker::Spelling);
+            misspellingRange->startContainer()->document()->markers()->addMarker(misspellingRange.get(), DocumentMarker::Spelling, result->replacement);
         } else if (shouldMarkGrammar && result->type == TextCheckingTypeGrammar && paragraph.checkingRangeCovers(resultLocation, resultLength)) {
             ASSERT(resultLength > 0 && resultLocation >= 0);
             for (unsigned j = 0; j < result->details.size(); j++) {
@@ -2318,7 +2318,7 @@ void Editor::deletedAutocorrectionAtPosition(const Position& position, const Str
     m_spellingCorrector->deletedAutocorrectionAtPosition(position, originalString);
 }
 
-PassRefPtr<Range> Editor::rangeForPoint(const LayoutPoint& windowPoint)
+PassRefPtr<Range> Editor::rangeForPoint(const IntPoint& windowPoint)
 {
     Document* document = m_frame->documentAtPoint(windowPoint);
     if (!document)
@@ -2633,7 +2633,7 @@ String Editor::selectedText() const
 
 IntRect Editor::firstRectForRange(Range* range) const
 {
-    int extraWidthToEndOfLine = 0;
+    LayoutUnit extraWidthToEndOfLine = 0;
     ASSERT(range->startContainer());
     ASSERT(range->endContainer());
 

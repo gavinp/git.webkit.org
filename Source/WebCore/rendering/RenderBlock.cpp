@@ -1326,7 +1326,7 @@ void RenderBlock::layoutBlock(bool relayoutChildren, LayoutUnit pageLogicalHeigh
     }
 
     // For overflow:scroll blocks, ensure we have both scrollbars in place always.
-    if (scrollsOverflow()) {
+    if (scrollsOverflow() && style()->appearance() != ListboxPart) {
         if (styleToUse->overflowX() == OSCROLL)
             layer()->setHasHorizontalScrollbar(true);
         if (styleToUse->overflowY() == OSCROLL)
@@ -2022,7 +2022,7 @@ void RenderBlock::layoutBlockChildren(bool relayoutChildren, LayoutUnit& maxFloa
     setLogicalHeight(beforeEdge);
     
     // Lay out our hypothetical grid line as though it occurs at the top of the block.
-    if (view()->layoutState()->currentLineGrid() == this)
+    if (view()->layoutState()->lineGrid() == this)
         layoutLineGridBox();
 
     // The margin struct caches all our current margin collapsing state.  The compact struct caches state when we encounter compacts,
@@ -2440,7 +2440,7 @@ void RenderBlock::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
     // z-index.  We paint after we painted the background/border, so that the scrollbars will
     // sit above the background/border.
     if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground) && paintInfo.shouldPaintWithinRoot(this))
-        layer()->paintOverflowControls(paintInfo.context, adjustedPaintOffset, paintInfo.rect);
+        layer()->paintOverflowControls(paintInfo.context, roundedIntPoint(adjustedPaintOffset), paintInfo.rect);
 }
 
 void RenderBlock::paintColumnRules(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
@@ -3673,7 +3673,7 @@ inline void RenderBlock::FloatIntervalSearchAdapter<FloatTypeValue>::collectIfNe
     const FloatingObject* r = interval.data();
     if (r->type() == FloatTypeValue && interval.low() <= m_value && m_value < interval.high()) {
         // All the objects returned from the tree should be already placed.
-        ASSERT(r->isPlaced() && m_renderer->logicalTopForFloat(r) <= m_value && m_renderer->logicalBottomForFloat(r) > m_value);
+        ASSERT(r->isPlaced() && m_renderer->pixelSnappedLogicalTopForFloat(r) <= m_value && m_renderer->pixelSnappedLogicalBottomForFloat(r) > m_value);
 
         if (FloatTypeValue == FloatingObject::FloatLeft 
             && m_renderer->logicalRightForFloat(r) > m_offset) {

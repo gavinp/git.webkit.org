@@ -315,6 +315,11 @@ bool HTMLMediaElement::supportsFocus() const
     return controls() ||  HTMLElement::supportsFocus();
 }
 
+bool HTMLMediaElement::isMouseFocusable() const
+{
+    return false;
+}
+
 void HTMLMediaElement::attributeChanged(Attribute* attr)
 {
     HTMLElement::attributeChanged(attr);
@@ -322,7 +327,7 @@ void HTMLMediaElement::attributeChanged(Attribute* attr)
     const QualifiedName& attrName = attr->name();
     if (attrName == srcAttr) {
         // Trigger a reload, as long as the 'src' attribute is present.
-        if (!getAttribute(srcAttr).isEmpty())
+        if (fastHasAttribute(srcAttr))
             scheduleLoad(MediaResource);
     } else if (attrName == controlsAttr)
         configureMediaControls();

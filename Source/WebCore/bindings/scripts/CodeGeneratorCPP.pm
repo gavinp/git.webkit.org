@@ -191,11 +191,9 @@ sub ShouldSkipType
 {
     my $typeInfo = shift;
 
-    return 1 if $typeInfo->signature->extendedAttributes->{"Custom"};
-
-    return 1 if $typeInfo->signature->extendedAttributes->{"CustomArgumentHandling"}
-             or $typeInfo->signature->extendedAttributes->{"CustomGetter"}
-             or $typeInfo->signature->extendedAttributes->{"CPPCustom"};
+    return 1 if $typeInfo->signature->extendedAttributes->{"Custom"}
+                or $typeInfo->signature->extendedAttributes->{"CustomGetter"}
+                or $typeInfo->signature->extendedAttributes->{"CPPCustom"};
 
     # FIXME: We don't generate bindings for SVG related interfaces yet
     return 1 if $typeInfo->signature->name =~ /getSVGDocument/;
@@ -748,11 +746,6 @@ sub GenerateImplementation
                 my $argName = "new" . ucfirst($attributeName);
                 my $arg = GetCPPTypeGetter($argName, $idlType);
 
-                # The definition of ConvertToString is flipped for the setter
-                if ($attribute->signature->extendedAttributes->{"ConvertToString"}) {
-                    $arg = "WTF::String($arg).toInt()";
-                }
-
                 my $attributeType = GetCPPType($attribute->signature->type, 1);
                 push(@implContent, "void $className\:\:$setterName($attributeType $argName)\n");
                 push(@implContent, "{\n");
@@ -812,7 +805,7 @@ sub GenerateImplementation
                 my $implGetter = GetCPPTypeGetter($paramName, $idlType);
 
                 push(@parameterNames, $implGetter);
-                $needsCustom{"NodeToReturn"} = $paramName if $param->extendedAttributes->{"Return"};
+                $needsCustom{"NodeToReturn"} = $paramName if $param->extendedAttributes->{"CustomReturn"};
 
                 unless ($codeGenerator->IsPrimitiveType($idlType) or $codeGenerator->IsStringType($idlType)) {
                     push(@needsAssert, "    ASSERT($paramName);\n");

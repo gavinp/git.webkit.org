@@ -71,6 +71,10 @@
 #include <wtf/UnusedParam.h>
 #include <wtf/text/WTFString.h>
 
+#if PLATFORM(CHROMIUM)
+#include "TraceEvent.h"
+#endif
+
 namespace WebCore {
 
 static V8Extensions& staticExtensionsList()
@@ -335,7 +339,7 @@ v8::Local<v8::Value> V8Proxy::evaluate(const ScriptSourceCode& source, Node* nod
         // Compile the script.
         v8::Local<v8::String> code = v8ExternalString(source.source());
 #if PLATFORM(CHROMIUM)
-        PlatformSupport::traceEventBegin("v8.compile", node, "");
+        TRACE_EVENT_BEGIN0("v8", "v8.compile");
 #endif
         OwnPtr<v8::ScriptData> scriptData = precompileScript(code, source.cachedScript());
 
@@ -343,15 +347,11 @@ v8::Local<v8::Value> V8Proxy::evaluate(const ScriptSourceCode& source, Node* nod
         // 1, whereas v8 starts at 0.
         v8::Handle<v8::Script> script = compileScript(code, source.url(), source.startPosition(), scriptData.get());
 #if PLATFORM(CHROMIUM)
-        PlatformSupport::traceEventEnd("v8.compile", node, "");
-
-        PlatformSupport::traceEventBegin("v8.run", node, "");
+        TRACE_EVENT_END0("v8", "v8.compile");
+        TRACE_EVENT0("v8", "v8.run");
 #endif
         result = runScript(script);
     }
-#if PLATFORM(CHROMIUM)
-    PlatformSupport::traceEventEnd("v8.run", node, "");
-#endif
 
     InspectorInstrumentation::didEvaluateScript(cookie);
 
@@ -378,7 +378,7 @@ v8::Local<v8::Value> V8Proxy::runScript(v8::Handle<v8::Script> script)
     v8::TryCatch tryCatch;
     tryCatch.SetVerbose(true);
     {
-        V8RecursionScope recursionScope;
+        V8RecursionScope recursionScope(frame()->document());
         result = script->Run();
     }
 
@@ -404,10 +404,10 @@ v8::Local<v8::Value> V8Proxy::callFunction(v8::Handle<v8::Function> function, v8
 {
     // Keep Frame (and therefore ScriptController and V8Proxy) alive.
     RefPtr<Frame> protect(frame());
-    return V8Proxy::instrumentedCallFunction(m_frame->page(), function, receiver, argc, args);
+    return V8Proxy::instrumentedCallFunction(frame(), function, receiver, argc, args);
 }
 
-v8::Local<v8::Value> V8Proxy::instrumentedCallFunction(Page* page, v8::Handle<v8::Function> function, v8::Handle<v8::Object> receiver, int argc, v8::Handle<v8::Value> args[])
+v8::Local<v8::Value> V8Proxy::instrumentedCallFunction(Frame* frame, v8::Handle<v8::Function> function, v8::Handle<v8::Object> receiver, int argc, v8::Handle<v8::Value> args[])
 {
     V8GCController::checkMemoryUsage();
 
@@ -415,7 +415,7 @@ v8::Local<v8::Value> V8Proxy::instrumentedCallFunction(Page* page, v8::Handle<v8
         return handleMaxRecursionDepthExceeded();
 
     InspectorInstrumentationCookie cookie;
-    if (InspectorInstrumentation::hasFrontends()) {
+    if (InspectorInstrumentation::hasFrontends() && frame) {
         String resourceName("undefined");
         int lineNumber = 1;
         v8::ScriptOrigin origin = function->GetScriptOrigin();
@@ -423,12 +423,12 @@ v8::Local<v8::Value> V8Proxy::instrumentedCallFunction(Page* page, v8::Handle<v8
             resourceName = toWebCoreString(origin.ResourceName());
             lineNumber = function->GetScriptLineNumber() + 1;
         }
-        cookie = InspectorInstrumentation::willCallFunction(page, resourceName, lineNumber);
+        cookie = InspectorInstrumentation::willCallFunction(frame->page(), resourceName, lineNumber);
     }
 
     v8::Local<v8::Value> result;
     {
-        V8RecursionScope recursionScope;
+        V8RecursionScope recursionScope(frame ? frame->document() : 0);
         result = function->Call(receiver, argc, args);
     }
 

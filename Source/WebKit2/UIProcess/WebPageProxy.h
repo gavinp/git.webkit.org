@@ -719,13 +719,13 @@ private:
     void didChangeScrollOffsetPinningForMainFrame(bool pinnedToLeftSide, bool pinnedToRightSide);
     void didChangePageCount(unsigned);
     void didFailToInitializePlugin(const String& mimeType);
-    void numWheelEventHandlersChanged(unsigned count) { m_wheelEventHandlerCount = count; }
+    void setCanShortCircuitHorizontalWheelEvents(bool canShortCircuitHorizontalWheelEvents) { m_canShortCircuitHorizontalWheelEvents = canShortCircuitHorizontalWheelEvents; }
 
     void reattachToWebProcess();
     void reattachToWebProcessWithItem(WebBackForwardListItem*);
 
     void requestNotificationPermission(uint64_t notificationID, const String& originString);
-    void showNotification(const String& title, const String& body, const String& originString, uint64_t notificationID);
+    void showNotification(const String& title, const String& body, const String& iconURL, const String& originString, uint64_t notificationID);
     
 #if USE(TILED_BACKING_STORE)
     void pageDidRequestScroll(const WebCore::IntPoint&);
@@ -743,7 +743,7 @@ private:
 
     // Back/Forward list management
     void backForwardAddItem(uint64_t itemID);
-    void backForwardGoToItem(uint64_t itemID);
+    void backForwardGoToItem(uint64_t itemID, SandboxExtension::Handle&);
     void backForwardItemAtIndex(int32_t index, uint64_t& itemID);
     void backForwardBackListCount(int32_t& count);
     void backForwardForwardListCount(int32_t& count);
@@ -1009,7 +1009,9 @@ private:
 
     bool m_mainFrameHasHorizontalScrollbar;
     bool m_mainFrameHasVerticalScrollbar;
-    int m_wheelEventHandlerCount;
+
+    // Whether horizontal wheel events can be handled directly for swiping purposes.
+    bool m_canShortCircuitHorizontalWheelEvents;
 
     bool m_mainFrameIsPinnedToLeftSide;
     bool m_mainFrameIsPinnedToRightSide;

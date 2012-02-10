@@ -33,6 +33,7 @@
 #include "cc/CCTextureUpdater.h"
 #include <wtf/CurrentTime.h>
 
+using namespace std;
 using namespace WTF;
 
 namespace WebCore {
@@ -78,7 +79,8 @@ bool CCSingleThreadProxy::compositeAndReadback(void *pixels, const IntRect& rect
         return false;
     }
 
-    commitIfNeeded();
+    if (!commitIfNeeded())
+        return false;
 
     if (!doComposite())
         return false;
@@ -91,9 +93,16 @@ bool CCSingleThreadProxy::compositeAndReadback(void *pixels, const IntRect& rect
     return true;
 }
 
+void CCSingleThreadProxy::startPageScaleAnimation(const IntSize& targetPosition, bool useAnchor, float scale, double durationSec)
+{
+    m_layerTreeHostImpl->startPageScaleAnimation(targetPosition, useAnchor, scale, monotonicallyIncreasingTime() * 1000.0, durationSec * 1000.0);
+}
+
 GraphicsContext3D* CCSingleThreadProxy::context()
 {
     ASSERT(CCProxy::isMainThread());
+    if (m_contextBeforeInitialization)
+        return m_contextBeforeInitialization.get();
     DebugScopedSetImplThread impl;
     return m_layerTreeHostImpl->context();
 }
@@ -169,7 +178,8 @@ void CCSingleThreadProxy::doCommit()
         m_layerTreeHost->beginCommitOnImplThread(m_layerTreeHostImpl.get());
         CCTextureUpdater updater(m_layerTreeHostImpl->contentsTextureAllocator());
         m_layerTreeHost->updateCompositorResources(m_layerTreeHostImpl->context(), updater);
-        while (updater.update(m_layerTreeHostImpl->context(), 1)) { }
+        updater.update(m_layerTreeHostImpl->context(), numeric_limits<size_t>::max());
+        ASSERT(!updater.hasMoreUpdates());
         m_layerTreeHostImpl->setVisible(m_layerTreeHost->visible());
         m_layerTreeHost->finishCommitOnImplThread(m_layerTreeHostImpl.get());
 
@@ -196,6 +206,7 @@ void CCSingleThreadProxy::setNeedsRedraw()
 {
     // FIXME: Once we move render_widget scheduling into this class, we can
     // treat redraw requests more efficiently than commitAndRedraw requests.
+    m_layerTreeHostImpl->setFullRootLayerDamage();
     setNeedsCommit();
 }
 
@@ -228,7 +239,8 @@ void CCSingleThreadProxy::compositeImmediately()
     if (!recreateContextIfNeeded())
         return;
 
-    commitIfNeeded();
+    if (!commitIfNeeded())
+        return;
 
     if (doComposite())
         m_layerTreeHostImpl->swapBuffers();
@@ -282,13 +294,15 @@ bool CCSingleThreadProxy::recreateContextIfNeeded()
     return false;
 }
 
-void CCSingleThreadProxy::commitIfNeeded()
+bool CCSingleThreadProxy::commitIfNeeded()
 {
     ASSERT(CCProxy::isMainThread());
 
-    m_layerTreeHost->updateLayers();
+    if (!m_layerTreeHost->updateLayers())
+        return false;
 
     doCommit();
+    return true;
 }
 
 bool CCSingleThreadProxy::doComposite()

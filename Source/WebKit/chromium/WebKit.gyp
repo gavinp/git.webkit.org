@@ -538,7 +538,6 @@
                 'src/WebFileChooserCompletionImpl.h',
                 'src/WebFileSystemCallbacksImpl.cpp',
                 'src/WebFileSystemCallbacksImpl.h',
-                'src/WebFloatQuad.cpp',
                 'src/WebFontCache.cpp',
                 'src/WebFontDescription.cpp',
                 'src/WebFontImpl.cpp',
@@ -763,6 +762,9 @@
                                     # and we pull in the test files into the webkit target in the
                                     # shared build.
                                     'cflags!': ['-Wglobal-constructors'],
+                                    'xcode_settings': {
+                                      'WARNING_CFLAGS!': ['-Wglobal-constructors'],
+                                    },
                                 }],
                             ],
                             'msvs_settings': {
@@ -856,6 +858,7 @@
                         ['OS=="mac"', {
                             'link_settings': {
                                 'libraries': [
+                                    '$(SDKROOT)/System/Library/Frameworks/Accelerate.framework',
                                     '$(SDKROOT)/System/Library/Frameworks/OpenGL.framework',
                                 ],
                             },

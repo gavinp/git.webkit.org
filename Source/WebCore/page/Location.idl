@@ -32,22 +32,22 @@ module window {
 #if defined(V8_BINDING) && V8_BINDING
         CheckDomainSecurity,
 #endif
-        DelegatingGetOwnPropertySlot,
-        DelegatingPutFunction,
+        JSCustomGetOwnPropertySlotDelegate,
+        CustomNamedSetter,
         JSGenerateIsReachable=ImplFrame,
         CustomDeleteProperty,
         CustomGetPropertyNames,
-        CustomDefineGetter,
+        JSCustomDefineOwnProperty,
         JSCustomPrototypePutDelegate,
-        CustomPrototypeDefineGetter,
+        JSCustomPrototypeDefineOwnProperty,
         OmitConstructor
     ] Location {
 #if !defined(LANGUAGE_CPP) || !LANGUAGE_CPP
-                 attribute [DoNotCheckDomainSecurityOnSet, CustomSetter, V8Unforgeable] DOMString href;
+                 attribute [DoNotCheckDomainSecurityOnSetter, CustomSetter, V8Unforgeable] DOMString href;
 #endif
 
-        [Custom, V8OnInstance] void assign(in [Optional=CallWithDefaultValue] DOMString url);
-        [Custom, V8OnInstance] void replace(in [Optional=CallWithDefaultValue] DOMString url);
+        [Custom, V8OnInstance] void assign(in [Optional=DefaultIsUndefined] DOMString url);
+        [Custom, V8OnInstance] void replace(in [Optional=DefaultIsUndefined] DOMString url);
         [Custom, V8OnInstance] void reload();
 
         // URI decomposition attributes
@@ -64,7 +64,7 @@ module window {
 #endif
 
 #if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
-        [NotEnumerable, Custom, V8OnInstance, V8ReadOnly, ImplementationFunction=toStringFunction] DOMString toString();
+        [NotEnumerable, Custom, V8OnInstance, V8ReadOnly, ImplementedAs=toStringFunction] DOMString toString();
 #endif
 #if defined(V8_BINDING) && V8_BINDING
         [NotEnumerable, Custom, V8OnInstance, V8ReadOnly] DOMObject valueOf();

@@ -27,9 +27,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""Dummy Port implementation used for testing."""
-from __future__ import with_statement
-
 import base64
 import sys
 import time
@@ -501,6 +498,9 @@ class TestDriver(Driver):
             test.actual_checksum, audio, crash=test.crash or test.web_process_crash,
             crashed_process_name=crashed_process_name,
             test_time=time.time() - start_time, timeout=test.timeout, error=test.error)
+
+    def start(self):
+        pass
 
     def stop(self):
         pass

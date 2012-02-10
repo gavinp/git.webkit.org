@@ -49,6 +49,7 @@ public:
 
     // CCProxy implementation
     virtual bool compositeAndReadback(void *pixels, const IntRect&);
+    virtual void startPageScaleAnimation(const IntSize& targetPosition, bool useAnchor, float scale, double durationSec);
     virtual GraphicsContext3D* context();
     virtual void finishAllRendering();
     virtual bool isStarted() const;
@@ -63,7 +64,7 @@ public:
     virtual void setVisible(bool);
     virtual void start();
     virtual void stop();
-    virtual bool partialTextureUpdateCapability() const;
+    virtual size_t maxPartialTextureUpdates() const;
 
     // CCLayerTreeHostImplClient implementation
     virtual void onSwapBuffersCompleteOnImplThread();
@@ -97,12 +98,14 @@ private:
     void obtainBeginFrameAndCommitTaskFromCCThread(CCCompletionEvent*, CCThread::Task**);
     void beginFrameCompleteOnImplThread(CCCompletionEvent*);
     void requestReadbackOnImplThread(ReadbackRequest*);
+    void requestStartPageScaleAnimationOnImplThread(IntSize targetPosition, bool useAnchor, float scale, double durationSec);
     void finishAllRenderingOnImplThread(CCCompletionEvent*);
     void initializeImplOnImplThread(CCCompletionEvent*);
     void initializeContextOnImplThread(GraphicsContext3D*);
     void initializeLayerRendererOnImplThread(CCCompletionEvent*, bool* initializeSucceeded, LayerRendererCapabilities*);
     void setVisibleOnImplThread(CCCompletionEvent*, bool visible);
     void layerTreeHostClosedOnImplThread(CCCompletionEvent*);
+    void setFullRootLayerDamageOnImplThread();
 
     // Accessed on main thread only.
     bool m_animateRequested;

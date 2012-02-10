@@ -29,6 +29,7 @@
 #if ENABLE(THREADED_SCROLLING)
 
 #include "IntRect.h"
+#include "ScrollTypes.h"
 #include <wtf/PassOwnPtr.h>
 
 namespace WebCore {
@@ -51,12 +52,21 @@ protected:
     ScrollingTree* scrollingTree() const { return m_scrollingTree; }
     const IntRect& viewportRect() const { return m_viewportRect; }
     const IntSize& contentsSize() const { return m_contentsSize; }
+    bool shouldUpdateScrollLayerPositionOnMainThread() const { return m_shouldUpdateScrollLayerPositionOnMainThread; }
 
 private:
     ScrollingTree* m_scrollingTree;
 
     IntRect m_viewportRect;
     IntSize m_contentsSize;
+
+    bool m_shouldUpdateScrollLayerPositionOnMainThread;
+
+    ScrollElasticity m_horizontalScrollElasticity;
+    ScrollElasticity m_verticalScrollElasticity;
+    
+    bool m_hasEnabledHorizontalScrollbar;
+    bool m_hasEnabledVerticalScrollbar;
 };
 
 } // namespace WebCore

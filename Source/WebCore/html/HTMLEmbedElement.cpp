@@ -108,12 +108,11 @@ void HTMLEmbedElement::parseAttribute(Attribute* attr)
 
 void HTMLEmbedElement::parametersForPlugin(Vector<String>& paramNames, Vector<String>& paramValues)
 {
-    NamedNodeMap* attributes = updatedAttributes();
-    if (!attributes)
+    if (!hasAttributes())
         return;
 
-    for (unsigned i = 0; i < attributes->length(); ++i) {
-        Attribute* it = attributes->attributeItem(i);
+    for (unsigned i = 0; i < attributeCount(); ++i) {
+        Attribute* it = attributeItem(i);
         paramNames.append(it->localName().string());
         paramValues.append(it->value().string());
     }
@@ -134,11 +133,15 @@ void HTMLEmbedElement::updateWidget(PluginCreationOption pluginCreationOption)
     // <object> which modifies url and serviceType before calling these.
     if (!allowedToLoadFrameURL(m_url))
         return;
+
     // FIXME: It's sadness that we have this special case here.
     //        See http://trac.webkit.org/changeset/25128 and
     //        plugins/netscape-plugin-setwindow-size.html
-    if (pluginCreationOption == CreateOnlyNonNetscapePlugins && wouldLoadAsNetscapePlugin(m_url, m_serviceType))
+    if (pluginCreationOption == CreateOnlyNonNetscapePlugins && wouldLoadAsNetscapePlugin(m_url, m_serviceType)) {
+        // Ensure updateWidget() is called again during layout to create the Netscape plug-in.
+        setNeedsWidgetUpdate(true);
         return;
+    }
 
     // FIXME: These should be joined into a PluginParameters class.
     Vector<String> paramNames;

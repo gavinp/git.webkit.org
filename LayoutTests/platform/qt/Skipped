@@ -159,6 +159,7 @@ fast/css/style-scoped
 
 # ENABLE(SHADOW_DOM) is disabled.
 fast/dom/shadow/shadow-root-js-api.html
+fast/dom/shadow/shadow-disable.html
 
 # CSS Regions support not yet enabled. http://webkit.org/b/57312
 fast/regions
@@ -443,6 +444,7 @@ fast/events/moving-text-should-fire-drop-and-dragend-events-2.html
 http/tests/misc/favicon-as-image.html
 
 # No authentication challenge handling
+http/tests/loading/authentication-after-redirect-stores-wrong-credentials/authentication-after-redirect-stores-wrong-credentials.html
 http/tests/loading/basic-credentials-sent-automatically.html
 http/tests/loading/basic-auth-resend-wrong-credentials.html
 http/tests/misc/authentication-redirect-1/authentication-sent-to-redirect-cross-origin.html
@@ -556,6 +558,7 @@ http/tests/misc/xslt-bad-import.html
 # [Qt] http/tests/misc/onload-remove-iframe-crash-2.html crashing after r100311
 # https://bugs.webkit.org/show_bug.cgi?id=72491
 http/tests/misc/onload-remove-iframe-crash-2.html
+
 
 # =========================================================================== #
 #       Failing xmlhttprequest tests                                          #
@@ -734,6 +737,8 @@ editing/spelling/spellcheck-paste.html
 editing/spelling/spellcheck-queue.html
 editing/spelling/spellcheck-sequencenum.html
 editing/spelling/spellcheck-async-mutation.html
+# EditorClient::checkTextOfParagraph() is not implemented
+editing/spelling/spelling-marker-description.html
 
 # [Qt][GTK] editing/spelling/spellcheck-async.html fails
 # https://bugs.webkit.org/show_bug.cgi?id=73003
@@ -1242,10 +1247,7 @@ svg/custom/acid3-test-77.html
 svg/custom/altglyph.svg
 svg/custom/font-face-simple.svg
 svg/custom/global-constructors.html
-svg/custom/glyph-selection-arabic-forms.svg
-svg/custom/glyph-selection-bidi-mirror.svg
 svg/custom/glyph-selection-lang-attribute.svg
-svg/custom/glyph-selection-non-bmp.svg
 svg/custom/glyph-setting-d-attribute.svg
 svg/custom/insertItemBefore-from-non-list-origin.svg
 svg/custom/svg-fonts-in-text-controls.html
@@ -1342,6 +1344,7 @@ svg/W3C-SVG-1.1/text-align-04-b.svg
 svg/zoom/page/zoom-mask-with-percentages.svg
 svg/zoom/page/zoom-img-preserveAspectRatio-support-1.html
 svg/dom/css-transforms.xhtml
+svg/carto.net/tabgroup.svg
 
 # [Qt] Couple of tests have different results on 64 bit and/or in debug mode compared to 32 bit and/or release mode
 # https://bugs.webkit.org/show_bug.cgi?id=52810
@@ -1377,6 +1380,15 @@ svg/custom/getBBox-path.svg
 # [Qt] REGRESSION(r96779): It made svg/as-image/svg-nested.html timeout
 # https://bugs.webkit.org/show_bug.cgi?id=69511
 svg/as-image/svg-nested.html
+
+#[Qt] New svg/hittest tests introduced in r106882 fail
+#https://bugs.webkit.org/show_bug.cgi?id=77964
+svg/hittest/zero-length-round-cap-path.xhtml
+svg/hittest/zero-length-square-cap-path.xhtml
+
+# [Qt] svg/zoom/page/zoom-coords-viewattr-01-b.svg fails
+# https://bugs.webkit.org/show_bug.cgi?id=78128
+svg/zoom/page/zoom-coords-viewattr-01-b.svg
 
 # ============================================================================= #
 # Failing CSS Tests
@@ -2206,6 +2218,75 @@ fast/block/float/overhanging-float-remove-from-fixed-position-block.html
 fast/events/touch/touch-gesture-click.html
 fast/events/touch/touch-gesture-scroll.html
 
+# new tests without expected files, need investigation
+css3/images/cross-fade-background-size.html
+css3/images/cross-fade-tiled.html
+css3/images/cross-fade-blending.html
+css3/images/cross-fade-invalidation.html
+css3/images/cross-fade-simple.html
+css3/images/cross-fade-sizing.html
+svg/clip-path/clip-path-tspan-and-stroke.svg
+svg/clip-path/clip-in-clip.svg
+svg/clip-path/clipper-placement-issue.svg
+svg/text/modify-text-node-in-tspan.html
+svg/text/remove-text-node-from-tspan.html
+svg/text/non-bmp-positioning-lists.svg
+svg/text/remove-tspan-from-text.html
+svg/text/append-text-node-to-tspan.html
+svg/custom/pattern-userSpaceOnUse-userToBaseTransform.xhtml
+svg/custom/use-disappears-after-style-update.svg
+svg/custom/transform-with-shadow-and-gradient.svg
+svg/custom/clip-path-with-css-transform-2.svg
+svg/custom/path-moveto-only-rendering.svg
+svg/custom/relative-sized-image.xhtml
+svg/custom/clip-path-with-css-transform-1.svg
+svg/custom/subpaths-moveto-only-rendering.svg
+svg/stroke/zero-length-path-linecap-rendering.svg
+svg/stroke/zero-length-subpaths-linecap-rendering.svg
+svg/wicd/sizing-flakiness.html
+svg/filters/feImage-subregions.svg
+svg/filters/feImage-filterUnits-objectBoundingBox-primitiveUnits-objectBoundingBox.svg
+svg/filters/feImage-preserveAspectratio.svg
+svg/filters/feImage-subregions-preseveAspectRatio-none.svg
+svg/filters/feImage-target-attribute-change.svg
+svg/filters/feImage-target-property-change.svg
+svg/filters/feImage-target-attribute-change-with-use-indirection.svg
+svg/filters/filter-placement-issue.svg
+svg/filters/feImage-position.svg
+svg/filters/feImage-remove-target.svg
+svg/filters/feImage-filterUnits-objectBoundingBox-primitiveUnits-userSpaceOnUse.svg
+svg/filters/filter-refresh.svg
+svg/filters/feImage-target-style-change.svg
+svg/filters/feImage-target-id-change.svg
+svg/filters/feImage-multiple-targets-id-change.svg
+svg/filters/feImage-target-reappend-to-document.svg
+svg/filters/feImage-filterUnits-userSpaceOnUse-primitiveUnits-userSpaceOnUse.svg
+svg/filters/feImage-target-attribute-change-with-use-indirection-2.svg
+svg/filters/feImage-late-indirect-update.svg
+svg/filters/feImage-target-remove-from-document.svg
+svg/filters/feImage-target-add-to-document.svg
+svg/filters/feImage-filterUnits-userSpaceOnUse-primitiveUnits-objectBoundingBox.svg
+svg/filters/feImage-target-inline-style-change.svg
+svg/filters/feImage-target-changes-id.svg
+svg/filters/feImage-subregions-preseveAspectRatio-none-with-viewBox.svg
+svg/filters/feImage-change-target-id.svg
+css2.1/20110323/outline-color-applies-to-008.htm
+css2.1/20110323/border-collapse-offset-002.htm
+http/tests/misc/slow-loading-mask.html
+http/tests/misc/willCacheResponse-delegate-callback.html
+fast/text/unicode-variation-selector.html
+fast/backgrounds/mask-box-image.html
+fast/forms/select-overflow-scroll-inherited.html
+fast/forms/select-overflow-scroll.html
+fast/line-grid/line-grid-floating.html
+fast/line-grid/line-grid-inside-columns.html
+fast/line-grid/line-grid-positioned.html
+fast/line-grid/line-grid-into-floats.html
+fast/line-grid/line-grid-into-columns.html
+fast/line-grid/line-grid-contains-value.html
+fast/borders/border-image-slice-constrained.html
+fast/borders/scaled-border-image.html
+
 # ============================================================================= #
 # Qt 4.7 related bugs
 # ============================================================================= #
@@ -2518,15 +2599,14 @@ fast/multicol/span/span-as-immediate-columns-child-removal.html
 # new test introduced in http://trac.webkit.org/changeset/106072 - need more investigation
 fast/parser/nested-fragment-parser-crash.html
 
-# REGRESSION(r106554): It made 4 tests assert
-# Hovered node gets stuck on touch events
-# https://bugs.webkit.org/show_bug.cgi?id=77620
-fast/events/touch/basic-multi-touch-events.html
-fast/events/touch/touch-target.html
-fast/events/touch/touch-before-pressing-spin-button.html
-fast/events/touch/touch-coords-in-zoom-and-scroll.html
-fast/events/touch/touch-inside-iframe.html
-
 # new test introduced in http://trac.webkit.org/changeset/106642 failes on Qt Release
 # https://bugs.webkit.org/show_bug.cgi?id=77729
 fast/events/touch/emulate-touch-events.html 
+
+# [Qt] fast/text/international/inline-plaintext-is-isolated.html fails
+# https://bugs.webkit.org/show_bug.cgi?id=78092
+fast/text/international/inline-plaintext-is-isolated.html
+
+# Synthetic bold is illegible under some scaling transforms
+# https://bugs.webkit.org/show_bug.cgi?id=78044
+fast/text/synthetic-bold-transformed.html

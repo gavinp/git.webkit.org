@@ -45,6 +45,7 @@
 #include "GraphicsContext3D.h"
 #include "GraphicsLayer.h"
 #include "InspectorClientImpl.h"
+#include "IntPoint.h"
 #include "IntRect.h"
 #include "NotificationPresenterImpl.h"
 #include "PageOverlayList.h"
@@ -68,9 +69,6 @@ class PopupMenuClient;
 class Range;
 class RenderTheme;
 class Widget;
-#if ENABLE(GESTURE_RECOGNIZER)
-class PlatformGestureRecognizer;
-#endif
 }
 
 namespace WebKit {
@@ -113,6 +111,7 @@ public:
     virtual void paint(WebCanvas*, const WebRect&);
     virtual void themeChanged();
     virtual void composite(bool finish);
+    virtual void setNeedsRedraw();
     virtual bool handleInputEvent(const WebInputEvent&);
     virtual void mouseCaptureLost();
     virtual void setFocus(bool enable);
@@ -317,6 +316,7 @@ public:
     void mouseDoubleClick(const WebMouseEvent&);
     bool mouseWheel(const WebMouseWheelEvent&);
     bool gestureEvent(const WebGestureEvent&);
+    void startPageScaleAnimation(const WebCore::IntPoint& targetPosition, bool useAnchor, float newScale, double durationSec);
     bool keyEvent(const WebKeyboardEvent&);
     bool charEvent(const WebKeyboardEvent&);
     bool touchEvent(const WebTouchEvent&);
@@ -457,10 +457,6 @@ public:
     // if the zoom change was triggered by the browser, it's only needed in case
     // a plugin can update its own zoom, say because of its own UI.
     void fullFramePluginZoomLevelChanged(double zoomLevel);
-
-#if ENABLE(GESTURE_RECOGNIZER)
-    void resetGestureRecognizer();
-#endif
 
     void loseCompositorContext(int numTimes);
 
@@ -689,10 +685,6 @@ private:
     RefPtr<WebCore::GraphicsContext3D> m_temporaryOnscreenGraphicsContext3D;
     OwnPtr<DeviceOrientationClientProxy> m_deviceOrientationClientProxy;
     OwnPtr<GeolocationClientProxy> m_geolocationClientProxy;
-
-#if ENABLE(GESTURE_RECOGNIZER)
-    OwnPtr<WebCore::PlatformGestureRecognizer> m_gestureRecognizer;
-#endif
 
 #if ENABLE(MEDIA_STREAM)
     UserMediaClientImpl m_userMediaClientImpl;

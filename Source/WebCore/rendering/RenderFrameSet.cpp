@@ -80,7 +80,7 @@ static Color borderFillColor()
     return Color(208, 208, 208);
 }
 
-void RenderFrameSet::paintColumnBorder(const PaintInfo& paintInfo, const IntRect& borderRect)
+void RenderFrameSet::paintColumnBorder(const PaintInfo& paintInfo, const LayoutRect& borderRect)
 {
     if (!paintInfo.rect.intersects(borderRect))
         return;
@@ -100,7 +100,7 @@ void RenderFrameSet::paintColumnBorder(const PaintInfo& paintInfo, const IntRect
     }
 }
 
-void RenderFrameSet::paintRowBorder(const PaintInfo& paintInfo, const IntRect& borderRect)
+void RenderFrameSet::paintRowBorder(const PaintInfo& paintInfo, const LayoutRect& borderRect)
 {
     if (!paintInfo.rect.intersects(borderRect))
         return;
@@ -802,7 +802,7 @@ bool RenderFrameSet::isChildAllowed(RenderObject* child, RenderStyle*) const
 
 CursorDirective RenderFrameSet::getCursor(const LayoutPoint& point, Cursor& cursor) const
 {
-    if (canResizeRow(point)) {
+    if (canResizeRow(roundedIntPoint(point))) {
         cursor = rowResizeCursor();
         return SetCursor;
     }

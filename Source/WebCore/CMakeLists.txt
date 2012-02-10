@@ -307,6 +307,7 @@ SET(WebCore_IDL_FILES
     html/canvas/Uint8ClampedArray.idl
 
     html/shadow/HTMLContentElement.idl
+    html/shadow/HTMLShadowElement.idl
 
     html/track/TextTrackList.idl
     html/track/TrackEvent.idl
@@ -807,7 +808,6 @@ SET(WebCore_SOURCES
     html/ImageDocument.cpp
     html/ImageInputType.cpp
     html/InputType.cpp
-    html/IsIndexInputType.cpp
     html/LabelsNodeList.cpp
     html/LinkRelAttribute.cpp
     html/MediaController.cpp
@@ -866,6 +866,7 @@ SET(WebCore_SOURCES
     html/shadow/ContentInclusionSelector.cpp
     html/shadow/DetailsMarkerControl.cpp
     html/shadow/HTMLContentElement.cpp
+    html/shadow/HTMLShadowElement.cpp
     html/shadow/MediaControls.cpp
     html/shadow/MediaControlRootElement.cpp
     html/shadow/MeterShadowElement.cpp
@@ -877,6 +878,7 @@ SET(WebCore_SOURCES
     inspector/ContentSearchUtils.cpp
     inspector/DOMEditor.cpp
     inspector/DOMNodeHighlighter.cpp
+    inspector/DOMPatchSupport.cpp
     inspector/IdentifiersFactory.cpp
     inspector/InjectedScript.cpp
     inspector/InjectedScriptHost.cpp
@@ -899,6 +901,7 @@ SET(WebCore_SOURCES
     inspector/InspectorFileSystemAgent.cpp
     inspector/InspectorFrontendClientLocal.cpp
     inspector/InspectorFrontendHost.cpp
+    inspector/InspectorHistory.cpp
     inspector/InspectorIndexedDBAgent.cpp
     inspector/InspectorInstrumentation.cpp
     inspector/InspectorMemoryAgent.cpp
@@ -1584,6 +1587,7 @@ if (ENABLE_FILE_SYSTEM)
         fileapi/Entry.cpp
         fileapi/EntryArray.cpp
         fileapi/EntryArraySync.cpp
+        fileapi/EntryBase.cpp
         fileapi/EntrySync.cpp
         fileapi/FileEntry.cpp
         fileapi/FileEntrySync.cpp
@@ -2035,6 +2039,7 @@ IF (ENABLE_WEB_SOCKETS)
         websockets/ThreadableWebSocketChannelClientWrapper.cpp
         websockets/WebSocket.cpp
         websockets/WebSocketChannel.cpp
+        websockets/WebSocketExtensionDispatcher.cpp
         websockets/WebSocketHandshake.cpp
         websockets/WebSocketHandshakeRequest.cpp
         websockets/WebSocketHandshakeResponse.cpp
@@ -2178,7 +2183,7 @@ IF (ENABLE_WEBGL)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/ValidateLimitations.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/VariableInfo.cpp
         html/canvas/WebGLBuffer.cpp
-        html/canvas/WebGLCompressedTextures.cpp
+        html/canvas/WebGLCompressedTextureS3TC.cpp
         html/canvas/WebGLContextAttributes.cpp
         html/canvas/WebGLContextEvent.cpp
         html/canvas/WebGLContextGroup.cpp
@@ -2211,7 +2216,7 @@ IF (ENABLE_WEBGL)
         html/canvas/OESVertexArrayObject.idl
         html/canvas/WebGLActiveInfo.idl
         html/canvas/WebGLBuffer.idl
-        html/canvas/WebGLCompressedTextures.idl
+        html/canvas/WebGLCompressedTextureS3TC.idl
         html/canvas/WebGLContextAttributes.idl
         html/canvas/WebGLContextEvent.idl
         html/canvas/WebGLDebugRendererInfo.idl

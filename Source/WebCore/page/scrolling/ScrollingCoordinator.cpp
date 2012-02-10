@@ -34,6 +34,9 @@
 #include "IntRect.h"
 #include "Page.h"
 #include "PlatformWheelEvent.h"
+#include "Region.h"
+#include "RenderLayerCompositor.h"
+#include "RenderView.h"
 #include "ScrollAnimator.h"
 #include "ScrollingThread.h"
 #include "ScrollingTree.h"
@@ -98,8 +101,30 @@ void ScrollingCoordinator::frameViewLayoutUpdated(FrameView* frameView)
     if (!coordinatesScrollingForFrameView(frameView))
         return;
 
+    // Compute the region of the page that we can't do fast scrolling for. This currently includes
+    // all scrollable areas, such as subframes, overflow divs and list boxes.
+    Region nonScrollableRegion;
+    if (const FrameView::ScrollableAreaSet* scrollableAreas = frameView->scrollableAreas()) {
+        for (FrameView::ScrollableAreaSet::const_iterator it = scrollableAreas->begin(), end = scrollableAreas->end(); it != end; ++it) {
+            ScrollableArea* scrollableArea = *it;
+
+            // Check if this area can be scrolled at all.
+            if ((!scrollableArea->horizontalScrollbar() || !scrollableArea->horizontalScrollbar()->enabled())
+                && (!scrollableArea->verticalScrollbar() || !scrollableArea->verticalScrollbar()->enabled()))
+                continue;
+
+            nonScrollableRegion.unite(scrollableArea->scrollableAreaBoundingBox());
+        }
+    }
+
+    m_scrollingTreeState->setHorizontalScrollElasticity(frameView->horizontalScrollElasticity());
+    m_scrollingTreeState->setVerticalScrollElasticity(frameView->verticalScrollElasticity());
+    m_scrollingTreeState->setHasEnabledHorizontalScrollbar(frameView->horizontalScrollbar() && frameView->horizontalScrollbar()->enabled());
+    m_scrollingTreeState->setHasEnabledVerticalScrollbar(frameView->verticalScrollbar() && frameView->verticalScrollbar()->enabled());
+
     m_scrollingTreeState->setViewportRect(IntRect(IntPoint(), frameView->visibleContentRect().size()));
     m_scrollingTreeState->setContentsSize(frameView->contentsSize());
+    m_scrollingTreeState->setNonFastScrollableRegion(nonScrollableRegion);
     scheduleTreeStateCommit();
 }
 
@@ -109,6 +134,18 @@ void ScrollingCoordinator::frameViewWheelEventHandlerCountChanged(FrameView*)
     ASSERT(m_page);
 
     recomputeWheelEventHandlerCount();
+}
+
+void ScrollingCoordinator::frameViewHasSlowRepaintObjectsDidChange(FrameView* frameView)
+{
+    ASSERT(isMainThread());
+    ASSERT(m_page);
+
+    if (!coordinatesScrollingForFrameView(frameView))
+        return;
+
+    m_scrollingTreeState->setShouldUpdateScrollLayerPositionOnMainThread(frameView->hasSlowRepaintObjects());
+    scheduleTreeStateCommit();
 }
 
 void ScrollingCoordinator::updateMainFrameScrollPosition(const IntPoint& scrollPosition)
@@ -125,6 +162,25 @@ void ScrollingCoordinator::updateMainFrameScrollPosition(const IntPoint& scrollP
     frameView->setConstrainsScrollingToContentEdge(false);
     frameView->scrollToOffsetWithoutAnimation(scrollPosition);
     frameView->setConstrainsScrollingToContentEdge(true);
+}
+
+void ScrollingCoordinator::updateMainFrameScrollPositionAndScrollLayerPosition(const IntPoint& scrollPosition)
+{
+    FrameView* frameView = m_page->mainFrame()->view();
+
+    RenderView* renderView = m_page->mainFrame()->contentRenderer();
+    if (!renderView)
+        return;
+
+    GraphicsLayer* scrollLayer = renderView->compositor()->scrollLayer();
+    if (!scrollLayer)
+        return;
+
+    frameView->setConstrainsScrollingToContentEdge(false);
+    frameView->scrollToOffsetWithoutAnimation(scrollPosition);
+    frameView->setConstrainsScrollingToContentEdge(true);
+
+    scrollLayer->setPosition(-frameView->scrollPosition());
 }
 
 void ScrollingCoordinator::recomputeWheelEventHandlerCount()

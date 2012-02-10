@@ -697,7 +697,7 @@ bool EventHandler::eventMayStartDrag(const PlatformMouseEvent& event) const
     HitTestResult result(view->windowToContents(event.position()));
     m_frame->contentRenderer()->layer()->hitTest(request, result);
     DragState state;
-    return result.innerNode() && page->dragController()->draggableNode(m_frame, result.innerNode(), result.point(), state);
+    return result.innerNode() && page->dragController()->draggableNode(m_frame, result.innerNode(), roundedIntPoint(result.point()), state);
 }
 
 void EventHandler::updateSelectionForMouseDrag()
@@ -807,12 +807,6 @@ bool EventHandler::handleMouseUp(const MouseEventWithHitTestResults& event)
 
 bool EventHandler::handleMouseReleaseEvent(const MouseEventWithHitTestResults& event)
 {
-#if ENABLE(TOUCH_EVENTS)
-    bool defaultPrevented = dispatchSyntheticTouchEventIfEnabled(event.event());
-    if (defaultPrevented)
-        return true;
-#endif
-
     if (m_autoscrollInProgress)
         stopAutoscrollTimer();
 
@@ -1037,7 +1031,7 @@ HitTestResult EventHandler::hitTestResultAtPoint(const LayoutPoint& point, bool 
         result = widgetHitTestResult;
 
         if (testScrollbars == ShouldHitTestScrollbars) {
-            Scrollbar* eventScrollbar = view->scrollbarAtPoint(point);
+            Scrollbar* eventScrollbar = view->scrollbarAtPoint(roundedIntPoint(point));
             if (eventScrollbar)
                 result.setScrollbar(eventScrollbar);
         }
@@ -1052,7 +1046,7 @@ HitTestResult EventHandler::hitTestResultAtPoint(const LayoutPoint& point, bool 
             FrameView* resultView = resultFrame->view();
             FrameView* mainView = mainFrame->view();
             if (resultView && mainView) {
-                LayoutPoint mainFramePoint = mainView->rootViewToContents(resultView->contentsToRootView(result.point()));
+                IntPoint mainFramePoint = mainView->rootViewToContents(resultView->contentsToRootView(roundedIntPoint(result.point())));
                 result = mainFrame->eventHandler()->hitTestResultAtPoint(mainFramePoint, allowShadowContent, ignoreClipping, testScrollbars, hitType, padding);
             }
         }
@@ -1271,7 +1265,7 @@ OptionalCursor EventHandler::selectCursor(const MouseEventWithHitTestResults& ev
 
     if (renderer) {
         Cursor overrideCursor;
-        switch (renderer->getCursor(event.localPoint(), overrideCursor)) {
+        switch (renderer->getCursor(roundedIntPoint(event.localPoint()), overrideCursor)) {
         case SetCursorBasedOnStyle:
             break;
         case SetCursor:
@@ -1481,7 +1475,7 @@ bool EventHandler::handleMousePressEvent(const PlatformMouseEvent& mouseEvent)
     HitTestRequest request(HitTestRequest::Active);
     // Save the document point we generate in case the window coordinate is invalidated by what happens 
     // when we dispatch the event.
-    IntPoint documentPoint = documentPointForWindowPoint(m_frame, mouseEvent.position());
+    LayoutPoint documentPoint = documentPointForWindowPoint(m_frame, mouseEvent.position());
     MouseEventWithHitTestResults mev = m_frame->document()->prepareMouseEvent(request, documentPoint, mouseEvent);
 
     if (!targetNode(mev)) {
@@ -1656,8 +1650,10 @@ bool EventHandler::mouseMoved(const PlatformMouseEvent& event)
         return result;
 
     if (RenderLayer* layer = layerForNode(hoveredNode.innerNode())) {
-        if (page->containsScrollableArea(layer))
-            layer->mouseMovedInContentArea();
+        if (FrameView* frameView = m_frame->view()) {
+            if (frameView->containsScrollableArea(layer))
+                layer->mouseMovedInContentArea();
+        }
     }
 
     if (FrameView* frameView = m_frame->view())
@@ -1785,7 +1781,13 @@ void EventHandler::invalidateClick()
 bool EventHandler::handleMouseReleaseEvent(const PlatformMouseEvent& mouseEvent)
 {
     RefPtr<FrameView> protector(m_frame->view());
-    
+
+#if ENABLE(TOUCH_EVENTS)
+    bool defaultPrevented = dispatchSyntheticTouchEventIfEnabled(mouseEvent);
+    if (defaultPrevented)
+        return true;
+#endif
+
     UserGestureIndicator gestureIndicator(DefinitelyProcessingUserGesture);
 
 #if ENABLE(PAN_SCROLLING)
@@ -2117,10 +2119,14 @@ void EventHandler::updateMouseEventTargetNode(Node* targetNode, const PlatformMo
             }
         } else if (page && (layerForLastNode && (!layerForNodeUnderMouse || layerForNodeUnderMouse != layerForLastNode))) {
             // The mouse has moved between layers.
-            if (page->containsScrollableArea(layerForLastNode))
-                layerForLastNode->mouseExitedContentArea();
+            if (Frame* frame = m_lastNodeUnderMouse->document()->frame()) {
+                if (FrameView* frameView = frame->view()) {
+                    if (frameView->containsScrollableArea(layerForLastNode))
+                        layerForLastNode->mouseExitedContentArea();
+                }
+            }
         }
-        
+
         if (m_nodeUnderMouse && (!m_lastNodeUnderMouse || m_lastNodeUnderMouse->document() != m_frame->document())) {
             // The mouse has moved between frames.
             if (Frame* frame = m_nodeUnderMouse->document()->frame()) {
@@ -2129,10 +2135,14 @@ void EventHandler::updateMouseEventTargetNode(Node* targetNode, const PlatformMo
             }
         } else if (page && (layerForNodeUnderMouse && (!layerForLastNode || layerForNodeUnderMouse != layerForLastNode))) {
             // The mouse has moved between layers.
-            if (page->containsScrollableArea(layerForNodeUnderMouse))
-                layerForNodeUnderMouse->mouseEnteredContentArea();
+            if (Frame* frame = m_nodeUnderMouse->document()->frame()) {
+                if (FrameView* frameView = frame->view()) {
+                    if (frameView->containsScrollableArea(layerForNodeUnderMouse))
+                        layerForNodeUnderMouse->mouseEnteredContentArea();
+                }
+            }
         }
-        
+
         if (m_lastNodeUnderMouse && m_lastNodeUnderMouse->document() != m_frame->document()) {
             m_lastNodeUnderMouse = 0;
             m_lastScrollbarUnderMouse = 0;
@@ -3456,7 +3466,7 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
 
 bool EventHandler::dispatchSyntheticTouchEventIfEnabled(const PlatformMouseEvent& event)
 {
-    if (!m_frame->document()->settings()->isTouchEventEmulationEnabled())
+    if (!m_frame || !m_frame->settings() || !m_frame->settings()->isTouchEventEmulationEnabled())
         return false;
 
     PlatformEvent::Type eventType = event.type();

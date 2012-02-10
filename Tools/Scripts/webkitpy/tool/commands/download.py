@@ -27,8 +27,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-
 from webkitpy.tool import steps
 
 from webkitpy.common.checkout.changelog import ChangeLog
@@ -187,6 +185,12 @@ class ProcessBugsMixin(object):
             patches = tool.bugs.fetch_bug(bug_id).reviewed_patches()
             log("%s found on bug %s." % (pluralize("reviewed patch", len(patches)), bug_id))
             all_patches += patches
+        if not all_patches:
+            log("No reviewed patches found, looking for unreviewed patches.")
+            for bug_id in args:
+                patches = tool.bugs.fetch_bug(bug_id).patches()
+                log("%s found on bug %s." % (pluralize("patch", len(patches)), bug_id))
+                all_patches += patches
         return all_patches
 
 

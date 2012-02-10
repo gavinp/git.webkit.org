@@ -79,6 +79,7 @@ ChromeClient::ChromeClient(WebKitWebView* webView)
     : m_webView(webView)
     , m_adjustmentWatcher(webView)
     , m_closeSoonTimer(0)
+    , m_modalLoop(0)
     , m_displayTimer(this, &ChromeClient::paint)
     , m_lastDisplayTime(0)
     , m_repaintSoonSourceId(0)
@@ -93,6 +94,9 @@ void ChromeClient::chromeDestroyed()
 
     if (m_repaintSoonSourceId)
         g_source_remove(m_repaintSoonSourceId);
+
+    if (m_modalLoop)
+        g_main_loop_quit(m_modalLoop);
 
     delete this;
 }
@@ -180,13 +184,26 @@ void ChromeClient::show()
 
 bool ChromeClient::canRunModal()
 {
-    notImplemented();
-    return false;
+    return true;
 }
 
 void ChromeClient::runModal()
 {
-    notImplemented();
+    gboolean isHandled = false;
+    g_signal_emit_by_name(m_webView, "run-modal-dialog", &isHandled);
+    if (!isHandled)
+        return;
+
+    GMainContext* threadDefaultContext = g_main_context_ref_thread_default();
+    g_main_context_acquire(threadDefaultContext);
+
+    m_modalLoop = g_main_loop_new(threadDefaultContext, FALSE);
+    g_main_loop_run(m_modalLoop);
+    g_main_loop_unref(m_modalLoop);
+    m_modalLoop = 0;
+
+    g_main_context_release(threadDefaultContext);
+    g_main_context_unref(threadDefaultContext);
 }
 
 void ChromeClient::setToolbarsVisible(bool visible)
@@ -525,6 +542,20 @@ static void paintWebView(WebKitWebView* webView, Frame* frame, Region dirtyRegio
     gc.restore();
 }
 
+void ChromeClient::invalidateWidgetRect(const IntRect& rect)
+{
+#if USE(ACCELERATED_COMPOSITING)
+    AcceleratedCompositingContext* acContext = m_webView->priv->acceleratedCompositingContext.get();
+    if (acContext->enabled()) {
+        acContext->scheduleRootLayerRepaint(rect);
+        return;
+    }
+#endif
+    gtk_widget_queue_draw_area(GTK_WIDGET(m_webView),
+                               rect.x(), rect.y(),
+                               rect.width(), rect.height());
+}
+
 void ChromeClient::performAllPendingScrolls()
 {
     if (!m_webView->priv->backingStore)
@@ -534,15 +565,12 @@ void ChromeClient::performAllPendingScrolls()
     for (size_t i = 0; i < m_rectsToScroll.size(); i++) {
         IntRect& scrollRect = m_rectsToScroll[i];
         m_webView->priv->backingStore->scroll(scrollRect, m_scrollOffsets[i]);
-        gtk_widget_queue_draw_area(GTK_WIDGET(m_webView),
-                                   scrollRect.x(), scrollRect.y(),
-                                   scrollRect.width(), scrollRect.height());
+        invalidateWidgetRect(scrollRect);
     }
 
     m_rectsToScroll.clear();
     m_scrollOffsets.clear();
 }
-
 
 void ChromeClient::paint(WebCore::Timer<ChromeClient>*)
 {
@@ -559,12 +587,9 @@ void ChromeClient::paint(WebCore::Timer<ChromeClient>*)
     if (!frame || !frame->contentRenderer() || !frame->view())
         return;
 
-    performAllPendingScrolls();
     frame->view()->updateLayoutAndStyleIfNeededRecursive();
+    performAllPendingScrolls();
     paintWebView(m_webView, frame, m_dirtyRegion);
-
-    const IntRect& rect = m_dirtyRegion.bounds();
-    gtk_widget_queue_draw_area(GTK_WIDGET(m_webView), rect.x(), rect.y(), rect.width(), rect.height());
 
     HashSet<GtkWidget*> children = m_webView->priv->children;
     HashSet<GtkWidget*>::const_iterator end = children.end();
@@ -574,6 +599,14 @@ void ChromeClient::paint(WebCore::Timer<ChromeClient>*)
             break;
         }
     }
+
+    const IntRect& rect = m_dirtyRegion.bounds();
+    invalidateWidgetRect(rect);
+
+#if USE(ACCELERATED_COMPOSITING)
+    m_webView->priv->acceleratedCompositingContext->syncLayersNow();
+    m_webView->priv->acceleratedCompositingContext->renderLayersToWindow(rect);
+#endif
 
     m_dirtyRegion = Region();
     m_lastDisplayTime = currentTime();
@@ -829,6 +862,9 @@ void ChromeClient::setCursor(const Cursor& cursor)
     // Setting the cursor may be an expensive operation in some backends,
     // so don't re-set the cursor if it's already set to the target value.
     GdkWindow* window = gtk_widget_get_window(platformPageClient());
+    if (!window)
+        return;
+
     GdkCursor* currentCursor = gdk_window_get_cursor(window);
     GdkCursor* newCursor = cursor.platformCursor().get();
     if (currentCursor != newCursor)

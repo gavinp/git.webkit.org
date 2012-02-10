@@ -58,6 +58,74 @@ void ScrollingTreeNodeMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent
     scrollBy(IntSize(-wheelEvent.deltaX(), -wheelEvent.deltaY()));
 }
 
+bool ScrollingTreeNodeMac::allowsHorizontalStretching()
+{
+    // FIXME: Implement.
+    return false;
+}
+
+bool ScrollingTreeNodeMac::allowsVerticalStretching()
+{
+    // FIXME: Implement.
+    return false;
+}
+
+IntSize ScrollingTreeNodeMac::stretchAmount()
+{
+    // FIXME: Implement.
+    return IntSize();
+}
+
+bool ScrollingTreeNodeMac::pinnedInDirection(const FloatSize&)
+{
+    // FIXME: Implement.
+    return false;
+}
+
+bool ScrollingTreeNodeMac::canScrollHorizontally()
+{
+    // FIXME: Implement.
+    return false;
+}
+
+bool ScrollingTreeNodeMac::canScrollVertically()
+{
+    // FIXME: Implement.
+    return false;
+}
+
+bool ScrollingTreeNodeMac::shouldRubberBandInDirection(ScrollDirection)
+{
+    // FIXME: Implement.
+    return false;
+}
+
+IntPoint ScrollingTreeNodeMac::absoluteScrollPosition()
+{
+    // FIXME: Implement.
+    return IntPoint();
+}
+
+void ScrollingTreeNodeMac::immediateScrollBy(const FloatSize&)
+{
+    // FIXME: Implement.
+}
+
+void ScrollingTreeNodeMac::immediateScrollByWithoutContentEdgeConstraints(const FloatSize&)
+{
+    // FIXME: Implement.
+}
+
+void ScrollingTreeNodeMac::startSnapRubberbandTimer()
+{
+    // FIXME: Implement.
+}
+
+void ScrollingTreeNodeMac::stopSnapRubberbandTimer()
+{
+    // FIXME: Implement.
+}
+
 IntPoint ScrollingTreeNodeMac::scrollPosition() const
 {
     CGPoint scrollLayerPosition = m_scrollLayer.get().position;
@@ -66,14 +134,22 @@ IntPoint ScrollingTreeNodeMac::scrollPosition() const
 
 void ScrollingTreeNodeMac::setScrollPosition(const IntPoint& position)
 {
+    ASSERT(!shouldUpdateScrollLayerPositionOnMainThread());
+
     m_scrollLayer.get().position = CGPointMake(-position.x(), -position.y());
 }
 
-void ScrollingTreeNodeMac::scrollBy(const IntSize &offset)
+void ScrollingTreeNodeMac::scrollBy(const IntSize& offset)
 {
-    setScrollPosition(scrollPosition() + offset);
+    IntPoint newScrollPosition = scrollPosition() + offset;
 
-    scrollingTree()->updateMainFrameScrollPosition(scrollPosition());
+    if (shouldUpdateScrollLayerPositionOnMainThread()) {
+        scrollingTree()->updateMainFrameScrollPositionAndScrollLayerPosition(newScrollPosition);
+        return;
+    }
+
+    setScrollPosition(newScrollPosition);
+    scrollingTree()->updateMainFrameScrollPosition(newScrollPosition);
 }
 
 } // namespace WebCore

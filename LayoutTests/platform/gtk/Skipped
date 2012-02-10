@@ -101,9 +101,6 @@ fast/forms/multiple-form-submission-protection-mouse.html
 # This test crashes whatever test follows it. Perhaps it's related to the previous failure.
 fast/dom/gc-10.html
 
-# https://bugs.webkit.org/show_bug.cgi?id=50744
-inspector/debugger/open-close-open.html
-
 # [GTK] fast/workers/storage/use-same-database-in-page-and-workers.html fails an ASSERT
 # https://bugs.webkit.org/show_bug.cgi?id=56147 
 # Fails assertion: ASSERT(m_workerContext->hasOneRef());
@@ -126,6 +123,9 @@ editing/pasteboard/interchange-newline-2.html
 editing/pasteboard/paste-text-008.html
 editing/undo/undo-smart-delete-reversed-selection.html
 editing/selection/directionality-after-undo-replace.html
+
+# EditorClient::checkTextOfParagraph() is not implemented
+editing/spelling/spelling-marker-description.html
 
 # https://bugs.webkit.org/show_bug.cgi?id=64530
 editing/selection/editable-html-element.html
@@ -279,6 +279,7 @@ http/tests/filesystem
 http/tests/security/filesystem-iframe-from-remote.html
 http/tests/websocket/tests/hybi/send-file-blob.html
 http/tests/websocket/tests/hybi/send-file-blob-fail.html
+http/tests/workers/terminate-during-sync-operation.html
 
 # Requires WebP support.
 fast/canvas/canvas-toDataURL-webp.html
@@ -351,6 +352,7 @@ fast/css/style-scoped
 
 # ENABLE(SHADOW_DOM) is disabled.
 fast/dom/shadow/shadow-root-js-api.html
+fast/dom/shadow/shadow-disable.html
 
 # CSS Regions support not yet enabled. http://webkit.org/b/57312
 fast/regions
@@ -618,10 +620,6 @@ plugins/clicking-missing-plugin-fires-delegate.html
 # Need to implement getFormValue().
 plugins/form-value.html
 
-# Tests in security/ directory
-#   Tests failing
-security/set-form-autocomplete-attribute.html
-
 # Tests that failed because we don't have an eventSender implementation
 http/tests/plugins/plugin-document-has-focus.html
 
@@ -665,6 +663,7 @@ svg/text/caret-in-svg-text.xhtml
 # No authentication challenge handling
 # https://bugs.webkit.org/show_bug.cgi?id=51104
 http/tests/loading/basic-credentials-sent-automatically.html
+http/tests/loading/authentication-after-redirect-stores-wrong-credentials/authentication-after-redirect-stores-wrong-credentials.html
 http/tests/cache/subresource-fragment-identifier.html
 http/tests/misc/authentication-redirect-1/authentication-sent-to-redirect-cross-origin.html
 http/tests/misc/authentication-redirect-2/authentication-sent-to-redirect-same-origin.html
@@ -926,35 +925,9 @@ canvas/philip/tests/2d.pattern.paint.repeatx.outside.html
 canvas/philip/tests/2d.pattern.paint.repeaty.coord1.html
 canvas/philip/tests/2d.pattern.paint.repeaty.outside.html
 
-# Tests that user modal dialogs fail in the DRT for some reason.
-# https://bugs.webkit.org/show_bug.cgi?id=53600
-fast/animation/request-animation-frame-during-modal.html
+# This modal dialog test still fails because the blur event is not dispatched on the opener
+# window when running the modal dialog.
 fast/events/show-modal-dialog-onblur-onfocus.html
-fast/events/scroll-event-during-modal-dialog.html
-fast/harness/show-modal-dialog.html
-inspector/console/console-long-eval-crash.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T10.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T11.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T2.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T2.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T4.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T4.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T6.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T6.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T8.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T8.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T10.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T11.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T1.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T1.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T3.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T3.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T5.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T5.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T7.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T7.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.1_T9.html
-sputnik/Conformance/10_Execution_Contexts/10.2_Entering_An_Execution_Context/10.2.2_Eval_Code/S10.2.2_A1.2_T9.html
 
 # pastes a space instead of a tab
 # https://bugs.webkit.org/show_bug.cgi?id=38437
@@ -1628,3 +1601,7 @@ fast/multicol/span/span-as-immediate-columns-child-removal.html
 
 # https://bugs.webkit.org/show_bug.cgi?id=77633
 fast/forms/listbox-clear-restore.html
+
+# Synthetic bold is illegible under some scaling transforms
+# https://bugs.webkit.org/show_bug.cgi?id=78044
+fast/text/synthetic-bold-transformed.html

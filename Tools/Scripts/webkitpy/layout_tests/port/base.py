@@ -27,10 +27,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""Abstract base class of Port-specific entrypoints for the layout tests
+"""Abstract base class of Port-specific entry points for the layout tests
 test infrastructure (the Port and Driver classes)."""
-
-from __future__ import with_statement
 
 import cgi
 import difflib
@@ -40,14 +38,6 @@ import re
 
 from webkitpy.common.memoized import memoized
 from webkitpy.common.system import path
-
-
-# Handle Python < 2.6 where multiprocessing isn't available.
-try:
-    import multiprocessing
-except ImportError:
-    multiprocessing = None
-
 from webkitpy.common import find_files
 from webkitpy.common.system import logutils
 from webkitpy.common.system.executive import ScriptError
@@ -150,7 +140,6 @@ class Port(object):
             self.set_option_default('configuration', self.default_configuration())
         self._test_configuration = None
         self._reftest_list = {}
-        self._multiprocessing_is_available = (multiprocessing is not None)
         self._results_directory = None
 
     def wdiff_available(self):
@@ -178,9 +167,7 @@ class Port(object):
         return cpu_count
 
     def default_worker_model(self):
-        if self._multiprocessing_is_available:
-            return 'processes'
-        return 'inline'
+        return 'processes'
 
     def baseline_path(self):
         """Return the absolute path to the directory to store new baselines in for this port."""
@@ -261,17 +248,10 @@ class Port(object):
             _log.error("No httpd found. Cannot run http tests.")
             return False
 
-    def compare_text(self, expected_text, actual_text):
-        """Return whether or not the two strings are *not* equal. This
-        routine is used to diff text output.
-
-        While this is a generic routine, we include it in the Port
-        interface so that it can be overriden for testing purposes."""
+    def do_text_results_differ(self, expected_text, actual_text):
         return expected_text != actual_text
 
-    def compare_audio(self, expected_audio, actual_audio):
-        # FIXME: If we give this method a better name it won't need this docstring (e.g. are_audio_results_equal()).
-        """Return whether the two audio files are *not* equal."""
+    def do_audio_results_differ(self, expected_audio, actual_audio):
         return expected_audio != actual_audio
 
     def diff_image(self, expected_contents, actual_contents, tolerance=None):
@@ -282,14 +262,9 @@ class Port(object):
         """
         raise NotImplementedError('Port.diff_image')
 
-
-    def diff_text(self, expected_text, actual_text,
-                  expected_filename, actual_filename):
+    def diff_text(self, expected_text, actual_text, expected_filename, actual_filename):
         """Returns a string containing the diff of the two text strings
-        in 'unified diff' format.
-
-        While this is a generic routine, we include it in the Port
-        interface so that it can be overriden for testing purposes."""
+        in 'unified diff' format."""
 
         # The filenames show up in the diff output, make sure they're
         # raw bytes and not unicode, so that they don't trigger join()
@@ -322,10 +297,7 @@ class Port(object):
         pass
 
     def driver_name(self):
-        """Returns the name of the actual binary that is performing the test,
-        so that it can be referred to in log messages. In most cases this
-        will be DumpRenderTree, but if a port uses a binary with a different
-        name, it can be overridden here."""
+        # FIXME: Seems we should get this from the Port's Driver class.
         return "DumpRenderTree"
 
     def expected_baselines(self, test_name, suffix, all_baselines=False):
@@ -632,10 +604,6 @@ class Port(object):
                 return True
         return False
 
-    def maybe_make_directory(self, *comps):
-        """Creates the specified directory if it doesn't already exist."""
-        self._filesystem.maybe_make_directory(*comps)
-
     def name(self):
         """Returns a name that uniquely identifies this particular type of port
         (e.g., "mac-snowleopard" or "chromium-gpu-linux-x86_x64" and can be passed
@@ -900,7 +868,10 @@ class Port(object):
     def repository_paths(self):
         """Returns a list of (repository_name, repository_path) tuples of its depending code base.
         By default it returns a list that only contains a ('webkit', <webkitRepossitoryPath>) tuple."""
-        return [('webkit', self.webkit_base())]
+
+        # We use LayoutTest directory here because webkit_base isn't a part webkit repository in Chromium port
+        # where turnk isn't checked out as a whole.
+        return [('webkit', self.layout_tests_dir())]
 
 
     _WDIFF_DEL = '##WDIFF_DEL##'

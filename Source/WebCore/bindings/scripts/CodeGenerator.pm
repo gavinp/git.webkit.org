@@ -589,7 +589,7 @@ sub SetterExpression
 sub ShouldCheckEnums
 {
     my $dataNode = shift;
-    return not $dataNode->extendedAttributes->{"DontCheckEnums"};
+    return not $dataNode->extendedAttributes->{"DoNotCheckConstants"};
 }
 
 sub GenerateConditionalStringFromAttributeValue
@@ -627,7 +627,7 @@ sub GenerateCompileTimeCheckForEnumsIfNeeded
                 push(@checks, "#if ${conditionalString}\n");
             }
 
-            push(@checks, "COMPILE_ASSERT($value == ${interfaceName}::$name, ${interfaceName}Enum${name}IsWrongUseDontCheckEnums);\n");
+            push(@checks, "COMPILE_ASSERT($value == ${interfaceName}::$name, ${interfaceName}Enum${name}IsWrongUseDoNotCheckConstants);\n");
 
             if ($conditional) {
                 push(@checks, "#endif\n");
@@ -636,6 +636,17 @@ sub GenerateCompileTimeCheckForEnumsIfNeeded
         push(@checks, "\n");
     }
     return @checks;
+}
+
+sub ExtendedAttributeContains
+{
+    my $object = shift;
+    my $callWith = shift;
+    return 0 unless $callWith;
+    my $keyword = shift;
+
+    my @callWithKeywords = split /\s*\|\s*/, $callWith;
+    return grep { $_ eq $keyword } @callWithKeywords;
 }
 
 1;

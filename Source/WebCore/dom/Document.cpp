@@ -173,6 +173,7 @@
 #include "SVGDocumentExtensions.h"
 #include "SVGElementFactory.h"
 #include "SVGNames.h"
+#include "SVGSVGElement.h"
 #include "SVGStyleElement.h"
 #endif
 
@@ -544,7 +545,6 @@ Document::~Document()
     ASSERT(!m_parser || m_parser->refCount() == 1);
     detachParser();
     m_document = 0;
-    m_cachedResourceLoader.clear();
 
     m_renderArena.clear();
 
@@ -576,6 +576,9 @@ Document::~Document()
 
     if (m_mediaQueryMatcher)
         m_mediaQueryMatcher->documentDestroyed();
+
+    clearStyleSelector(); // We need to destory CSSFontSelector before destroying m_cachedResourceLoader.
+    m_cachedResourceLoader.clear();
 
     // We must call clearRareData() here since a Document class inherits TreeScope
     // as well as Node. See a comment on TreeScope.h for the reason.
@@ -854,15 +857,7 @@ PassRefPtr<Node> Document::importNode(Node* importedNode, bool deep, ExceptionCo
         if (ec)
             return 0;
 
-        NamedNodeMap* attrs = oldElement->updatedAttributes();
-        if (attrs) {
-            unsigned length = attrs->length();
-            for (unsigned i = 0; i < length; i++) {
-                Attribute* attr = attrs->attributeItem(i);
-                newElement->setAttribute(attr->name(), attr->value().impl());
-            }
-        }
-
+        newElement->setAttributesFromElement(*oldElement);
         newElement->copyNonAttributeProperties(oldElement);
 
         if (deep) {
@@ -2265,6 +2260,15 @@ void Document::implicitClose()
 
     ImageLoader::dispatchPendingBeforeLoadEvents();
     ImageLoader::dispatchPendingLoadEvents();
+
+#if ENABLE(SVG)
+    // To align the HTML load event and the SVGLoad event for the outermost <svg> element, fire it from
+    // here, instead of doing it from SVGElement::finishedParsingChildren (if externalResourcesRequired="false",
+    // which is the default, for ='true' its fired at a later time, once all external resources finished loading).
+    if (svgExtensions())
+        accessSVGExtensions()->dispatchSVGLoadEventToOutermostSVGElements();
+#endif
+
     dispatchWindowLoadEvent();
     enqueuePageshowEvent(PageshowEventNotPersisted);
     enqueuePopstateEvent(m_pendingStateObject ? m_pendingStateObject.release() : SerializedScriptValue::nullValue());
@@ -2334,9 +2338,6 @@ void Document::implicitClose()
 #endif
 
 #if ENABLE(SVG)
-    // FIXME: Officially, time 0 is when the outermost <svg> receives its
-    // SVGLoad event, but we don't implement those yet.  This is close enough
-    // for now.  In some cases we should have fired earlier.
     if (svgExtensions())
         accessSVGExtensions()->startAnimations();
 #endif
@@ -2802,11 +2803,13 @@ void Document::processViewport(const String& features)
     m_viewportArguments = ViewportArguments(ViewportArguments::ViewportMeta);
     processArguments(features, (void*)&m_viewportArguments, &setViewportFeature);
 
-    Frame* frame = this->frame();
-    if (!frame || !frame->page())
-        return;
+    updateViewportArguments();
+}
 
-    frame->page()->updateViewportArguments();
+void Document::updateViewportArguments()
+{
+    if (page() && page()->mainFrame() == frame())
+        page()->chrome()->dispatchViewportPropertiesDidChange(m_viewportArguments);
 }
 
 void Document::processReferrerPolicy(const String& policy)
@@ -4084,9 +4087,6 @@ void Document::setInPageCache(bool flag)
         setRenderer(m_savedRenderer);
         m_savedRenderer = 0;
 
-        if (frame() && frame()->page())
-            frame()->page()->updateViewportArguments();
-
         if (childNeedsStyleRecalc())
             scheduleStyleRecalc();
     }
@@ -4127,6 +4127,8 @@ void Document::documentDidResumeFromPageCache()
 
     ASSERT(m_frame);
     m_frame->loader()->client()->dispatchDidBecomeFrameset(isFrameSet());
+
+    updateViewportArguments();
 }
 
 void Document::registerForPageCacheSuspensionCallbacks(Element* e)

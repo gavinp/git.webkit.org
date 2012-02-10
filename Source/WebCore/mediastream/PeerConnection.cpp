@@ -41,6 +41,7 @@ PassRefPtr<PeerConnection> PeerConnection::create(ScriptExecutionContext* contex
     RefPtr<PeerConnection> connection = adoptRef(new PeerConnection(context, serverConfiguration, signalingCallback));
     connection->setPendingActivity(connection.get());
     connection->scheduleInitialNegotiation();
+    connection->suspendIfNeeded();
 
     return connection.release();
 }
@@ -367,6 +368,8 @@ void PeerConnection::changeReadyState(ReadyState readyState)
     case CLOSED:
         break;
     }
+
+    dispatchEvent(Event::create(eventNames().statechangeEvent, false, false));
 }
 
 } // namespace WebCore

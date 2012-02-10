@@ -545,13 +545,12 @@ void HTMLInputElement::updateType()
         registerForSuspensionCallbackIfNeeded();
 
     if (didRespectHeightAndWidth != m_inputType->shouldRespectHeightAndWidthAttributes()) {
-        NamedNodeMap* map = attributeMap();
-        ASSERT(map);
-        if (Attribute* height = map->getAttributeItem(heightAttr))
+        ASSERT(attributeMap());
+        if (Attribute* height = getAttributeItem(heightAttr))
             attributeChanged(height);
-        if (Attribute* width = map->getAttributeItem(widthAttr))
+        if (Attribute* width = getAttributeItem(widthAttr))
             attributeChanged(width);
-        if (Attribute* align = map->getAttributeItem(alignAttr))
+        if (Attribute* align = getAttributeItem(alignAttr))
             attributeChanged(align);
     }
 
@@ -934,7 +933,7 @@ void HTMLInputElement::setChecked(bool nowChecked, bool sendChangeEvent)
 
 void HTMLInputElement::setIndeterminate(bool newValue)
 {
-    if (!m_inputType->isCheckable() || indeterminate() == newValue)
+    if (indeterminate() == newValue)
         return;
 
     m_isIndeterminate = newValue;
@@ -1242,13 +1241,6 @@ String HTMLInputElement::defaultValue() const
 void HTMLInputElement::setDefaultValue(const String &value)
 {
     setAttribute(valueAttr, value);
-}
-
-void HTMLInputElement::setInitialName(const AtomicString& name)
-{
-    ASSERT(hasTagName(isindexTag));
-    ASSERT(m_name.isNull());
-    m_name = name;
 }
 
 static inline bool isRFC2616TokenCharacter(UChar ch)
@@ -1815,6 +1807,11 @@ void HTMLInputElement::updateValueIfNeeded()
 String HTMLInputElement::defaultToolTip() const
 {
     return m_inputType->defaultToolTip();
+}
+
+bool HTMLInputElement::isIndeterminate() const 
+{
+    return m_inputType->supportsIndeterminateAppearance() && indeterminate();
 }
 
 } // namespace

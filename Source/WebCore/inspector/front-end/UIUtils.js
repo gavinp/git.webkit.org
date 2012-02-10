@@ -268,7 +268,7 @@ WebInspector.EditingConfig.prototype = {
 WebInspector.startEditing = function(element, config)
 {
     if (!WebInspector.markBeingEdited(element, true))
-        return;
+        return null;
 
     config = config || new WebInspector.EditingConfig(function() {}, function() {});
     var committedCallback = config.commitHandler;
@@ -447,7 +447,7 @@ Number.withThousandsSeparator = function(num)
     var str = num + "";
     var re = /(\d+)(\d{3})/;
     while (str.match(re))
-        str = str.replace(re, "$1,$2");
+        str = str.replace(re, "$1\u2009$2"); // \u2009 is a thin space.
     return str;
 }
 

@@ -36,8 +36,6 @@ class StyledElement : public Element {
 public:
     virtual ~StyledElement();
 
-    size_t mappedAttributeCount() const { return attributeMap() ? attributeMap()->mappedAttributeCount() : 0; }
-
     void addCSSLength(int id, const String& value);
     void addCSSProperty(int id, const String& value);
     void addCSSProperty(int id, int value);
@@ -46,15 +44,15 @@ public:
     void removeCSSProperties(int id1, int id2 = CSSPropertyInvalid, int id3 = CSSPropertyInvalid, int id4 = CSSPropertyInvalid, int id5 = CSSPropertyInvalid, int id6 = CSSPropertyInvalid, int id7 = CSSPropertyInvalid, int id8 = CSSPropertyInvalid);
     void removeCSSProperty(int id) { removeCSSProperties(id); }
 
-    virtual PassRefPtr<StylePropertySet> additionalAttributeStyle() { return 0; }
+    virtual StylePropertySet* additionalAttributeStyle() { return 0; }
     void invalidateStyleAttribute();
 
-    StylePropertySet* inlineStyleDecl() const { return attributeMap() ? attributeMap()->inlineStyleDecl() : 0; }
-    StylePropertySet* ensureInlineStyleDecl() { return ensureAttributeMap()->ensureInlineStyleDecl(); }
+    StylePropertySet* inlineStyleDecl() const { return attributeData() ? attributeData()->inlineStyleDecl() : 0; }
+    StylePropertySet* ensureInlineStyleDecl() { return ensureAttributeDataWithoutUpdate()->ensureInlineStyleDecl(this); }
     virtual CSSStyleDeclaration* style() OVERRIDE { return ensureInlineStyleDecl()->ensureCSSStyleDeclaration(); }
 
-    StylePropertySet* attributeStyle() const { return attributeMap() ? attributeMap()->attributeStyle() : 0; }
-    StylePropertySet* ensureAttributeStyle() { return ensureAttributeMap()->ensureAttributeStyle(); }
+    StylePropertySet* attributeStyle() const { return attributeData() ? attributeData()->attributeStyle() : 0; }
+    StylePropertySet* ensureAttributeStyle() { return ensureAttributeDataWithoutUpdate()->ensureAttributeStyle(this); }
 
     const SpaceSplitString& classNames() const;
 
@@ -80,8 +78,8 @@ private:
 
     void destroyInlineStyleDecl()
     {
-        if (attributeMap())
-            attributeMap()->destroyInlineStyleDecl();
+        if (attributeData())
+            attributeData()->destroyInlineStyleDecl();
     }
 };
 

@@ -82,6 +82,7 @@ svg/animations/animate-calcMode-spline-to.html
 svg/animations/animate-calcMode-spline-values.html
 svg/animations/animate-color-calcMode-discrete.html
 svg/animations/animate-color-fill-currentColor.html
+svg/animations/animate-color-fill-from-by.html
 svg/animations/animate-color-rgba-calcMode-discrete.html
 svg/animations/animate-color-transparent.html
 svg/animations/animate-currentColor.html
@@ -405,31 +406,6 @@ security/block-test.html
 webarchive/loading/cache-expired-subresource.html
 webarchive/loading/test-loading-archive.html
 webarchive/loading/test-loading-archive-subresource-null-mimetype.html
-
-# WebKitTestRunner needs layoutTestController.clearBackForwardList
-# <https://bugs.webkit.org/show_bug.cgi?id=42333>
-fast/dom/location-hash.html
-fast/history/form-submit-in-frame-via-onclick.html
-fast/history/form-submit-in-frame.html
-fast/history/gesture-before-onload-form-submit.html
-fast/history/gesture-before-onload-location-href.html
-fast/history/history-length.html
-fast/history/redirect-via-iframe.html
-fast/loader/location-port.html
-fast/loader/stateobjects/document-destroyed-navigate-back-with-fragment-scroll.html
-fast/loader/stateobjects/document-destroyed-navigate-back.html
-fast/loader/stateobjects/popstate-after-load-complete-addeventlistener.html
-fast/loader/stateobjects/popstate-after-load-complete-body-attribute.html
-fast/loader/stateobjects/popstate-after-load-complete-body-inline-attribute.html
-fast/loader/stateobjects/popstate-after-load-complete-window-attribute.html
-fast/loader/stateobjects/pushstate-clears-forward-history.html
-fast/loader/stateobjects/pushstate-then-replacestate.html
-fast/loader/stateobjects/pushstate-updates-location.html
-fast/loader/stateobjects/pushstate-with-fragment-urls-and-hashchange.html
-fast/loader/stateobjects/pushstate-within-popstate-handler-assert.html
-fast/loader/stateobjects/pushstate-without-history.html
-fast/loader/stateobjects/replacestate-then-pushstate.html
-http/tests/loading/state-object-security-exception.html
 
 # WebKitTestRunner needs textInputController
 # <https://bugs.webkit.org/show_bug.cgi?id=42337>
@@ -912,6 +888,7 @@ fast/images/move-image-to-new-document.html
 http/tests/misc/authentication-redirect-1/authentication-sent-to-redirect-cross-origin.html
 http/tests/misc/authentication-redirect-2/authentication-sent-to-redirect-same-origin.html
 http/tests/misc/authentication-redirect-3/authentication-sent-to-redirect-same-origin-with-location-credentials.html
+http/tests/loading/authentication-after-redirect-stores-wrong-credentials/authentication-after-redirect-stores-wrong-credentials.html
 http/tests/loading/basic-auth-resend-wrong-credentials.html
 http/tests/loading/basic-credentials-sent-automatically.html
 http/tests/security/401-logout/401-logout.php

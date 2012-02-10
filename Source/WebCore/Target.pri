@@ -792,7 +792,6 @@ SOURCES += \
     html/ImageDocument.cpp \
     html/ImageInputType.cpp \
     html/InputType.cpp \
-    html/IsIndexInputType.cpp \
     html/LabelsNodeList.cpp \
     html/LinkRelAttribute.cpp \
     html/MediaDocument.cpp \
@@ -846,6 +845,7 @@ SOURCES += \
     html/shadow/ContentInclusionSelector.cpp \
     html/shadow/DetailsMarkerControl.cpp \
     html/shadow/HTMLContentElement.cpp \
+    html/shadow/HTMLShadowElement.cpp \
     html/shadow/MediaControls.cpp \
     html/shadow/MediaControlRootElement.cpp \
     html/shadow/MeterShadowElement.cpp \
@@ -856,6 +856,7 @@ SOURCES += \
     inspector/ContentSearchUtils.cpp \
     inspector/DOMEditor.cpp \
     inspector/DOMNodeHighlighter.cpp \
+    inspector/DOMPatchSupport.cpp \
     inspector/IdentifiersFactory.cpp \
     inspector/InjectedScript.cpp \
     inspector/InjectedScriptHost.cpp \
@@ -876,6 +877,7 @@ SOURCES += \
     inspector/InspectorDOMStorageResource.cpp \
     inspector/InspectorFrontendClientLocal.cpp \
     inspector/InspectorFrontendHost.cpp \
+    inspector/InspectorHistory.cpp \
     inspector/InspectorInstrumentation.cpp \
     inspector/InspectorMemoryAgent.cpp \
     inspector/InspectorPageAgent.cpp \
@@ -1879,6 +1881,7 @@ HEADERS += \
     html/MediaFragmentURIParser.h \
     html/MicroDataItemValue.h \
     html/PluginDocument.h \
+    html/PublicURLManager.h \
     html/StepRange.h \
     html/TextDocument.h \
     html/TextTrack.h \
@@ -1906,6 +1909,7 @@ HEADERS += \
     html/shadow/ContentSelectorQuery.h \
     html/shadow/ContentInclusionSelector.h \
     html/shadow/HTMLContentElement.h \
+    html/shadow/HTMLShadowElement.h \
     html/shadow/MediaControlElements.h \
     html/shadow/DetailsMarkerControl.h \
     html/track/TextTrackList.h \
@@ -1918,6 +1922,7 @@ HEADERS += \
     inspector/ContentSearchUtils.h \
     inspector/DOMEditor.h \
     inspector/DOMNodeHighlighter.h \
+    inspector/DOMPatchSupport.h \
     inspector/DOMWrapperVisitor.h \
     inspector/IdentifiersFactory.h \
     inspector/InjectedScript.h \
@@ -1941,6 +1946,7 @@ HEADERS += \
     inspector/InspectorFrontendClient.h \
     inspector/InspectorFrontendClientLocal.h \
     inspector/InspectorFrontendHost.h \
+    inspector/InspectorHistory.h \
     inspector/InspectorInstrumentation.h \
     inspector/InspectorMemoryAgent.h \
     inspector/InspectorPageAgent.h \
@@ -3652,6 +3658,8 @@ contains(DEFINES, ENABLE_WEB_SOCKETS=1) {
         websockets/WebSocket.h \
         websockets/WebSocketChannel.h \
         websockets/WebSocketChannelClient.h \
+        websockets/WebSocketExtensionDispatcher.h \
+        websockets/WebSocketExtensionProcessor.h \
         websockets/WebSocketHandshake.h \
         websockets/WebSocketHandshakeRequest.h \
         websockets/WebSocketHandshakeResponse.h \
@@ -3660,6 +3668,7 @@ contains(DEFINES, ENABLE_WEB_SOCKETS=1) {
     SOURCES += \
         websockets/WebSocket.cpp \
         websockets/WebSocketChannel.cpp \
+        websockets/WebSocketExtensionDispatcher.cpp \
         websockets/WebSocketHandshake.cpp \
         websockets/WebSocketHandshakeRequest.cpp \
         websockets/WebSocketHandshakeResponse.cpp \
@@ -3689,7 +3698,7 @@ contains(DEFINES, ENABLE_WEBGL=1) {
         html/canvas/WebGLObject.h \
         html/canvas/WebGLActiveInfo.h \
         html/canvas/WebGLBuffer.h \
-        html/canvas/WebGLCompressedTextures.h \
+        html/canvas/WebGLCompressedTextureS3TC.h \
         html/canvas/WebGLContextAttributes.h \
         html/canvas/WebGLContextEvent.h \
         html/canvas/WebGLContextGroup.h \
@@ -3729,7 +3738,7 @@ contains(DEFINES, ENABLE_WEBGL=1) {
         html/canvas/CanvasContextAttributes.cpp \
         html/canvas/WebGLObject.cpp \
         html/canvas/WebGLBuffer.cpp \
-        html/canvas/WebGLCompressedTextures.cpp \
+        html/canvas/WebGLCompressedTextureS3TC.cpp \
         html/canvas/WebGLContextAttributes.cpp \
         html/canvas/WebGLContextEvent.cpp \
         html/canvas/WebGLContextGroup.cpp \

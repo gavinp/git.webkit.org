@@ -39,6 +39,8 @@
 #include "cc/CCThread.h"
 #include "cc/CCThreadProxy.h"
 
+using namespace std;
+
 namespace {
 static int numLayerTreeInstances;
 }
@@ -71,6 +73,7 @@ CCLayerTreeHost::CCLayerTreeHost(CCLayerTreeHostClient* client, const CCSettings
     , m_minPageScale(1)
     , m_maxPageScale(1)
     , m_triggerIdlePaints(true)
+    , m_partialTextureUpdateRequests(0)
 {
     ASSERT(CCProxy::isMainThread());
     numLayerTreeInstances++;
@@ -120,7 +123,7 @@ void CCLayerTreeHost::initializeLayerRenderer()
     m_settings.acceleratePainting = m_proxy->layerRendererCapabilities().usingAcceleratedPainting;
 
     // Update m_settings based on partial update capability.
-    m_settings.partialTextureUpdates = m_settings.partialTextureUpdates && m_proxy->partialTextureUpdateCapability();
+    m_settings.maxPartialTextureUpdates = min(m_settings.maxPartialTextureUpdates, m_proxy->maxPartialTextureUpdates());
 
     m_contentsTextureManager = TextureManager::create(TextureManager::highLimitBytes(viewportSize()),
                                                       TextureManager::reclaimLimitBytes(viewportSize()),
@@ -251,9 +254,8 @@ void CCLayerTreeHost::setNeedsCommit()
 
 void CCLayerTreeHost::setNeedsRedraw()
 {
-    if (CCThreadProxy::implThread())
-        m_proxy->setNeedsRedraw();
-    else
+    m_proxy->setNeedsRedraw();
+    if (!CCThreadProxy::implThread())
         m_client->scheduleComposite();
 }
 
@@ -354,6 +356,10 @@ void CCLayerTreeHost::setHaveWheelEventHandlers(bool haveWheelEventHandlers)
     m_proxy->setNeedsCommit();
 }
 
+void CCLayerTreeHost::startPageScaleAnimation(const IntSize& targetPosition, bool useAnchor, float scale, double durationSec)
+{
+    m_proxy->startPageScaleAnimation(targetPosition, useAnchor, scale, durationSec);
+}
 
 void CCLayerTreeHost::loseCompositorContext(int numTimes)
 {
@@ -371,22 +377,23 @@ void CCLayerTreeHost::composite()
     static_cast<CCSingleThreadProxy*>(m_proxy.get())->compositeImmediately();
 }
 
-void CCLayerTreeHost::updateLayers()
+bool CCLayerTreeHost::updateLayers()
 {
     if (!m_layerRendererInitialized) {
         initializeLayerRenderer();
         // If we couldn't initialize, then bail since we're returning to software mode.
         if (!m_layerRendererInitialized)
-            return;
+            return false;
     }
 
     if (!rootLayer())
-        return;
+        return true;
 
     if (viewportSize().isEmpty())
-        return;
+        return true;
 
     updateLayers(rootLayer());
+    return true;
 }
 
 void CCLayerTreeHost::updateLayers(LayerChromium* rootLayer)
@@ -413,6 +420,9 @@ void CCLayerTreeHost::updateLayers(LayerChromium* rootLayer)
         TRACE_EVENT("CCLayerTreeHost::updateLayers::calcDrawEtc", this, 0);
         CCLayerTreeHostCommon::calculateDrawTransformsAndVisibility(rootLayer, rootLayer, identityMatrix, identityMatrix, m_updateList, rootRenderSurface->layerList(), layerRendererCapabilities().maxTextureSize);
     }
+
+    // Reset partial texture update requests.
+    m_partialTextureUpdateRequests = 0;
 
     reserveTextures();
 
@@ -441,7 +451,7 @@ void CCLayerTreeHost::reserveTextures()
 
     CCLayerIteratorType end = CCLayerIteratorType::end(&m_updateList);
     for (CCLayerIteratorType it = CCLayerIteratorType::begin(&m_updateList); it != end; ++it) {
-        if (it.representsTargetRenderSurface() || !it->alwaysReserveTextures())
+        if (!it.representsItself() || !it->alwaysReserveTextures())
             continue;
         it->reserveTextures();
     }
@@ -495,10 +505,10 @@ static void enterTargetRenderSurface(Vector<RenderSurfaceRegion>& stack, RenderS
         stack.append(RenderSurfaceRegion());
         stack.last().surface = newTarget;
     } else if (stack.last().surface != newTarget) {
-        const RenderSurfaceRegion& previous = stack.last();
         stack.append(RenderSurfaceRegion());
         stack.last().surface = newTarget;
-        stack.last().occludedInScreen = previous.occludedInScreen;
+        int lastIndex = stack.size() - 1;
+        stack[lastIndex].occludedInScreen = stack[lastIndex - 1].occludedInScreen;
     }
 }
 
@@ -620,6 +630,15 @@ void CCLayerTreeHost::stopRateLimiter(GraphicsContext3D* context)
         it->second->stop();
         m_rateLimiters.remove(it);
     }
+}
+
+bool CCLayerTreeHost::requestPartialTextureUpdate()
+{
+    if (m_partialTextureUpdateRequests >= m_settings.maxPartialTextureUpdates)
+        return false;
+
+    m_partialTextureUpdateRequests++;
+    return true;
 }
 
 void CCLayerTreeHost::deleteTextureAfterCommit(PassOwnPtr<ManagedTexture> texture)

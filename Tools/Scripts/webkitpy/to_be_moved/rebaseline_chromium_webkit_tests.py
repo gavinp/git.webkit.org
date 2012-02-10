@@ -41,8 +41,6 @@ The script does the following for each platform specified:
 At the end, the script generates a html that compares old and new baselines.
 """
 
-from __future__ import with_statement
-
 import copy
 import logging
 import optparse
@@ -514,7 +512,7 @@ class Rebaseliner(object):
         if is_image:
             return self._port.diff_image(output1, output2)[0]
 
-        return self._port.compare_text(output1, output2)
+        return self._port.do_text_results_differ(output1, output2)
 
     def _delete_baseline(self, filename):
         """Remove the file from repository and delete it from disk.

@@ -1257,7 +1257,7 @@ sub GenerateImplementation
                     }
                 }
                 $implIncludes{"DOMPrivate.h"} = 1;
-            } elsif ($attribute->signature->extendedAttributes->{"ConvertToString"}) {
+            } elsif ($attribute->signature->extendedAttributes->{"ObjCImplementedAsUnsignedLong"}) {
                 $getterContentHead = "WTF::String::number(" . $getterContentHead;
                 $getterContentTail .= ")";
             } elsif ($idlType eq "Date") {
@@ -1384,8 +1384,8 @@ sub GenerateImplementation
                 my $argName = "new" . ucfirst($attributeInterfaceName);
                 my $arg = GetObjCTypeGetter($argName, $idlType);
 
-                # The definition of ConvertToString is flipped for the setter
-                if ($attribute->signature->extendedAttributes->{"ConvertToString"}) {
+                # The definition of ObjCImplementedAsUnsignedLong is flipped for the setter
+                if ($attribute->signature->extendedAttributes->{"ObjCImplementedAsUnsignedLong"}) {
                     $arg = "WTF::String($arg).toInt()";
                 }
 
@@ -1495,7 +1495,7 @@ sub GenerateImplementation
                 $needsCustom{"NodeFilter"} = $paramName if $idlType eq "NodeFilter";
                 $needsCustom{"EventListener"} = $paramName if $idlType eq "EventListener";
                 $needsCustom{"EventTarget"} = $paramName if $idlType eq "EventTarget";
-                $needsCustom{"NodeToReturn"} = $paramName if $param->extendedAttributes->{"Return"};
+                $needsCustom{"NodeToReturn"} = $paramName if $param->extendedAttributes->{"CustomReturn"};
 
                 unless ($codeGenerator->IsPrimitiveType($idlType) or $codeGenerator->IsStringType($idlType)) {
                     push(@needsAssert, "    ASSERT($paramName);\n");
