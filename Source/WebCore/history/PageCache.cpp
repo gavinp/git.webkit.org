@@ -79,7 +79,8 @@ bool PageCache::canCache(Page* page)
     if (!page)
         return false;
     
-    OwnPtr<PageCachePolicy> page_cache_policy = PageCachePolicy::GetFactory()(page);
+    PageCachePolicy::FactoryFunction* pagecachepolicy_factory = PageCachePolicy::GetFactory();
+    OwnPtr<PageCachePolicy> page_cache_policy = pagecachepolicy_factory(page);
 
     return page_cache_policy->CanCachePage();
 }

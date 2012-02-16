@@ -8,6 +8,7 @@
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/PassOwnPtr.h>
+#include <wtf/text/WTFString.h>
 #include <loader/FrameLoaderTypes.h>
 
 /* encapsulate policy for page cache, plus give implementations
@@ -30,29 +31,34 @@ namespace WebCore {
         static FactoryFunction* GetFactory();
 
     protected:
-        void PolicyLog(const String&);
-
-        virtual bool CanCacheFrameImpl(bool pageCacheSupportsPlugins,
-                                       bool hasDocumentLoader,
-                                       bool mainDocumentError,
-                                       bool containsPlugins,
-                                       const String& protocol,
-                                       bool hasUnloadListener,
+        struct FrameData {
+            bool pageCacheSupportsPlugins;
+            bool hasDocumentLoader;
+            bool mainDocumentError;
+            bool containsPlugins;
+            String protocol;
+            bool hasUnloadListener;
 #if ENABLE(SQL_DATABASE)
-                                       bool hasOpenDatabase,
+            bool hasOpenDatabase;
 #endif
 #if ENABLE(SHARED_WORKERS)
-                                       bool hasSharedWorkers,
+            bool hasSharedWorkers;
 #endif                                   
-                                       bool usesGeolocation,
-                                       bool hasHistoryCurrentItem,
-                                       bool quickRedirectComing,
-                                       bool isLoadingInAPISense,
-                                       bool loaderIsStopping,
-                                       bool canSuspendActiveDOMObjects,
-                                       bool usesAppCache,
-                                       bool canCachePage);
+            bool usesGeolocation;
+            bool hasHistoryCurrentItem;
+            bool quickRedirectComing;
+            bool isLoadingInAPISense;
+            bool loaderIsStopping;
+            bool canSuspendActiveDOMObjects;
+            bool appCacheDenied;
+            bool canCachePage;
+        };
 
+        void PolicyLog(const String&);
+
+        // Override these two functions for alternative
+        // PageCachePolicies.
+        virtual bool CanCacheFrameImpl(const FrameData&);
         virtual bool CanCachePageImpl();
 
         // Page level parameters

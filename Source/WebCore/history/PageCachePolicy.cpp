@@ -100,88 +100,69 @@ bool PageCachePolicy::CanCachePageImpl() {
     return canCachePage;
 }
 
-bool PageCachePolicy::CanCacheFrameImpl(bool pageCacheSupportsPlugins,
-                                        bool hasDocumentLoader,
-                                        bool mainDocumentError,
-                                        bool containsPlugins,
-                                        const String& protocol,
-                                        bool hasUnloadListener,
-#if ENABLE(SQL_DATABASE)
-                                        bool hasOpenDatabase,
-#endif
-#if ENABLE(SHARED_WORKERS)
-                                        bool hasSharedWorkers,
-#endif                                   
-                                        bool usesGeolocation,
-                                        bool hasHistoryCurrentItem,
-                                        bool quickRedirectComing,
-                                        bool isLoadingInAPISense,
-                                        bool loaderIsStopping,
-                                        bool canSuspendActiveDOMObjects,
-                                        bool appCacheDenies,
-                                        bool canCachePage) {
-    if (!hasDocumentLoader) {
+bool PageCachePolicy::CanCacheFrameImpl(const FrameData& framedata) {
+    if (!framedata.hasDocumentLoader) {
         PolicyLog("   -There is no DocumentLoader object");
         return false;
     }
     bool canCacheFrame = true;
-    if (mainDocumentError) {
+    if (framedata.mainDocumentError) {
         PolicyLog("   -Main document has an error");
         canCacheFrame = false;
     }
-    if (containsPlugins && !pageCacheSupportsPlugins) {
+    if (framedata.containsPlugins && !framedata.pageCacheSupportsPlugins) {
         PolicyLog("   -Frame contains plugins, and the page cache settings do not support plugins.");
         canCacheFrame = false;
     }
-    if (protocol == "https") {
+    if (framedata.protocol == "https") {
         PolicyLog("   -Frame is HTTPS");
         canCacheFrame = false;
     }
-    if (hasUnloadListener) {
+    if (framedata.hasUnloadListener) {
         PolicyLog("   -Frame has an unload event listener");
         canCacheFrame = false;
     }
 #if ENABLE(SQL_DATABASE)
-    if (hasOpenDatabase) {
+    if (framedata.hasOpenDatabase) {
         PolicyLog("   -Frame has one or more open database handles");
         canCacheFrame = false;
     }
 #endif
 #if ENABLE(SHARED_WORKERS)
-    if (hasSharedWorkers) {
+    if (framedata.hasSharedWorkers) {
         PolicyLog("   -Frame has associated SharedWorkers");
         canCacheFrame = false;
     }
 #endif
-    if (usesGeolocation) {
+    if (framedata.usesGeolocation) {
         PolicyLog("   -Frame uses Geolocation");
         canCacheFrame = false;
     }
-    if (hasHistoryCurrentItem) {
+    if (framedata.hasHistoryCurrentItem) {
         PolicyLog("   -No current history item");
         canCacheFrame = false;
     }
-    if (quickRedirectComing) {
+    if (framedata.quickRedirectComing) {
         PolicyLog("   -Quick redirect is coming");
         canCacheFrame = false;
     }
-    if (isLoadingInAPISense) {
+    if (framedata.isLoadingInAPISense) {
         PolicyLog("   -DocumentLoader is still loading in API sense");
         canCacheFrame = false;
     }
-    if (loaderIsStopping) {
+    if (framedata.loaderIsStopping) {
         PolicyLog("   -DocumentLoader is in the middle of stopping");
         canCacheFrame = false;
     }
-    if (!canSuspendActiveDOMObjects) {
+    if (!framedata.canSuspendActiveDOMObjects) {
         PolicyLog("   -The document cannot suspend its active DOM Objects");
         canCacheFrame = false;
     }
-    if (appCacheDenies) {
+    if (framedata.appCacheDenied) {
         PolicyLog("   -The application cache denied the page cache.");
         canCacheFrame = false;
     }
-    if (!canCachePage) {
+    if (!framedata.canCachePage) {
         PolicyLog("   -The client says this frame cannot be cached");
         canCacheFrame = false;
     }
@@ -214,29 +195,36 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
         PolicyLog(" -There is no DocumentLoader object");
         return false;
     }
-    else
-        return CanCacheFrameImpl(
-            frame->page()->settings()->pageCacheSupportsPlugins(),
-            frame->loader()->documentLoader(),
-            frame->loader()->documentLoader() && frame->loader()->documentLoader()->mainDocumentError().isNull(),
-            // error pages?
-            frame->loader()->subframeLoader()->containsPlugins(),
-            frame->document()->url().protocol(),
-            frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent),
+    else {
+        FrameData framedata;
+
+        // error pages?
+
+        framedata.pageCacheSupportsPlugins = frame->page()->settings()->pageCacheSupportsPlugins();
+        framedata.hasDocumentLoader = frame->loader()->documentLoader();
+        if (framedata.hasDocumentLoader) {
+            framedata.mainDocumentError = frame->loader()->documentLoader()->mainDocumentError().isNull();
+            framedata.isLoadingInAPISense = frame->loader()->documentLoader()->isLoadingInAPISense();
+            framedata.loaderIsStopping = frame->loader()->documentLoader()->isStopping();
+            framedata.appCacheDenied = !frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache();
+        }
+        framedata.containsPlugins = frame->loader()->subframeLoader()->containsPlugins();
+        framedata.protocol = frame->document()->url().protocol();
+        framedata.hasUnloadListener = frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent);
 #if ENABLE(SQL_DATABASE)
-            frame->document()->hasOpenDatabases(),
+        framedata.hasOpenDatabase = frame->document()->hasOpenDatabases();
 #endif
 #if ENABLE(SHARED_WORKERS)
-        SharedWorkerRepository::hasSharedWorkers(frame->document()),
+        framedata.hasSharedWorkers = SharedWorkerRepository::hasSharedWorkers(frame->document());
 #endif
-            frame->document()->usingGeolocation(),
-            frame->loader()->history()->currentItem(),
-            frame->loader()->quickRedirectComing(),
-            frame->loader()->documentLoader() && frame->loader()->documentLoader()->isLoadingInAPISense(),
-            frame->loader()->documentLoader() && frame->loader()->documentLoader()->isStopping(),
-            frame->document()->canSuspendActiveDOMObjects(),
-            frame->loader()->documentLoader() && frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache(),
-            frame->loader()->client()->canCachePage());
+        framedata.usesGeolocation = frame->document()->usingGeolocation();
+        framedata.hasHistoryCurrentItem = frame->loader()->history()->currentItem();
+        framedata.quickRedirectComing = frame->loader()->quickRedirectComing();
+        framedata.canSuspendActiveDOMObjects = frame->document()->canSuspendActiveDOMObjects();
+        framedata.canCachePage = frame->loader()->client()->canCachePage();
+
+        return CanCacheFrameImpl(framedata);
+    }
 }
 
 
