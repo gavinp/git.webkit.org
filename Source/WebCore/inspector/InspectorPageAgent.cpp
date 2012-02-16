@@ -36,6 +36,8 @@
 
 #include "Base64.h"
 #include "CachedCSSStyleSheet.h"
+#include "CachedFont.h"
+#include "CachedImage.h"
 #include "CachedResource.h"
 #include "CachedResourceLoader.h"
 #include "CachedScript.h"
@@ -121,7 +123,7 @@ static bool prepareCachedResourceBuffer(CachedResource* cachedResource, bool* ha
 static bool hasTextContent(CachedResource* cachedResource)
 {
     InspectorPageAgent::ResourceType type = InspectorPageAgent::cachedResourceType(*cachedResource);
-    return type == InspectorPageAgent::StylesheetResource || type == InspectorPageAgent::ScriptResource;
+    return type == InspectorPageAgent::StylesheetResource || type == InspectorPageAgent::ScriptResource || type == InspectorPageAgent::XHRResource;
 }
 
 bool InspectorPageAgent::cachedResourceContent(CachedResource* cachedResource, String* result, bool* base64Encoded)
@@ -143,12 +145,16 @@ bool InspectorPageAgent::cachedResourceContent(CachedResource* cachedResource, S
     }
 
     if (cachedResource) {
+        SharedBuffer* buffer = cachedResource->data();
         switch (cachedResource->type()) {
         case CachedResource::CSSStyleSheet:
             *result = static_cast<CachedCSSStyleSheet*>(cachedResource)->sheetText();
             return true;
         case CachedResource::Script:
             *result = static_cast<CachedScript*>(cachedResource)->script();
+            return true;
+        case CachedResource::RawResource:
+            *result = String(buffer->data(), buffer->size());
             return true;
         default:
             if (hasZeroSize) {
@@ -254,6 +260,8 @@ InspectorPageAgent::ResourceType InspectorPageAgent::cachedResourceType(const Ca
         return InspectorPageAgent::StylesheetResource;
     case CachedResource::Script:
         return InspectorPageAgent::ScriptResource;
+    case CachedResource::RawResource:
+        return InspectorPageAgent::XHRResource;
     default:
         break;
     }
@@ -388,8 +396,27 @@ static Vector<CachedResource*> cachedResourcesForFrame(Frame* frame)
 
     const CachedResourceLoader::DocumentResourceMap& allResources = frame->document()->cachedResourceLoader()->allCachedResources();
     CachedResourceLoader::DocumentResourceMap::const_iterator end = allResources.end();
-    for (CachedResourceLoader::DocumentResourceMap::const_iterator it = allResources.begin(); it != end; ++it)
-        result.append(it->second.get());
+    for (CachedResourceLoader::DocumentResourceMap::const_iterator it = allResources.begin(); it != end; ++it) {
+        CachedResource* cachedResource = it->second.get();
+
+        switch (cachedResource->type()) {
+        case CachedResource::ImageResource:
+            // Skip images that were not auto loaded (images disabled in the user agent).
+            if (static_cast<CachedImage*>(cachedResource)->stillNeedsLoad())
+                continue;
+            break;
+        case CachedResource::FontResource:
+            // Skip fonts that were referenced in CSS but never used/downloaded.
+            if (static_cast<CachedFont*>(cachedResource)->stillNeedsLoad())
+                continue;
+            break;
+        default:
+            // All other CachedResource types download immediately.
+            break;
+        }
+
+        result.append(cachedResource);
+    }
 
     return result;
 }
@@ -571,8 +598,7 @@ void InspectorPageAgent::setDocumentContent(ErrorString* errorString, const Stri
         *errorString = "No Document instance to set HTML for";
         return;
     }
-    DOMPatchSupport patcher(document);
-    patcher.patchDocument(html);
+    DOMPatchSupport::patchDocument(document, html);
 }
 
 void InspectorPageAgent::setScreenSizeOverride(ErrorString* errorString, const int width, const int height)
@@ -733,7 +759,7 @@ PassRefPtr<InspectorObject> InspectorPageAgent::buildObjectForFrame(Frame* frame
     if (frame->tree()->parent())
         frameObject->setString("parentId", frameId(frame->tree()->parent()));
     if (frame->ownerElement()) {
-        String name = frame->ownerElement()->getAttribute(HTMLNames::nameAttr);
+        String name = frame->ownerElement()->getNameAttribute();
         if (name.isEmpty())
             name = frame->ownerElement()->getAttribute(HTMLNames::idAttr);
         frameObject->setString("name", name);
@@ -758,10 +784,15 @@ PassRefPtr<InspectorObject> InspectorPageAgent::buildObjectForFrameTree(Frame* f
     Vector<CachedResource*> allResources = cachedResourcesForFrame(frame);
     for (Vector<CachedResource*>::const_iterator it = allResources.begin(); it != allResources.end(); ++it) {
         CachedResource* cachedResource = *it;
+
         RefPtr<InspectorObject> resourceObject = InspectorObject::create();
         resourceObject->setString("url", cachedResource->url());
         resourceObject->setString("type", cachedResourceTypeString(*cachedResource));
         resourceObject->setString("mimeType", cachedResource->response().mimeType());
+        if (cachedResource->status() == CachedResource::LoadError)
+            resourceObject->setBoolean("failed", true);
+        if (cachedResource->status() == CachedResource::Canceled)
+            resourceObject->setBoolean("canceled", true);
         subresources->pushValue(resourceObject);
     }
 

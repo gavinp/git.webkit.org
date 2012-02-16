@@ -49,47 +49,11 @@ using namespace std;
 
 namespace WebCore {
 
-class DOMEditor::DOMAction : public InspectorHistory::Action {
-public:
-    DOMAction(const String& name) : InspectorHistory::Action(name) { }
-
-    virtual bool perform(ErrorString* errorString)
-    {
-        ExceptionCode ec = 0;
-        bool result = perform(ec);
-        if (ec) {
-            ExceptionCodeDescription description(ec);
-            *errorString = description.name;
-        }
-        return result && !ec;
-    }
-
-    virtual bool undo(ErrorString* errorString)
-    {
-        ExceptionCode ec = 0;
-        bool result = undo(ec);
-        if (ec) {
-            ExceptionCodeDescription description(ec);
-            *errorString = description.name;
-        }
-        return result && !ec;
-    }
-
-    virtual bool perform(ExceptionCode&) = 0;
-
-    virtual bool undo(ExceptionCode&) = 0;
-
-private:
-    RefPtr<Node> m_parentNode;
-    RefPtr<Node> m_node;
-    RefPtr<Node> m_anchorNode;
-};
-
-class DOMEditor::RemoveChildAction : public DOMEditor::DOMAction {
+class DOMEditor::RemoveChildAction : public InspectorHistory::Action {
     WTF_MAKE_NONCOPYABLE(RemoveChildAction);
 public:
     RemoveChildAction(Node* parentNode, Node* node)
-        : DOMEditor::DOMAction("RemoveChild")
+        : InspectorHistory::Action("RemoveChild")
         , m_parentNode(parentNode)
         , m_node(node)
     {
@@ -98,12 +62,17 @@ public:
     virtual bool perform(ExceptionCode& ec)
     {
         m_anchorNode = m_node->nextSibling();
-        return m_parentNode->removeChild(m_node.get(), ec);
+        return redo(ec);
     }
 
     virtual bool undo(ExceptionCode& ec)
     {
         return m_parentNode->insertBefore(m_node.get(), m_anchorNode.get(), ec);
+    }
+
+    virtual bool redo(ExceptionCode& ec)
+    {
+        return m_parentNode->removeChild(m_node.get(), ec);
     }
 
 private:
@@ -112,11 +81,11 @@ private:
     RefPtr<Node> m_anchorNode;
 };
 
-class DOMEditor::InsertBeforeAction : public DOMEditor::DOMAction {
+class DOMEditor::InsertBeforeAction : public InspectorHistory::Action {
     WTF_MAKE_NONCOPYABLE(InsertBeforeAction);
 public:
-    InsertBeforeAction(Node* parentNode, Node* node, Node* anchorNode)
-        : DOMEditor::DOMAction("InsertBefore")
+    InsertBeforeAction(Node* parentNode, PassRefPtr<Node> node, Node* anchorNode)
+        : InspectorHistory::Action("InsertBefore")
         , m_parentNode(parentNode)
         , m_node(node)
         , m_anchorNode(anchorNode)
@@ -135,10 +104,18 @@ public:
 
     virtual bool undo(ExceptionCode& ec)
     {
+        if (!m_parentNode->removeChild(m_node.get(), ec))
+            return false;
         if (m_removeChildAction)
             return m_removeChildAction->undo(ec);
+        return true;
+    }
 
-        return m_parentNode->removeChild(m_node.get(), ec);
+    virtual bool redo(ExceptionCode& ec)
+    {
+        if (m_removeChildAction && !m_removeChildAction->redo(ec))
+            return false;
+        return m_parentNode->insertBefore(m_node.get(), m_anchorNode.get(), ec);
     }
 
 private:
@@ -148,26 +125,31 @@ private:
     OwnPtr<RemoveChildAction> m_removeChildAction;
 };
 
-class DOMEditor::RemoveAttributeAction : public DOMEditor::DOMAction {
+class DOMEditor::RemoveAttributeAction : public InspectorHistory::Action {
     WTF_MAKE_NONCOPYABLE(RemoveAttributeAction);
 public:
     RemoveAttributeAction(Element* element, const String& name)
-        : DOMEditor::DOMAction("RemoveAttribute")
+        : InspectorHistory::Action("RemoveAttribute")
         , m_element(element)
         , m_name(name)
     {
     }
 
-    virtual bool perform(ExceptionCode&)
+    virtual bool perform(ExceptionCode& ec)
     {
         m_value = m_element->getAttribute(m_name);
-        m_element->removeAttribute(m_name);
-        return true;
+        return redo(ec);
     }
 
     virtual bool undo(ExceptionCode& ec)
     {
         m_element->setAttribute(m_name, m_value, ec);
+        return true;
+    }
+
+    virtual bool redo(ExceptionCode&)
+    {
+        m_element->removeAttribute(m_name);
         return true;
     }
 
@@ -177,11 +159,11 @@ private:
     String m_value;
 };
 
-class DOMEditor::SetAttributeAction : public DOMEditor::DOMAction {
+class DOMEditor::SetAttributeAction : public InspectorHistory::Action {
     WTF_MAKE_NONCOPYABLE(SetAttributeAction);
 public:
     SetAttributeAction(Element* element, const String& name, const String& value)
-        : DOMEditor::DOMAction("SetAttribute")
+        : InspectorHistory::Action("SetAttribute")
         , m_element(element)
         , m_name(name)
         , m_value(value)
@@ -194,8 +176,7 @@ public:
         m_hadAttribute = m_element->hasAttribute(m_name);
         if (m_hadAttribute)
             m_oldValue = m_element->getAttribute(m_name);
-        m_element->setAttribute(m_name, m_value, ec);
-        return !ec;
+        return redo(ec);
     }
 
     virtual bool undo(ExceptionCode& ec)
@@ -207,6 +188,12 @@ public:
         return true;
     }
 
+    virtual bool redo(ExceptionCode& ec)
+    {
+        m_element->setAttribute(m_name, m_value, ec);
+        return true;
+    }
+
 private:
     RefPtr<Element> m_element;
     String m_name;
@@ -215,41 +202,36 @@ private:
     String m_oldValue;
 };
 
-class DOMEditor::SetOuterHTMLAction : public DOMEditor::DOMAction {
+class DOMEditor::SetOuterHTMLAction : public InspectorHistory::Action {
     WTF_MAKE_NONCOPYABLE(SetOuterHTMLAction);
 public:
     SetOuterHTMLAction(Node* node, const String& html)
-        : DOMEditor::DOMAction("SetOuterHTML")
+        : InspectorHistory::Action("SetOuterHTML")
         , m_node(node)
         , m_nextSibling(node->nextSibling())
         , m_html(html)
         , m_newNode(0)
+        , m_history(adoptPtr(new InspectorHistory()))
+        , m_domEditor(adoptPtr(new DOMEditor(m_history.get())))
     {
     }
 
     virtual bool perform(ExceptionCode& ec)
     {
         m_oldHTML = createMarkup(m_node.get());
-        DOMPatchSupport domPatchSupport(m_node->ownerDocument());
+        DOMPatchSupport domPatchSupport(m_domEditor.get(), m_node->ownerDocument());
         m_newNode = domPatchSupport.patchNode(m_node.get(), m_html, ec);
         return !ec;
     }
 
     virtual bool undo(ExceptionCode& ec)
     {
-        DOMPatchSupport domPatchSupport(m_newNode->ownerDocument());
-        Node* node = domPatchSupport.patchNode(m_newNode, m_oldHTML, ec);
-        if (ec || !node)
-            return false;
-        // HTML editing could have produced extra nodes. Remove them if necessary.
-        node = node->nextSibling();
+        return m_history->undo(ec);
+    }
 
-        while (!ec && node && node != m_nextSibling.get()) {
-            Node* nodeToRemove = node;
-            node = node->nextSibling();
-            nodeToRemove->remove(ec);
-        }
-        return !ec;
+    virtual bool redo(ExceptionCode& ec)
+    {
+        return m_history->redo(ec);
     }
 
     Node* newNode()
@@ -263,13 +245,15 @@ private:
     String m_html;
     String m_oldHTML;
     Node* m_newNode;
+    OwnPtr<InspectorHistory> m_history;
+    OwnPtr<DOMEditor> m_domEditor;
 };
 
-class DOMEditor::ReplaceWholeTextAction : public DOMEditor::DOMAction {
+class DOMEditor::ReplaceWholeTextAction : public InspectorHistory::Action {
     WTF_MAKE_NONCOPYABLE(ReplaceWholeTextAction);
 public:
     ReplaceWholeTextAction(Text* textNode, const String& text)
-        : DOMAction("ReplaceWholeText")
+        : InspectorHistory::Action("ReplaceWholeText")
         , m_textNode(textNode)
         , m_text(text)
     {
@@ -278,13 +262,18 @@ public:
     virtual bool perform(ExceptionCode& ec)
     {
         m_oldText = m_textNode->wholeText();
-        m_textNode->replaceWholeText(m_text, ec);
-        return true;
+        return redo(ec);
     }
 
     virtual bool undo(ExceptionCode& ec)
     {
         m_textNode->replaceWholeText(m_oldText, ec);
+        return true;
+    }
+
+    virtual bool redo(ExceptionCode& ec)
+    {
+        m_textNode->replaceWholeText(m_text, ec);
         return true;
     }
 
@@ -294,43 +283,175 @@ private:
     String m_oldText;
 };
 
+class DOMEditor::ReplaceChildNodeAction : public InspectorHistory::Action {
+    WTF_MAKE_NONCOPYABLE(ReplaceChildNodeAction);
+public:
+    ReplaceChildNodeAction(Node* parentNode, PassRefPtr<Node> newNode, Node* oldNode)
+        : InspectorHistory::Action("ReplaceChildNode")
+        , m_parentNode(parentNode)
+        , m_newNode(newNode)
+        , m_oldNode(oldNode)
+    {
+    }
+
+    virtual bool perform(ExceptionCode& ec)
+    {
+        return redo(ec);
+    }
+
+    virtual bool undo(ExceptionCode& ec)
+    {
+        return m_parentNode->replaceChild(m_oldNode, m_newNode.get(), ec);
+    }
+
+    virtual bool redo(ExceptionCode& ec)
+    {
+        return m_parentNode->replaceChild(m_newNode, m_oldNode.get(), ec);
+    }
+
+private:
+    RefPtr<Node> m_parentNode;
+    RefPtr<Node> m_newNode;
+    RefPtr<Node> m_oldNode;
+};
+
+class DOMEditor::SetNodeValueAction : public InspectorHistory::Action {
+    WTF_MAKE_NONCOPYABLE(SetNodeValueAction);
+public:
+    SetNodeValueAction(Node* node, const String& value)
+        : InspectorHistory::Action("SetNodeValue")
+        , m_node(node)
+        , m_value(value)
+    {
+    }
+
+    virtual bool perform(ExceptionCode& ec)
+    {
+        m_oldValue = m_node->nodeValue();
+        return redo(ec);
+    }
+
+    virtual bool undo(ExceptionCode& ec)
+    {
+        m_node->setNodeValue(m_oldValue, ec);
+        return !ec;
+    }
+
+    virtual bool redo(ExceptionCode& ec)
+    {
+        m_node->setNodeValue(m_value, ec);
+        return !ec;
+    }
+
+private:
+    RefPtr<Node> m_node;
+    String m_value;
+    String m_oldValue;
+};
+
 DOMEditor::DOMEditor(InspectorHistory* history) : m_history(history) { }
 
 DOMEditor::~DOMEditor() { }
 
-bool DOMEditor::insertBefore(Node* parentNode, Node* node, Node* anchorNode, ErrorString* errorString)
+bool DOMEditor::insertBefore(Node* parentNode, PassRefPtr<Node> node, Node* anchorNode, ExceptionCode& ec)
 {
-    return m_history->perform(adoptPtr(new InsertBeforeAction(parentNode, node, anchorNode)), errorString);
+    return m_history->perform(adoptPtr(new InsertBeforeAction(parentNode, node, anchorNode)), ec);
 }
 
-bool DOMEditor::removeChild(Node* parentNode, Node* node, ErrorString* errorString)
+bool DOMEditor::removeChild(Node* parentNode, Node* node, ExceptionCode& ec)
 {
-    return m_history->perform(adoptPtr(new RemoveChildAction(parentNode, node)), errorString);
+    return m_history->perform(adoptPtr(new RemoveChildAction(parentNode, node)), ec);
 }
 
-bool DOMEditor::setAttribute(Element* element, const String& name, const String& value, ErrorString* errorString)
+bool DOMEditor::setAttribute(Element* element, const String& name, const String& value, ExceptionCode& ec)
 {
-    return m_history->perform(adoptPtr(new SetAttributeAction(element, name, value)), errorString);
+    return m_history->perform(adoptPtr(new SetAttributeAction(element, name, value)), ec);
 }
 
-bool DOMEditor::removeAttribute(Element* element, const String& name, ErrorString* errorString)
+bool DOMEditor::removeAttribute(Element* element, const String& name, ExceptionCode& ec)
 {
-    return m_history->perform(adoptPtr(new RemoveAttributeAction(element, name)), errorString);
+    return m_history->perform(adoptPtr(new RemoveAttributeAction(element, name)), ec);
 }
 
-bool DOMEditor::setOuterHTML(Node* node, const String& html, Node** newNode, ErrorString* errorString)
+bool DOMEditor::setOuterHTML(Node* node, const String& html, Node** newNode, ExceptionCode& ec)
 {
     OwnPtr<SetOuterHTMLAction> action = adoptPtr(new SetOuterHTMLAction(node, html));
     SetOuterHTMLAction* rawAction = action.get();
-    bool result = m_history->perform(action.release(), errorString);
+    bool result = m_history->perform(action.release(), ec);
     if (result)
         *newNode = rawAction->newNode();
     return result;
 }
 
+bool DOMEditor::replaceWholeText(Text* textNode, const String& text, ExceptionCode& ec)
+{
+    return m_history->perform(adoptPtr(new ReplaceWholeTextAction(textNode, text)), ec);
+}
+
+bool DOMEditor::replaceChild(Node* parentNode, PassRefPtr<Node> newNode, Node* oldNode, ExceptionCode& ec)
+{
+    return m_history->perform(adoptPtr(new ReplaceChildNodeAction(parentNode, newNode, oldNode)), ec);
+}
+
+bool DOMEditor::setNodeValue(Node* node, const String& value, ExceptionCode& ec)
+{
+    return m_history->perform(adoptPtr(new SetNodeValueAction(node, value)), ec);
+}
+
+static void populateErrorString(const ExceptionCode& ec, ErrorString* errorString)
+{
+    if (ec) {
+        ExceptionCodeDescription description(ec);
+        *errorString = description.name;
+    }
+}
+
+bool DOMEditor::insertBefore(Node* parentNode, PassRefPtr<Node> node, Node* anchorNode, ErrorString* errorString)
+{
+    ExceptionCode ec = 0;
+    bool result = insertBefore(parentNode, node, anchorNode, ec);
+    populateErrorString(ec, errorString);
+    return result;
+}
+
+bool DOMEditor::removeChild(Node* parentNode, Node* node, ErrorString* errorString)
+{
+    ExceptionCode ec = 0;
+    bool result = removeChild(parentNode, node, ec);
+    populateErrorString(ec, errorString);
+    return result;
+}
+
+bool DOMEditor::setAttribute(Element* element, const String& name, const String& value, ErrorString* errorString)
+{
+    ExceptionCode ec = 0;
+    bool result = setAttribute(element, name, value, ec);
+    populateErrorString(ec, errorString);
+    return result;
+}
+
+bool DOMEditor::removeAttribute(Element* element, const String& name, ErrorString* errorString)
+{
+    ExceptionCode ec = 0;
+    bool result = removeAttribute(element, name, ec);
+    populateErrorString(ec, errorString);
+    return result;
+}
+
+bool DOMEditor::setOuterHTML(Node* node, const String& html, Node** newNode, ErrorString* errorString)
+{
+    ExceptionCode ec = 0;
+    bool result = setOuterHTML(node, html, newNode, ec);
+    populateErrorString(ec, errorString);
+    return result;
+}
+
 bool DOMEditor::replaceWholeText(Text* textNode, const String& text, ErrorString* errorString)
 {
-    return m_history->perform(adoptPtr(new ReplaceWholeTextAction(textNode, text)), errorString);
+    ExceptionCode ec = 0;
+    bool result = replaceWholeText(textNode, text, ec);
+    populateErrorString(ec, errorString);
+    return result;
 }
 
 } // namespace WebCore

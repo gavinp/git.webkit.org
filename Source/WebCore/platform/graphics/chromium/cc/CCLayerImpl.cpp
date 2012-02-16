@@ -383,6 +383,15 @@ void CCLayerImpl::setBackgroundCoversViewport(bool backgroundCoversViewport)
     m_layerPropertyChanged = true;
 }
 
+void CCLayerImpl::setFilters(const FilterOperations& filters)
+{
+    if (m_filters == filters)
+        return;
+
+    m_filters = filters;
+    noteLayerPropertyChangedForSubtree();
+}
+
 void CCLayerImpl::setMasksToBounds(bool masksToBounds)
 {
     if (m_masksToBounds == masksToBounds)

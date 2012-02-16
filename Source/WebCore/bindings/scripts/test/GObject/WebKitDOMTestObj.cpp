@@ -344,15 +344,6 @@ webkit_dom_test_obj_with_script_execution_context_and_script_state_with_spaces(W
 }
 
 void
-webkit_dom_test_obj_with_script_arguments_and_call_stack(WebKitDOMTestObj* self)
-{
-    g_return_if_fail(self);
-    WebCore::JSMainThreadNullState state;
-    WebCore::TestObj * item = WebKit::core(self);
-    item->withScriptArgumentsAndCallStack();
-}
-
-void
 webkit_dom_test_obj_method_with_optional_arg(WebKitDOMTestObj* self, glong opt)
 {
     g_return_if_fail(self);
@@ -1321,32 +1312,6 @@ webkit_dom_test_obj_set_with_script_execution_context_and_script_state_with_spac
         g_return_if_fail(converted_value);
     }
     item->setWithScriptExecutionContextAndScriptStateWithSpacesAttribute(converted_value);
-}
-
-WebKitDOMTestObj*
-webkit_dom_test_obj_get_with_script_arguments_and_call_stack_attribute(WebKitDOMTestObj* self)
-{
-    g_return_val_if_fail(self, 0);
-    WebCore::JSMainThreadNullState state;
-    WebCore::TestObj * item = WebKit::core(self);
-    PassRefPtr<WebCore::TestObj> g_res = WTF::getPtr(item->withScriptArgumentsAndCallStackAttribute());
-    WebKitDOMTestObj* res = WebKit::kit(g_res.get());
-    return res;
-}
-
-void
-webkit_dom_test_obj_set_with_script_arguments_and_call_stack_attribute(WebKitDOMTestObj* self, WebKitDOMTestObj* value)
-{
-    g_return_if_fail(self);
-    WebCore::JSMainThreadNullState state;
-    WebCore::TestObj * item = WebKit::core(self);
-    g_return_if_fail(value);
-    WebCore::TestObj * converted_value = NULL;
-    if (value != NULL) {
-        converted_value = WebKit::core(value);
-        g_return_if_fail(converted_value);
-    }
-    item->setWithScriptArgumentsAndCallStackAttribute(converted_value);
 }
 
 gchar*

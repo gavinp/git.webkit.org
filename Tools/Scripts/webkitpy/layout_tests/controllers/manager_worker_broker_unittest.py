@@ -32,11 +32,8 @@ import sys
 import unittest
 
 from webkitpy.common.system import outputcapture
-from webkitpy.common.host_mock import MockHost
-from webkitpy.layout_tests import port
 from webkitpy.layout_tests.controllers import manager_worker_broker
 from webkitpy.layout_tests.controllers import message_broker
-from webkitpy.layout_tests.views import printing
 
 
 # In order to reliably control when child workers are starting and stopping,
@@ -53,22 +50,21 @@ def make_broker(manager, worker_model, start_queue=None, stop_queue=None):
     global stopping_queue
     starting_queue = start_queue
     stopping_queue = stop_queue
-    options = get_options(worker_model)
-    host = MockHost()
-    test_port = host.port_factory.get("test")
-    return manager_worker_broker.get(test_port, options, manager, _TestWorker)
+    return manager_worker_broker.get(worker_model, manager, _TestWorker)
 
 
 class _TestWorker(manager_worker_broker.AbstractWorker):
-    def __init__(self, broker_connection, worker_number, results_directory, options):
+    def __init__(self, broker_connection, worker_obj=None):
         self._broker_connection = broker_connection
-        self._options = options
-        self._worker_number = worker_number
-        self._name = 'TestWorker/%d' % worker_number
+        self._name = 'TestWorker'
         self._stopped = False
         self._canceled = False
+        self._thing_to_greet = 'everybody'
         self._starting_queue = starting_queue
         self._stopping_queue = stopping_queue
+
+    def set_inline_arguments(self, thing_to_greet):
+        self._thing_to_greet = thing_to_greet
 
     def handle_stop(self, src):
         self._stopped = True
@@ -76,7 +72,7 @@ class _TestWorker(manager_worker_broker.AbstractWorker):
     def handle_test(self, src, an_int, a_str):
         assert an_int == 1
         assert a_str == "hello, world"
-        self._broker_connection.post_message('test', 2, 'hi, everybody')
+        self._broker_connection.post_message('test', 2, 'hi, ' + self._thing_to_greet)
 
     def is_done(self):
         return self._stopped or self._canceled
@@ -87,7 +83,7 @@ class _TestWorker(manager_worker_broker.AbstractWorker):
     def cancel(self):
         self._canceled = True
 
-    def run(self, port):
+    def run(self):
         if self._starting_queue:
             self._starting_queue.put('')
 
@@ -99,17 +95,6 @@ class _TestWorker(manager_worker_broker.AbstractWorker):
             self._broker_connection.post_message('done')
         except Exception, e:
             self._broker_connection.post_message('exception', (type(e), str(e), None))
-
-
-def get_options(worker_model):
-    option_list = (manager_worker_broker.runtime_options() +
-                   printing.print_options() +
-                   [optparse.make_option("--experimental-fully-parallel", default=False),
-                    optparse.make_option("--child-processes", default='2')])
-    parser = optparse.OptionParser(option_list=option_list)
-    options, args = parser.parse_args(args=['--worker-model', worker_model])
-    return options
-
 
 
 class FunctionTests(unittest.TestCase):
@@ -161,7 +146,7 @@ class _TestsMixin(object):
 
     def test_cancel(self):
         self.make_broker()
-        worker = self._broker.start_worker(0, None)
+        worker = self._broker.start_worker()
         worker.cancel()
         self._broker.post_message('test', 1, 'hello, world')
         worker.join(0.5)
@@ -169,7 +154,7 @@ class _TestsMixin(object):
 
     def test_done(self):
         self.make_broker()
-        worker = self._broker.start_worker(0, None)
+        worker = self._broker.start_worker()
         self._broker.post_message('test', 1, 'hello, world')
         self._broker.post_message('stop')
         self._broker.run_message_loop()
@@ -181,7 +166,7 @@ class _TestsMixin(object):
 
     def test_unknown_message(self):
         self.make_broker()
-        worker = self._broker.start_worker(0, None)
+        worker = self._broker.start_worker()
         self._broker.post_message('unknown')
         self._broker.run_message_loop()
         worker.join(0.5)
@@ -190,7 +175,22 @@ class _TestsMixin(object):
         self.assertFalse(worker.is_alive())
         self.assertEquals(self._exception[0], ValueError)
         self.assertEquals(self._exception[1],
-            "TestWorker/0: received message 'unknown' it couldn't handle")
+            "TestWorker: received message 'unknown' it couldn't handle")
+
+
+class InlineBrokerTests(_TestsMixin, unittest.TestCase):
+    def setUp(self):
+        _TestsMixin.setUp(self)
+        self._worker_model = 'inline'
+
+    def test_inline_arguments(self):
+        self.make_broker()
+        worker = self._broker.start_worker()
+        worker.set_inline_arguments('me')
+        self._broker.post_message('test', 1, 'hello, world')
+        self._broker.post_message('stop')
+        self._broker.run_message_loop()
+        self.assertEquals(self._a_str, 'hi, me')
 
 
 # FIXME: https://bugs.webkit.org/show_bug.cgi?id=54520.
@@ -202,14 +202,6 @@ if sys.platform not in ('cygwin', 'win32'):
             self._worker_model = 'processes'
 
 
-class FunctionsTest(unittest.TestCase):
-    def test_runtime_options(self):
-        option_list = manager_worker_broker.runtime_options()
-        parser = optparse.OptionParser(option_list=option_list)
-        options, args = parser.parse_args([])
-        self.assertTrue(options)
-
-
 class InterfaceTest(unittest.TestCase):
     # These tests mostly exist to pacify coverage.
 
@@ -219,14 +211,14 @@ class InterfaceTest(unittest.TestCase):
         # Test that all the base class methods are abstract and have the
         # signature we expect.
         broker = make_broker(self, 'inline')
-        obj = manager_worker_broker._ManagerConnection(broker._broker, None, self, None)
-        self.assertRaises(NotImplementedError, obj.start_worker, 0, None)
+        obj = manager_worker_broker._ManagerConnection(broker._broker, self, None)
+        self.assertRaises(NotImplementedError, obj.start_worker)
 
     def test_workerconnection_is_abstract(self):
         # Test that all the base class methods are abstract and have the
         # signature we expect.
         broker = make_broker(self, 'inline')
-        obj = manager_worker_broker._WorkerConnection(broker._broker, _TestWorker, 0, None, None)
+        obj = manager_worker_broker._WorkerConnection(broker._broker, _TestWorker, None)
         self.assertRaises(NotImplementedError, obj.cancel)
         self.assertRaises(NotImplementedError, obj.is_alive)
         self.assertRaises(NotImplementedError, obj.join, None)

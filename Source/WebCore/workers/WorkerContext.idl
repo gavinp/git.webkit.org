@@ -29,13 +29,14 @@ module threads {
     interface [
         Conditional=WORKERS,
         JSCustomMarkFunction,
-        JSCustomGetOwnPropertySlotDelegate,
+        JSCustomGetOwnPropertySlotAndDescriptor,
         EventTarget,
         ExtendsDOMGlobalObject,
         IsWorkerContext,
         JSLegacyParent=JSWorkerContextBase,
         JSNoStaticTables,
-        OmitConstructor
+        OmitConstructor,
+        V8CustomToJSObject
     ] WorkerContext {
 
         // WorkerGlobalScope

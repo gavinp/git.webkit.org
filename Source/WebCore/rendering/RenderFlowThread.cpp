@@ -137,6 +137,15 @@ void RenderFlowThread::removeFlowChild(RenderObject* child)
     m_flowThreadChildList.remove(child);
 }
 
+void RenderFlowThread::removeFlowChildInfo(RenderObject* child)
+{
+    if (child->isBox()) {
+        removeRenderBoxRegionInfo(toRenderBox(child));
+        if (child->canHaveRegionStyle())
+            clearRenderBoxCustomStyle(toRenderBox(child));
+    }
+}
+
 // Compare two regions to determine in which one the content should flow first.
 // The function returns true if the first passed region is "less" than the second passed region.
 // If the first region appears before second region in DOM,
@@ -445,7 +454,7 @@ void RenderFlowThread::paintIntoRegion(PaintInfo& paintInfo, RenderRegion* regio
     LayoutRect regionClippingRect(paintOffset + (regionOverflowRect.location() - regionRect.location()), regionOverflowRect.size());
 
     PaintInfo info(paintInfo);
-    info.rect.intersect(regionClippingRect);
+    info.rect.intersect(pixelSnappedIntRect(regionClippingRect));
 
     if (!info.rect.isEmpty()) {
         context->save();
@@ -491,7 +500,7 @@ bool RenderFlowThread::hitTestRegion(RenderRegion* region, const HitTestRequest&
     LayoutPoint transformedPoint(pointInContainer.x() - renderFlowThreadOffset.x(), pointInContainer.y() - renderFlowThreadOffset.y());
     
     // Always ignore clipping, since the RenderFlowThread has nothing to do with the bounds of the FrameView.
-    HitTestRequest newRequest(request.type() & HitTestRequest::IgnoreClipping);
+    HitTestRequest newRequest(request.type() | HitTestRequest::IgnoreClipping);
 
     RenderRegion* oldRegion = result.region();
     result.setRegion(region);
@@ -806,6 +815,9 @@ void RenderFlowThread::clearRenderBoxCustomStyle(const RenderBox* box,
 
 void RenderFlowThread::setRegionRangeForBox(const RenderBox* box, LayoutUnit offsetFromLogicalTopOfFirstPage)
 {
+    if (!hasRegions())
+        return;
+
     // FIXME: Not right for differing writing-modes.
     RenderRegion* startRegion = renderRegionForLine(offsetFromLogicalTopOfFirstPage, true);
     RenderRegion* endRegion = renderRegionForLine(offsetFromLogicalTopOfFirstPage + box->logicalHeight(), true);
@@ -858,6 +870,33 @@ WebKitNamedFlow* RenderFlowThread::ensureNamedFlow()
         m_namedFlow = WebKitNamedFlow::create();
 
     return m_namedFlow.get();
+}
+
+void RenderFlowThread::computeOverflowStateForRegions(LayoutUnit oldClientAfterEdge)
+{
+    LayoutUnit height = oldClientAfterEdge;
+    // FIXME: the visual overflow of middle region (if it is the last one to contain any content in a render flow thread)
+    // might not be taken into account because the render flow thread height is greater that that regions height + its visual overflow
+    // because of how computeLogicalHeight is implemented for RenderFlowThread (as a sum of all regions height).
+    // This means that the middle region will be marked as fit (even if it has visual overflow flowing into the next region)
+    if (hasRenderOverflow())
+        height = isHorizontalWritingMode() ? visualOverflowRect().maxY() : visualOverflowRect().maxX();
+
+    for (RenderRegionList::iterator iter = m_regionList.begin(); iter != m_regionList.end(); ++iter) {
+        RenderRegion* region = *iter;
+        if (!region->isValid()) {
+            region->setRegionState(RenderRegion::RegionUndefined);
+            continue;
+        }
+        LayoutUnit flowMin = height - (isHorizontalWritingMode() ? region->regionRect().y() : region->regionRect().x());
+        LayoutUnit flowMax = height - (isHorizontalWritingMode() ? region->regionRect().maxY() : region->regionRect().maxX());
+        RenderRegion::RegionState state = RenderRegion::RegionFit;
+        if (flowMin <= 0)
+            state = RenderRegion::RegionEmpty;
+        if (flowMax > 0)
+            state = RenderRegion::RegionOverflow;
+        region->setRegionState(state);
+    }
 }
 
 } // namespace WebCore

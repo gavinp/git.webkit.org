@@ -22,7 +22,8 @@ module html {
 
     interface [
         JSGenerateToNativeObject,
-        JSCustomPushEventHandlerScope
+        JSCustomPushEventHandlerScope,
+        V8CustomToJSObject
     ] HTMLElement : Element {
                  // iht.com relies on id returning the empty string when no id is present. 
                  // Other browsers do this as well. So we don't convert null to JS null.
@@ -88,6 +89,8 @@ module html {
 #if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
         readonly attribute DOMString titleDisplayString;
 #endif
+
+        void click();
     };
 
 }

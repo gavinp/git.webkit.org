@@ -158,26 +158,25 @@ bool HTMLFontElement::cssValueFromFontSizeNumber(const String& s, int& size)
     return true;
 }
 
-void HTMLFontElement::parseAttribute(Attribute* attr)
+bool HTMLFontElement::isPresentationAttribute(Attribute* attr) const
+{
+    if (attr->name() == sizeAttr || attr->name() == colorAttr || attr->name() == faceAttr)
+        return true;
+    return HTMLElement::isPresentationAttribute(attr);
+}
+
+void HTMLFontElement::collectStyleForAttribute(Attribute* attr, StylePropertySet* style)
 {
     if (attr->name() == sizeAttr) {
         int size = 0;
         if (cssValueFromFontSizeNumber(attr->value(), size))
-            addCSSProperty(CSSPropertyFontSize, size);
-        else
-            removeCSSProperty(CSSPropertyFontSize);
-    } else if (attr->name() == colorAttr) {
-        if (attr->value().isNull())
-            removeCSSProperty(CSSPropertyColor);
-        else
-            addCSSColor(CSSPropertyColor, attr->value());
-    } else if (attr->name() == faceAttr) {
-        if (attr->value().isNull())
-            removeCSSProperty(CSSPropertyFontFamily);
-        else
-            addCSSProperty(CSSPropertyFontFamily, attr->value());
-    } else
-        HTMLElement::parseAttribute(attr);
+            style->setProperty(CSSPropertyFontSize, size);
+    } else if (attr->name() == colorAttr)
+        addHTMLColorToStyle(style, CSSPropertyColor, attr->value());
+    else if (attr->name() == faceAttr)
+        style->setProperty(CSSPropertyFontFamily, attr->value());
+    else
+        HTMLElement::collectStyleForAttribute(attr, style);
 }
 
 }

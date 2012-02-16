@@ -30,6 +30,7 @@
 #include "CSSStyleSheet.h"
 #include "CSSValueKeywords.h"
 #include "CSSValueList.h"
+#include "CSSValuePool.h"
 #include "Document.h"
 #include "ExceptionCode.h"
 #include "HTMLNames.h"
@@ -45,19 +46,24 @@ using namespace std;
 
 namespace WebCore {
 
+typedef HashMap<const StylePropertySet*, OwnPtr<PropertySetCSSStyleDeclaration> > PropertySetCSSOMWrapperMap;
+static PropertySetCSSOMWrapperMap& propertySetCSSOMWrapperMap()
+{
+    DEFINE_STATIC_LOCAL(PropertySetCSSOMWrapperMap, propertySetCSSOMWrapperMapInstance, ());
+    return propertySetCSSOMWrapperMapInstance;
+}
+
 class PropertySetCSSStyleDeclaration : public CSSStyleDeclaration {
 public:
-    static PassRefPtr<PropertySetCSSStyleDeclaration> create(PassRefPtr<StylePropertySet> propertySet)
-    {
-        return adoptRef(new PropertySetCSSStyleDeclaration(propertySet)); 
-    }
+    PropertySetCSSStyleDeclaration(StylePropertySet* propertySet) : m_propertySet(propertySet) { }
 
 private:
-    PropertySetCSSStyleDeclaration(PassRefPtr<StylePropertySet> propertySet) : m_propertySet(propertySet) { }
-    
+    virtual void ref() OVERRIDE { m_propertySet->ref(); }
+    virtual void deref() OVERRIDE { m_propertySet->deref(); }
+
     virtual CSSRule* parentRule() const OVERRIDE;
     virtual unsigned length() const OVERRIDE;
-    virtual String item(unsigned index) const;
+    virtual String item(unsigned index) const OVERRIDE;
     virtual PassRefPtr<CSSValue> getPropertyCSSValue(const String& propertyName) OVERRIDE;
     virtual String getPropertyValue(const String& propertyName) OVERRIDE;
     virtual String getPropertyPriority(const String& propertyName) OVERRIDE;
@@ -66,7 +72,7 @@ private:
     virtual void setProperty(const String& propertyName, const String& value, const String& priority, ExceptionCode&) OVERRIDE;
     virtual String removeProperty(const String& propertyName, ExceptionCode&) OVERRIDE;
     virtual String cssText() const OVERRIDE;
-    virtual void setCssText(const String&, ExceptionCode&);
+    virtual void setCssText(const String&, ExceptionCode&) OVERRIDE;
     virtual PassRefPtr<CSSValue> getPropertyCSSValueInternal(CSSPropertyID) OVERRIDE;
     virtual String getPropertyValueInternal(CSSPropertyID) OVERRIDE;
     virtual void setPropertyInternal(CSSPropertyID, const String& value, bool important, ExceptionCode&) OVERRIDE;
@@ -76,7 +82,7 @@ private:
     virtual PassRefPtr<StylePropertySet> copy() const OVERRIDE;
     virtual PassRefPtr<StylePropertySet> makeMutable() OVERRIDE;
     
-    RefPtr<StylePropertySet> m_propertySet;
+    StylePropertySet* m_propertySet;
 };
 
 namespace {
@@ -171,6 +177,7 @@ StylePropertySet::StylePropertySet()
     : m_strictParsing(false)
     , m_parentIsElement(false)
     , m_isInlineStyleDeclaration(false)
+    , m_hasCSSOMWrapper(false)
     , m_parent(static_cast<CSSRule*>(0))
 {
 }
@@ -179,6 +186,7 @@ StylePropertySet::StylePropertySet(CSSRule* parentRule)
     : m_strictParsing(!parentRule || parentRule->useStrictParsing())
     , m_parentIsElement(false)
     , m_isInlineStyleDeclaration(false)
+    , m_hasCSSOMWrapper(false)
     , m_parent(parentRule)
 {
 }
@@ -188,6 +196,7 @@ StylePropertySet::StylePropertySet(CSSRule* parentRule, const Vector<CSSProperty
     , m_strictParsing(!parentRule || parentRule->useStrictParsing())
     , m_parentIsElement(false)
     , m_isInlineStyleDeclaration(false)
+    , m_hasCSSOMWrapper(false)
     , m_parent(parentRule)
 {
     m_properties.shrinkToFit();
@@ -197,6 +206,7 @@ StylePropertySet::StylePropertySet(CSSRule* parentRule, const CSSProperty* const
     : m_strictParsing(!parentRule || parentRule->useStrictParsing())
     , m_parentIsElement(false)
     , m_isInlineStyleDeclaration(false)
+    , m_hasCSSOMWrapper(false)
     , m_parent(parentRule)
 {
     m_properties.reserveInitialCapacity(numProperties);
@@ -222,24 +232,16 @@ StylePropertySet::StylePropertySet(StyledElement* parentElement, bool isInlineSt
     : m_strictParsing(false)
     , m_parentIsElement(true)
     , m_isInlineStyleDeclaration(isInlineStyle)
+    , m_hasCSSOMWrapper(false)
     , m_parent(parentElement)
 {
 }
 
 StylePropertySet::~StylePropertySet()
 {
-}
-
-void StylePropertySet::deref()
-{
-    if (derefBase()) {
-        delete this;
-        return;
-    }
-    // StylePropertySet and CSSStyleDeclaration ref each other. When we have a declaration and
-    // our refcount drops to one we know it is the only thing keeping us alive.
-    if (m_cssStyleDeclaration && hasOneRef())
-        m_cssStyleDeclaration.clear();
+    ASSERT(!m_hasCSSOMWrapper || propertySetCSSOMWrapperMap().contains(this));
+    if (m_hasCSSOMWrapper)
+        propertySetCSSOMWrapperMap().remove(this);
 }
 
 CSSStyleSheet* StylePropertySet::contextStyleSheet() const
@@ -716,7 +718,8 @@ void StylePropertySet::setNeedsStyleRecalc()
             return;
 
         if (!m_isInlineStyleDeclaration) {
-            element->setNeedsStyleRecalc();
+            // If this is not an inline style, it's an attribute style, and we shouldn't mark the element for style recalc
+            // as that is handled by StyledElement::attributeChanged().
             return;
         }
 
@@ -813,10 +816,15 @@ void StylePropertySet::setProperty(const CSSProperty& property, CSSProperty* slo
 #endif
 }
 
-bool StylePropertySet::setProperty(int propertyID, int value, bool important, bool notifyChanged)
+bool StylePropertySet::setProperty(int propertyID, int identifier, bool important, bool notifyChanged)
 {
-    CSSProperty property(propertyID, CSSPrimitiveValue::createIdentifier(value), important);
-    setProperty(property);
+    RefPtr<CSSPrimitiveValue> value;
+    if (m_parentIsElement && parentElement() && parentElement()->document())
+        value = parentElement()->document()->cssValuePool()->createIdentifierValue(identifier);
+    else
+        value = CSSPrimitiveValue::createIdentifier(identifier);
+
+    setProperty(CSSProperty(propertyID, value.release(), important));
     if (notifyChanged)
         setNeedsStyleRecalc();
     return true;
@@ -1129,9 +1137,12 @@ PassRefPtr<StylePropertySet> StylePropertySet::copyPropertiesInSet(const int* se
 
 CSSStyleDeclaration* StylePropertySet::ensureCSSStyleDeclaration() const
 {
-    if (!m_cssStyleDeclaration)
-        m_cssStyleDeclaration = PropertySetCSSStyleDeclaration::create(const_cast<StylePropertySet*>(this));
-    return m_cssStyleDeclaration.get();
+    if (m_hasCSSOMWrapper)
+        return propertySetCSSOMWrapperMap().get(this);
+    m_hasCSSOMWrapper = true;
+    PropertySetCSSStyleDeclaration* cssomWrapper = new PropertySetCSSStyleDeclaration(const_cast<StylePropertySet*>(this));
+    propertySetCSSOMWrapperMap().add(this, adoptPtr(cssomWrapper));
+    return cssomWrapper;
 }
 
 unsigned PropertySetCSSStyleDeclaration::length() const
@@ -1253,9 +1264,6 @@ PassRefPtr<StylePropertySet> PropertySetCSSStyleDeclaration::copy() const
 
 PassRefPtr<StylePropertySet> PropertySetCSSStyleDeclaration::makeMutable()
 {
-    ASSERT(m_propertySet->m_cssStyleDeclaration == this || (!m_propertySet->m_cssStyleDeclaration && m_propertySet->hasOneRef()));
-    if (!m_propertySet->m_cssStyleDeclaration)
-        m_propertySet->m_cssStyleDeclaration = this;
     return m_propertySet;
 }
 
@@ -1263,5 +1271,12 @@ bool PropertySetCSSStyleDeclaration::cssPropertyMatches(const CSSProperty* prope
 {
     return m_propertySet->propertyMatches(property);
 }
+
+class SameSizeAsStylePropertySet : public RefCounted<SameSizeAsStylePropertySet> {
+    Vector<CSSProperty, 4> properties;
+    unsigned bitfield;
+    void* parent;
+};
+COMPILE_ASSERT(sizeof(StylePropertySet) == sizeof(SameSizeAsStylePropertySet), style_property_set_should_stay_small);
 
 } // namespace WebCore

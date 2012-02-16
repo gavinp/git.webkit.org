@@ -1,3 +1,389 @@
+2012-02-15  Anders Carlsson  <andersca@apple.com>
+
+        Add TiledCoreAnimationDrawingArea::forceRepaint
+        https://bugs.webkit.org/show_bug.cgi?id=78749
+        <rdar://problem/10866221>
+
+        Reviewed by Sam Weinig.
+
+        * WebProcess/WebPage/mac/TiledCoreAnimationDrawingArea.h:
+        * WebProcess/WebPage/mac/TiledCoreAnimationDrawingArea.mm:
+        (WebKit::TiledCoreAnimationDrawingArea::forceRepaint):
+        Force a repaint and synchronize the layer tree to the UI process.
+
+2012-02-15  Enrica Casucci  <enrica@apple.com>
+
+        Refactor ClipboardMac class to use PlatformStrategies.
+        https://bugs.webkit.org/show_bug.cgi?id=78554
+
+        Reviewed by Anders Carlsson.
+
+        * WebProcess/WebCoreSupport/WebDragClient.h: Changed method signature to reference
+        the pasteboard by name.
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp: Added new methods.
+        (WebKit::WebPlatformStrategies::changeCount):
+        (WebKit::WebPlatformStrategies::uniqueName):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h: Ditto.
+        * WebProcess/WebCoreSupport/mac/WebDragClientMac.mm:
+        (WebKit::WebDragClient::declareAndWriteDragImage): Changed method signature to reference
+        the pasteboard by name.
+
+2012-02-15  Sadrul Habib Chowdhury  <sadrul@chromium.org>
+
+        Notify ChromeClient when touch-event handlers are installed/removed.
+        https://bugs.webkit.org/show_bug.cgi?id=77440
+
+        Reviewed by Darin Fisher and Ryosuke Niwa.
+
+        * UIProcess/WebPageProxy.h:
+        (WebKit::WebPageProxy::numTouchEventHandlersChanged):
+        * WebProcess/WebCoreSupport/WebChromeClient.h:
+
+2012-02-15  Patrick Gansterer  <paroga@webkit.org>
+
+        [CMake] Move RunLoop to WebCore/platform
+        https://bugs.webkit.org/show_bug.cgi?id=78504
+
+        Reviewed by Adam Roben.
+
+        * CMakeLists.txt: Remove RunLoop.cpp from list of souces.
+
+2012-02-14  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        [Qt] Eliminate first set of QtWidgets dependencies from WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=78611
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * UIProcess/qt/QtWebPageEventHandler.cpp: Add missing QCursor include
+        to fix compilation.
+
+2012-02-15  Roland Steiner  <rolandsteiner@chromium.org>
+
+        <style scoped>: Allow <style scoped> as a direct child of a ShadowRoot
+        https://bugs.webkit.org/show_bug.cgi?id=77853
+
+        numberOfScopedHTMLStyleChildren got moved from Element into Node.
+
+        Reviewed by Dimitri Glazkov.
+
+        * win/WebKit2.def:
+        * win/WebKit2CFLite.def:
+
+2012-02-15  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        [Texmap] Divide TextureMapperNode.cpp to 3 files.
+        https://bugs.webkit.org/show_bug.cgi?id=76660
+
+        Rename TextureMapperNode to TextureMapperLayer.
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * UIProcess/qt/LayerTreeHostProxyQt.cpp:
+        (WebKit::LayerTreeHostProxy::createLayer):
+        (WebKit::LayerTreeHostProxy::paintToCurrentGLContext):
+        (WebKit::LayerTreeHostProxy::paintToGraphicsContext):
+        (WebKit::LayerTreeHostProxy::getBackingStore):
+        (WebKit::LayerTreeHostProxy::ensureRootLayer):
+        (WebKit::LayerTreeHostProxy::purgeGLResources):
+
+2012-02-14  Anders Carlsson  <andersca@apple.com>
+
+        Swipe gestures don't work if main frame has a horizontal scrollbar
+        https://bugs.webkit.org/show_bug.cgi?id=78650
+        <rdar://problem/10864993>
+
+        Reviewed by Sam Weinig.
+
+        * WebProcess/WebPage/EventDispatcher.cpp:
+        (WebKit::EventDispatcher::wheelEvent):
+        ScrollingTree::tryToHandleWheelEvent now returns a tri-state enum so handle the extra case.
+
+        (WebKit::EventDispatcher::sendDidReceiveEvent):
+        Rename this now that it takes a parameter indicating whether the event was handled or not.
+
+2012-02-14  Brian Weinstein  <bweinstein@apple.com>
+
+        Web Inspector: Add the ability to show the resources panel on launch
+        https://bugs.webkit.org/show_bug.cgi?id=78641
+        
+        Add WebKit2 API for the ability to show the resources panel. This calls down
+        from the WK API all the way to InspectorFrontendClientLocal::showResources.
+
+        Reviewed by Timothy Hatcher.
+
+        * UIProcess/API/C/WKInspector.cpp:
+        (WKInspectorShowResources): Call WebInspectorProxy::showResources.
+        * UIProcess/API/C/WKInspector.h:
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::WebInspectorProxy::showResources): Send a message to the web process.
+        * UIProcess/WebInspectorProxy.h:
+        * WebProcess/WebPage/WebInspector.cpp:
+        (WebKit::WebInspector::showResources): Call InspectorFrontendClientLocal::showResources.
+        * WebProcess/WebPage/WebInspector.h:
+        * WebProcess/WebPage/WebInspector.messages.in: Add a ShowResources message.
+
+2012-02-14  Matt Lilek  <mrl@apple.com>
+
+        Don't ENABLE_DASHBOARD_SUPPORT unconditionally on all Mac platforms
+        https://bugs.webkit.org/show_bug.cgi?id=78629
+
+        Reviewed by David Kilzer.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2012-02-13  Raphael Kubo da Costa  <kubo@profusion.mobi>
+
+        [CMake] Merge WebKitEfl.cmake into FindEFL.cmake.
+        https://bugs.webkit.org/show_bug.cgi?id=78566
+
+        Reviewed by Daniel Bates.
+
+        * PlatformEfl.cmake: Do not include WebKitEfl.cmake.
+
+2012-02-14  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        [Qt][Texmap] Refactor backing-store code in TextureMapper
+        https://bugs.webkit.org/show_bug.cgi?id=78305
+
+        Move the backing-store code to LayerTreeBackingStore, implementing the virtual functions
+        in TextureMapperBackingStore.
+        We save the double-buffered tile in the backing-store, and then convert them to regular
+        tiles in updateContents, based on the order of painting.
+        Use TextureMapperCompositedImage for images instead of saving our own composited image
+        registry.
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * Target.pri:
+        * UIProcess/LayerTreeHostProxy.h:
+        (WebKit):
+        (LayerTreeHostProxy):
+        * UIProcess/qt/LayerBackingStore.cpp: Added.
+        * UIProcess/qt/LayerBackingStore.h: Added.
+        * UIProcess/qt/LayerTreeHostProxyQt.cpp:
+        (WebKit::LayerTreeHostProxy::createLayer):
+        (WebKit::LayerTreeHostProxy::syncLayerParameters):
+        (WebKit::LayerTreeHostProxy::getBackingStore):
+        (WebKit::LayerTreeHostProxy::createTile):
+        (WebKit::LayerTreeHostProxy::removeTile):
+        (WebKit::LayerTreeHostProxy::updateTile):
+        (WebKit::LayerTreeHostProxy::createImage):
+        (WebKit::LayerTreeHostProxy::assignImageToLayer):
+        (WebKit::LayerTreeHostProxy::purgeGLResources):
+        * WebProcess.pro:
+
+
+2012-02-14  Shinya Kawanaka  <shinyak@google.com>
+
+        Use youngestShadowRoot and oldestShadowRoot instead of Element::shadowRoot().
+        https://bugs.webkit.org/show_bug.cgi?id=78455
+
+        Reviewed by Hajime Morita.
+
+        Exports necesarry symbols.
+
+        * win/WebKit2.def:
+        * win/WebKit2CFLite.def:
+
+2012-02-14  Alexey Proskuryakov  <ap@apple.com>
+
+        [Mac][Win][WK2] Switch to RFC 6455 protocol for WebSockets
+        https://bugs.webkit.org/show_bug.cgi?id=78541
+        <rdar://problem/10036695>
+
+        Reviewed by Kent Tamura.
+
+        * Shared/WebPreferencesStore.h: (WebKit): Changed default value of the preference.
+
+2012-02-13  W. James MacLean  <wjmaclean@chromium.org>
+
+        [chromium] Remove obsolete zoom animation pathway.
+        https://bugs.webkit.org/show_bug.cgi?id=78359
+
+        Reviewed by James Robinson.
+
+        This patch removes dead code from the previous incarnation of zoom animation for chromium.
+
+        WebProcess/Plugins/PDF/BuiltInPDFView.h:
+        (BuiltInPDFView):
+
+2012-02-13  Enrica Casucci  <enrica@apple.com>
+
+        Refactor Mac platform implementation of the Pasteboard class to use Platform Strategies.
+        https://bugs.webkit.org/show_bug.cgi?id=78282
+
+        This patch removes any accesss to the NSPasteboard object from the Pasteboard class which
+        now makes use of a new pasteboardStrategy object that is implemented both in WebKit and
+        WebKit2. The actual access to NSPasteboard is now performed inside the PlatformPasteboard
+        class. Currently both WebKit and WebKit2 use the same implementation of the PasteboardStrategy
+        interface but this one more step in the direction of removing access to NSPasteboard from
+        the WebProcess.
+        As part of the refactoring the I've reduced to a minimum the use of OBJ-C classes.
+
+        Reviewed by Anders Carlsson.
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp: Added implementation of PasteboardStrategy
+        interface.
+        (WebKit::WebPlatformStrategies::createPasteboardStrategy):
+        (WebKit::WebPlatformStrategies::getTypes):
+        (WebKit::WebPlatformStrategies::bufferForType):
+        (WebKit::WebPlatformStrategies::getPathnamesForType):
+        (WebKit::WebPlatformStrategies::stringForType):
+        (WebKit::WebPlatformStrategies::copy):
+        (WebKit::WebPlatformStrategies::setTypes):
+        (WebKit::WebPlatformStrategies::setBufferForType):
+        (WebKit::WebPlatformStrategies::setPathnamesForType):
+        (WebKit::WebPlatformStrategies::setStringForType):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h: Added PasteboardStrategy.
+
+2012-02-13  Anders Carlsson  <andersca@apple.com>
+
+        The scrolling tree needs to know about the back forward state of the page
+        https://bugs.webkit.org/show_bug.cgi?id=78523
+        <rdar://problem/10756548>
+
+        Reviewed by Sam Weinig.
+
+        Pass the back/forward state in the WheelEvent message. This is pretty hacky but works well.
+
+        * Platform/CoreIPC/HandleMessage.h:
+        (CoreIPC):
+        (CoreIPC::callMemberFunction):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::handleWheelEvent):
+        (WebKit::WebPageProxy::didReceiveEvent):
+        * WebProcess/WebPage/EventDispatcher.cpp:
+        (WebKit::EventDispatcher::wheelEvent):
+        * WebProcess/WebPage/EventDispatcher.h:
+        (EventDispatcher):
+        * WebProcess/WebPage/EventDispatcher.messages.in:
+
+2012-02-13  Dan Bernstein  <mitz@apple.com>
+
+        WebKit2 build emits a warning about not stripping code-signed PluginProcess.app when copying it into the framework
+        https://bugs.webkit.org/show_bug.cgi?id=78451
+
+        Reviewed by Sam Weinig.
+
+        * Configurations/Base.xcconfig: Set COPY_PHASE_STRIP to NO.
+
+2012-02-13  Sam Weinig  <sam@webkit.org>
+
+        Windows build fix.
+
+        * UIProcess/win/WebPopupMenuProxyWin.cpp:
+        (WebKit::WebPopupMenuProxyWin::scrollToRevealSelection):
+
+2012-02-13  Zalan Bujtas  <zbujtas@gmail.com>
+
+        Manage ShareableBitmap object lifecycle properly, when QImage is created
+        using the shared data.
+        https://bugs.webkit.org/show_bug.cgi?id=77546
+
+        Reviewed by Simon Hausmann.
+
+        * Shared/ShareableBitmap.h:
+        (ShareableBitmap):
+        * Shared/qt/ShareableBitmapQt.cpp:
+        (WebKit::ShareableBitmap::createQImage):
+        (WebKit):
+        (WebKit::ShareableBitmap::releaseSharedMemoryData):
+
+2012-02-06  Raphael Kubo da Costa  <kubo@profusion.mobi>
+
+        [EFL] Drop support for the Curl network backend.
+        https://bugs.webkit.org/show_bug.cgi?id=77874
+
+        Reviewed by Eric Seidel.
+
+        Nobody seems to be maintaining the Curl backend in WebCore, the
+        EFL port developers all seem to be using the Soup backend and the
+        port itself has many features which are only implemented for the
+        latter.
+
+        * PlatformEfl.cmake: Unconditionally build the glib/soup source
+        files and unconditionally add the required include directories and
+        libraries.
+        * WebProcess/efl/WebProcessMainEfl.cpp:
+        (WebKit::WebProcessMainEfl): Remove USE(SOUP) check.
+
+2012-02-11  Sheriff Bot  <webkit.review.bot@gmail.com>
+
+        Unreviewed, rolling out r107435.
+        http://trac.webkit.org/changeset/107435
+        https://bugs.webkit.org/show_bug.cgi?id=78410
+
+        It broke the Qt build (Requested by Ossy on #webkit).
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+        (WebPlatformStrategies):
+
+2012-02-10  Brian Weinstein  <bweinstein@apple.com>
+
+        Web Inspector: Add the ability to jump to the source for a given frame
+        https://bugs.webkit.org/show_bug.cgi?id=78396
+        
+        Add WebKit2 API for the ability to show the source of a frame in the web inspector. This calls down
+        from the WK API all the way to InspectorFrontendClientLocal::showMainResourceForFrame.
+
+        Reviewed by Tim Hatcher.
+
+        * UIProcess/API/C/WKInspector.cpp:
+        (WKInspectorShowMainResourceForFrame): Call WebInspectorProxy::showMainResourceForFrame.
+        * UIProcess/API/C/WKInspector.h:
+
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::WebInspectorProxy::showMainResourceForFrame): Send a message to the web process, passing
+            the frame ID of the frame we want to show the main resource of.
+        * UIProcess/WebInspectorProxy.h:
+
+        * WebProcess/WebPage/WebInspector.cpp:
+        (WebKit::WebInspector::showMainResourceForFrame): Get the WebFrame for the frame we want to show the
+            main resource of from its ID. If we found a frame, call InspectorFrontendClientLocal::showMainResourceForFrame.
+        * WebProcess/WebPage/WebInspector.h:
+        
+        * WebProcess/WebPage/WebInspector.messages.in: Add a new message.
+
+2012-02-10  Adam Klein  <adamk@chromium.org>
+
+        Enable MUTATION_OBSERVERS by default on all platforms
+        https://bugs.webkit.org/show_bug.cgi?id=78196
+
+        Reviewed by Ojan Vafai.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2012-02-10  Enrica Casucci  <enrica@apple.com>
+
+        Refactor Mac platform implementation of the Pasteboard class to use Platform Strategies.
+        https://bugs.webkit.org/show_bug.cgi?id=78282
+
+        This patch removes any accesss to the NSPasteboard object from the Pasteboard class which
+        now makes use of a new pasteboardStrategy object that is implemented both in WebKit and
+        WebKit2. The actual access to NSPasteboard is now performed inside the PlatformPasteboard
+        class. Currently both WebKit and WebKit2 use the same implementation of the PasteboardStrategy
+        interface but this one more step in the direction of removing access to NSPasteboard from
+        the WebProcess.
+        As part of the refactoring the I've reduced to a minimum the use of OBJ-C classes.
+        
+        Reviewed by Anders Carlsson.
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp: Added implementation of PasteboardStrategy
+        interface.
+        (WebKit::WebPlatformStrategies::createPasteboardStrategy):
+        (WebKit::WebPlatformStrategies::getTypes):
+        (WebKit::WebPlatformStrategies::bufferForType):
+        (WebKit::WebPlatformStrategies::getPathnamesForType):
+        (WebKit::WebPlatformStrategies::stringForType):
+        (WebKit::WebPlatformStrategies::copy):
+        (WebKit::WebPlatformStrategies::setTypes):
+        (WebKit::WebPlatformStrategies::setBufferForType):
+        (WebKit::WebPlatformStrategies::setPathnamesForType):
+        (WebKit::WebPlatformStrategies::setStringForType):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h: Added PasteboardStrategy.
+
 2012-02-09  Timothy Hatcher  <timothy@apple.com>
 
         Prevent attaching when inspecting the Web Inspector.

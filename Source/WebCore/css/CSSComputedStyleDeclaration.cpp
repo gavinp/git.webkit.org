@@ -979,6 +979,7 @@ static PassRefPtr<CSSValue> createLineBoxContainValue(CSSValuePool* cssValuePool
 CSSComputedStyleDeclaration::CSSComputedStyleDeclaration(PassRefPtr<Node> n, bool allowVisitedStyle, const String& pseudoElementName)
     : m_node(n)
     , m_allowVisitedStyle(allowVisitedStyle)
+    , m_refCount(1)
 {
     unsigned nameWithoutColonsStart = pseudoElementName[0] == ':' ? (pseudoElementName[1] == ':' ? 2 : 1) : 0;
     m_pseudoElementSpecifier = CSSSelector::pseudoId(CSSSelector::parsePseudoType(
@@ -987,6 +988,18 @@ CSSComputedStyleDeclaration::CSSComputedStyleDeclaration(PassRefPtr<Node> n, boo
 
 CSSComputedStyleDeclaration::~CSSComputedStyleDeclaration()
 {
+}
+
+void CSSComputedStyleDeclaration::ref()
+{
+    ++m_refCount;
+}
+
+void CSSComputedStyleDeclaration::deref()
+{
+    ASSERT(m_refCount);
+    if (!--m_refCount)
+        delete this;
 }
 
 String CSSComputedStyleDeclaration::cssText() const
@@ -1571,8 +1584,8 @@ PassRefPtr<CSSValue> CSSComputedStyleDeclaration::getPropertyCSSValue(int proper
         case CSSPropertyWebkitFlexAlign:
             return cssValuePool->createValue(style->flexAlign());
         case CSSPropertyWebkitFlexItemAlign:
-            // FIXME: If flex-item-align:auto, then we should return the parent's flex-align.
-            // http://webkit.org/b/76326
+            if (style->flexItemAlign() == AlignAuto && m_node && m_node->parentNode() && m_node->parentNode()->computedStyle())
+                return cssValuePool->createValue(m_node->parentNode()->computedStyle()->flexAlign());
             return cssValuePool->createValue(style->flexItemAlign());
         case CSSPropertyWebkitFlexDirection:
             return cssValuePool->createValue(style->flexDirection());

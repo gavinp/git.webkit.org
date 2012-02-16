@@ -99,7 +99,6 @@
 #include "RenderWidget.h"
 #include "ResourceHandle.h"
 #include "SchemeRegistry.h"
-#include "ScrollAnimator.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicy.h"
 #include "Settings.h"
@@ -393,7 +392,6 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
 #if ENABLE(INPUT_SPEECH)
     pageClients.speechInputClient = m_speechInputClient.get();
 #endif
-    pageClients.deviceOrientationClient = m_deviceOrientationClientProxy.get();
     pageClients.geolocationClient = m_geolocationClientProxy.get();
 #if ENABLE(NOTIFICATIONS)
     pageClients.notificationClient = notificationPresenterImpl();
@@ -404,7 +402,7 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
 #endif
 
     m_page = adoptPtr(new Page(pageClients));
-
+    provideDeviceOrientationTo(m_page.get(), m_deviceOrientationClientProxy.get());
     m_geolocationClientProxy->setController(m_page->geolocationController());
 
     m_page->setGroupName(pageGroupName);
@@ -614,14 +612,7 @@ bool WebViewImpl::mouseWheel(const WebMouseWheelEvent& event)
 bool WebViewImpl::gestureEvent(const WebGestureEvent& event)
 {
     PlatformGestureEventBuilder platformEvent(mainFrameImpl()->frameView(), event);
-    bool handled = mainFrameImpl()->frame()->eventHandler()->handleGestureEvent(platformEvent);
-
-    Frame* frame = mainFrameImpl()->frame();
-    WebPluginContainerImpl* pluginContainer = WebFrameImpl::pluginContainerFromFrame(frame);
-    if (pluginContainer)
-        handled |= pluginContainer->handleGestureEvent(platformEvent);
-
-    return handled;
+    return mainFrameImpl()->frame()->eventHandler()->handleGestureEvent(platformEvent);
 }
 
 void WebViewImpl::startPageScaleAnimation(const IntPoint& scroll, bool useAnchor, float newScale, double durationSec)
@@ -812,6 +803,12 @@ void WebViewImpl::numberOfWheelEventHandlersChanged(unsigned numberOfWheelHandle
     if (m_layerTreeHost)
         m_layerTreeHost->setHaveWheelEventHandlers(m_haveWheelEventHandlers);
 #endif
+}
+
+void WebViewImpl::numberOfTouchEventHandlersChanged(unsigned numberOfTouchHandlers)
+{
+    if (m_client)
+        m_client->numberOfTouchEventHandlersChanged(numberOfTouchHandlers);
 }
 
 #if !OS(DARWIN)

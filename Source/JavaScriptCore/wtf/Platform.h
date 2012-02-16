@@ -459,7 +459,7 @@
 #define WTF_USE_CA 1
 #endif
 
-/* USE(SKIA) for Win/Linux, CG for Mac, unless enabled */
+/* USE(SKIA) for Win/Linux/Mac/Android */
 #if PLATFORM(CHROMIUM)
 #if OS(DARWIN)
 #if USE(SKIA_ON_MAC_CHROMIUM)
@@ -470,6 +470,9 @@
 #define WTF_USE_ATSUI 1
 #define WTF_USE_CORE_TEXT 1
 #define WTF_USE_ICCJPEG 1
+#elif OS(ANDROID)
+#define WTF_USE_SKIA 1
+#define WTF_USE_GLES2_RENDERING 0
 #else
 #define WTF_USE_SKIA 1
 #define WTF_USE_CHROMIUM_NET 1
@@ -1123,7 +1126,7 @@
 #define ENABLE_COMPARE_AND_SWAP 1
 #endif
 
-#if !defined(ENABLE_PARALLEL_GC) && (PLATFORM(MAC) || PLATFORM(IOS)) && ENABLE(COMPARE_AND_SWAP)
+#if !defined(ENABLE_PARALLEL_GC) && (PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(QT)) && ENABLE(COMPARE_AND_SWAP)
 #define ENABLE_PARALLEL_GC 1
 #endif
 
@@ -1172,6 +1175,10 @@
 
 #if ENABLE(NOTIFICATIONS) && PLATFORM(MAC)
 #define ENABLE_TEXT_NOTIFICATIONS_ONLY 1
+#endif
+
+#if !defined(WTF_USE_WTFURL)
+#define WTF_USE_WTFURL 0
 #endif
 
 #endif /* WTF_Platform_h */

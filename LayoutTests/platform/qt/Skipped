@@ -116,6 +116,7 @@ http/tests/filesystem
 http/tests/security/filesystem-iframe-from-remote.html
 http/tests/websocket/tests/hybi/send-file-blob.html
 http/tests/websocket/tests/hybi/send-file-blob-fail.html
+fast/mutation/filesystem-callback-delivery.html
 
 # ENABLE(QUOTA) is disabled.
 storage/storageinfo-missing-arguments.html
@@ -166,9 +167,6 @@ fast/regions
 
 # CSS Exclusions support not yet enabled. http://webkit.org/b/57311
 fast/exclusions
-
-# ENABLE(MUTATION_OBSERVERS) is not yet enabled. http://webkit.org/b/68729
-fast/mutation
 
 # USE(V8)
 
@@ -223,6 +221,9 @@ http/tests/inspector/compiler-source-mapping-debug.html
 # Needs rebaseline
 fast/repaint/scale-page-shrink.html
 
+# Needs rebaseline
+fast/js/constructor-length.html
+
 # Microdata DOM API is not yet enabled.
 # https://bugs.webkit.org/show_bug.cgi?id=68610
 fast/dom/MicroData
@@ -231,6 +232,17 @@ fast/dom/MicroData
 # https://bugs.webkit.org/show_bug.cgi?id=76439
 fast/dom/shadow/content-element-api.html
 fast/dom/shadow/content-element-outside-shadow.html
+
+# ENABLE(MUTATION_OBSERVERS) is disabled
+fast/mutation/cross-document.html
+fast/mutation/database-callback-delivery.html
+fast/mutation/inline-event-listener.html
+fast/mutation/mutation-observer-constructor.html
+fast/mutation/observe-attributes.html
+fast/mutation/observe-characterdata.html
+fast/mutation/observe-childList.html
+fast/mutation/observe-exceptions.html
+fast/mutation/observe-subtree.html
 
 # =========================================================================== #
 #       Feature not yet supported.                                            #
@@ -254,18 +266,12 @@ css3/filters/filter-property-parsing-invalid.html
 css3/filters/filter-property-parsing.html
 css3/filters/filter-property.html
 css3/filters/filter-repaint.html
-css3/filters/crash-hw-sw-switch.html
-css3/filters/effect-blur-hw.html
-css3/filters/effect-combined.html
-css3/filters/effect-combined-hw.html
+
+# CSS shaders
 css3/filters/effect-custom.html
-css3/filters/effect-drop-shadow-hw.html
-css3/filters/effect-grayscale-hw.html
-css3/filters/effect-hue-rotate-hw.html
-css3/filters/effect-invert-hw.html
-css3/filters/effect-opacity-hw.html
-css3/filters/effect-saturate-hw.html
-css3/filters/effect-sepia-hw.html
+css3/filters/custom-filter-shader-cache.html
+css3/filters/effect-custom-parameters.html
+css3/filters/effect-custom-combined-missing.html
 
 # Support multipart responses is not implemented.
 # https://bugs.webkit.org/show_bug.cgi?id=47060
@@ -1390,6 +1396,12 @@ svg/hittest/zero-length-square-cap-path.xhtml
 # https://bugs.webkit.org/show_bug.cgi?id=78128
 svg/zoom/page/zoom-coords-viewattr-01-b.svg
 
+# [Qt] 3 SVG tests assert after r107207
+# https://bugs.webkit.org/show_bug.cgi?id=78332
+svg/custom/mask-child-changes.svg
+svg/custom/mask-invalidation.svg
+svg/custom/absolute-sized-content-with-resources.xhtml
+
 # ============================================================================= #
 # Failing CSS Tests
 # ============================================================================= #
@@ -2213,11 +2225,6 @@ fast/block/float/overhanging-float-remove-from-absolute-position-block.html
 fast/block/float/overhanging-float-remove-from-fixed-position-block2.html
 fast/block/float/overhanging-float-remove-from-fixed-position-block.html
 
-# New tests introduced in r88307, but fail on Qt
-# https://bugs.webkit.org/show_bug.cgi?id=54417
-fast/events/touch/touch-gesture-click.html
-fast/events/touch/touch-gesture-scroll.html
-
 # new tests without expected files, need investigation
 css3/images/cross-fade-background-size.html
 css3/images/cross-fade-tiled.html
@@ -2424,18 +2431,9 @@ fast/events/touch/gesture/gesture-scroll.html
 # https://bugs.webkit.org/show_bug.cgi?id=62847
 fast/parser/xhtml-innerhtml-null-byte.xhtml
 
-# new failing inspector tests
-inspector/console/console-trace-in-eval.html
-
-# Test fails because script pretty-print does not work in inspector on JSC when paused on breakpoint. 
+# Test fails because script pretty-print does not work in inspector on JSC when paused on breakpoint.
 # https://bugs.webkit.org/show_bug.cgi?id=71120
 inspector/debugger/selected-call-frame-after-formatting-source.html
-
-# https://bugs.webkit.org/show_bug.cgi?id=64927
-inspector/styles/css-live-edit.html
-
-# https://bugs.webkit.org/show_bug.cgi?id=64928
-inspector/styles/get-set-stylesheet-text.html
 
 # [Qt]REGRESSION(r92254): It made 2 tests timeout
 # https://bugs.webkit.org/show_bug.cgi?id=65609
@@ -2493,10 +2491,6 @@ fast/multicol/positive-leading.html
 fast/multicol/overflow-unsplittable.html
 fast/multicol/overflow-across-columns.html
 
-# [Qt] inspector/styles/styles-disable-inherited.html make the next test fail after r96257
-# https://bugs.webkit.org/show_bug.cgi?id=69257
-inspector/styles/styles-disable-inherited.html
-
 # [Qt] fast/text/line-initial-and-final-swashes.html fails
 # https://bugs.webkit.org/show_bug.cgi?id=69719
 fast/text/line-initial-and-final-swashes.html
@@ -2544,17 +2538,9 @@ fast/viewport/viewport-warnings-3.html
 fast/events/constructors/track-event-constructor.html
 http/tests/security/text-track-crossorigin.html
 
-# [Qt] inspector/elements/elements-panel-selection-on-refresh.html crashing
-# https://bugs.webkit.org/show_bug.cgi?id=72504
-inspector/elements/elements-panel-selection-on-refresh.html
-
 # [Qt] fast/canvas/canvas-lineWidth.html timeouts intermittently on 64 bit
 # https://bugs.webkit.org/show_bug.cgi?id=72694
 fast/canvas/canvas-lineWidth.html
-
-# [Qt] inspector/extensions/extensions-events.html crashing after r100926
-# https://bugs.webkit.org/show_bug.cgi?id=72932
-inspector/extensions/extensions-events.html
 
 # https://bugs.webkit.org/show_bug.cgi?id=73493
 fast/canvas/webgl/arraybuffer-transfer-of-control.html
@@ -2607,6 +2593,30 @@ fast/events/touch/emulate-touch-events.html
 # https://bugs.webkit.org/show_bug.cgi?id=78092
 fast/text/international/inline-plaintext-is-isolated.html
 
-# Synthetic bold is illegible under some scaling transforms
-# https://bugs.webkit.org/show_bug.cgi?id=78044
-fast/text/synthetic-bold-transformed.html
+# Fails because MutationObservers are not notified at end-of-task
+# https://bugs.webkit.org/show_bug.cgi?id=78290
+fast/mutation/end-of-task-delivery.html
+
+# [Qt] REGRESSION(r107518): It broke many tests
+# https://bugs.webkit.org/show_bug.cgi?id=78471
+fast/history/timed-refresh-in-cached-frame.html
+fast/images/animated-gif-restored-from-bfcache.html
+fast/events/suspend-timers.html
+fast/overflow/horizontal-scroll-after-back.html
+fast/media/media-query-list-04.html
+fast/events/pagehide-timeout.html
+fast/events/pageshow-pagehide-on-back-cached.html
+fast/events/pageshow-pagehide-on-back-cached-with-frames.html
+
+# Fails on most platforms, probably failing due to an earlier test.
+http/tests/inspector/inspect-element.html
+
+# Replace old strtod with new strtod (REGRESSION caused by r107625)
+# https://bugs.webkit.org/show_bug.cgi?id=68044
+fast/viewport/viewport-67.html
+fast/viewport/viewport-68.html
+fast/viewport/viewport-warnings-5.html
+
+# [Qt] http/tests/navigation/https-in-page-cache.html fails
+# https://bugs.webkit.org/show_bug.cgi?id=78597
+http/tests/navigation/https-in-page-cache.html

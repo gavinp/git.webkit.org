@@ -1,3 +1,162 @@
+2012-02-15  Enrica Casucci  <enrica@apple.com>
+
+        Refactor ClipboardMac class to use PlatformStrategies.
+        https://bugs.webkit.org/show_bug.cgi?id=78554
+
+        Reviewed by Anders Carlsson.
+
+        * WebCoreSupport/WebDragClient.h: Changed methods signature to use name based pasteboard.
+        * WebCoreSupport/WebDragClient.mm: Ditto.
+        (WebDragClient::willPerformDragSourceAction):
+        (WebDragClient::startDrag):
+        (WebDragClient::declareAndWriteDragImage):
+        * WebCoreSupport/WebPlatformStrategies.h: Added new methods.
+        * WebCoreSupport/WebPlatformStrategies.mm:
+        (WebPlatformStrategies::changeCount):
+        (WebPlatformStrategies::uniqueName):
+
+2012-02-15  Sadrul Habib Chowdhury  <sadrul@chromium.org>
+
+        Notify ChromeClient when touch-event handlers are installed/removed.
+        https://bugs.webkit.org/show_bug.cgi?id=77440
+
+        Reviewed by Darin Fisher and Ryosuke Niwa.
+
+        * WebCoreSupport/WebChromeClient.h:
+
+2012-02-14  Matt Lilek  <mrl@apple.com>
+
+        Don't ENABLE_DASHBOARD_SUPPORT unconditionally on all Mac platforms
+        https://bugs.webkit.org/show_bug.cgi?id=78629
+
+        Reviewed by David Kilzer.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2012-02-14  Alexey Proskuryakov  <ap@apple.com>
+
+        [Mac][Win][WK2] Switch to RFC 6455 protocol for WebSockets
+        https://bugs.webkit.org/show_bug.cgi?id=78541
+        <rdar://problem/10036695>
+
+        Reviewed by Kent Tamura.
+
+        * WebView/WebPreferences.mm: (+[WebPreferences initialize]): Changed default value of the
+        preference.
+
+2012-02-11  Nikolas Zimmermann  <nzimmermann@rim.com>
+
+        Convert svg/animations to use SMIL methods for driving the timeline
+        https://bugs.webkit.org/show_bug.cgi?id=78422
+
+        Reviewed by Dirk Schulze.
+
+        Remove SVG animation sampling functionality provided for DRT, which no longer uses it.
+        Instead we switched the svg/animations tests to use SVGSVGElement.setCurrentTime.
+
+        * WebKit.order:
+        * WebView/WebFrame.mm:
+        * WebView/WebFramePrivate.h:
+
+2012-02-13  Enrica Casucci  <enrica@apple.com>
+
+         Refactor Mac platform implementation of the Pasteboard class to use Platform Strategies.
+         https://bugs.webkit.org/show_bug.cgi?id=78282
+ 
+         This patch removes any accesss to the NSPasteboard object from the Pasteboard class which
+         now makes use of a new pasteboardStrategy object that is implemented both in WebKit and
+         WebKit2. The actual access to NSPasteboard is now performed inside the PlatformPasteboard
+         class. Currently both WebKit and WebKit2 use the same implementation of the PasteboardStrategy
+         interface but this one more step in the direction of removing access to NSPasteboard from
+         the WebProcess.
+         As part of the refactoring the I've reduced to a minimum the use of OBJ-C classes.
+         
+         Reviewed by Anders Carlsson.
+ 
+         * WebCoreSupport/WebPlatformStrategies.h: Added PasteboardStrategy.
+         * WebCoreSupport/WebPlatformStrategies.mm: Added implementation of PasteboardStrategy interface.
+         (WebPlatformStrategies::createPasteboardStrategy):
+         (WebPlatformStrategies::getTypes):
+         (WebPlatformStrategies::bufferForType):
+         (WebPlatformStrategies::getPathnamesForType):
+         (WebPlatformStrategies::stringForType):
+         (WebPlatformStrategies::copy):
+         (WebPlatformStrategies::setTypes):
+         (WebPlatformStrategies::setBufferForType):
+         (WebPlatformStrategies::setPathnamesForType):
+         (WebPlatformStrategies::setStringForType):
+
+2012-02-12  Hajime Morrita  <morrita@chromium.org>
+
+        Page should have less intrusive way to associate API implementation objects.
+        https://bugs.webkit.org/show_bug.cgi?id=78085
+
+        Reviewed by Adam Barth.
+
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:]):
+
+2012-02-11  Sheriff Bot  <webkit.review.bot@gmail.com>
+
+        Unreviewed, rolling out r107435.
+        http://trac.webkit.org/changeset/107435
+        https://bugs.webkit.org/show_bug.cgi?id=78410
+
+        It broke the Qt build (Requested by Ossy on #webkit).
+
+        * WebCoreSupport/WebPlatformStrategies.h:
+        (WebPlatformStrategies):
+        * WebCoreSupport/WebPlatformStrategies.mm:
+        (WebPlatformStrategies::addVisitedLink):
+
+2012-02-10  Adam Klein  <adamk@chromium.org>
+
+        Enable MUTATION_OBSERVERS by default on all platforms
+        https://bugs.webkit.org/show_bug.cgi?id=78196
+
+        Reviewed by Ojan Vafai.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2012-02-10  Enrica Casucci  <enrica@apple.com>
+
+        Refactor Mac platform implementation of the Pasteboard class to use Platform Strategies.
+        https://bugs.webkit.org/show_bug.cgi?id=78282
+
+        This patch removes any accesss to the NSPasteboard object from the Pasteboard class which
+        now makes use of a new pasteboardStrategy object that is implemented both in WebKit and
+        WebKit2. The actual access to NSPasteboard is now performed inside the PlatformPasteboard
+        class. Currently both WebKit and WebKit2 use the same implementation of the PasteboardStrategy
+        interface but this one more step in the direction of removing access to NSPasteboard from
+        the WebProcess.
+        As part of the refactoring the I've reduced to a minimum the use of OBJ-C classes.
+        
+        Reviewed by Anders Carlsson.
+
+        * WebCoreSupport/WebPlatformStrategies.h: Added PasteboardStrategy.
+        * WebCoreSupport/WebPlatformStrategies.mm: Added implementation of PasteboardStrategy interface.
+        (WebPlatformStrategies::createPasteboardStrategy):
+        (WebPlatformStrategies::getTypes):
+        (WebPlatformStrategies::bufferForType):
+        (WebPlatformStrategies::getPathnamesForType):
+        (WebPlatformStrategies::stringForType):
+        (WebPlatformStrategies::copy):
+        (WebPlatformStrategies::setTypes):
+        (WebPlatformStrategies::setBufferForType):
+        (WebPlatformStrategies::setPathnamesForType):
+        (WebPlatformStrategies::setStringForType):
+
+2012-02-10  Benjamin Poulain  <bpoulain@apple.com>
+
+        [Mac] DYLIB_INSTALL_NAME_BASE should not be prefixed by the SDKROOT
+        https://bugs.webkit.org/show_bug.cgi?id=78320
+
+        Reviewed by Joseph Pecoraro.
+
+        <rdar://problem/10839750>
+
+        * Configurations/WebKit.xcconfig:
+
 2012-02-09  Alexey Proskuryakov  <ap@apple.com>
 
         REGRESSION (r104885): Articles not displayed in Vienna RSS reader

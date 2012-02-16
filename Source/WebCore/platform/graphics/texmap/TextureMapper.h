@@ -27,6 +27,7 @@
     #endif
 #endif
 
+#include "FilterOperations.h"
 #include "GraphicsContext.h"
 #include "IntRect.h"
 #include "IntSize.h"
@@ -71,6 +72,10 @@ public:
     inline int numberOfBytes() const { return size().width() * size().height() * bpp() >> 3; }
     inline bool isOpaque() const { return m_isOpaque; }
 
+#if ENABLE(CSS_FILTERS)
+    virtual void applyFilters(const BitmapTexture& contentTexture, const FilterOperations&) { }
+#endif
+
 protected:
     IntSize m_contentSize;
     bool m_isOpaque;
@@ -105,6 +110,8 @@ public:
 
     virtual void beginPainting() { }
     virtual void endPainting() { }
+
+    virtual IntSize maxTextureSize() const { return IntSize(INT_MAX, INT_MAX); }
 
     // A surface is released implicitly when dereferenced.
     virtual PassRefPtr<BitmapTexture> acquireTextureFromPool(const IntSize&);

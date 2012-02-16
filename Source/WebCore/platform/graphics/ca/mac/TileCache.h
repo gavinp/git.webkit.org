@@ -49,12 +49,14 @@ class TileCache {
 
 public:
     static PassOwnPtr<TileCache> create(WebTileCacheLayer*, const IntSize& tileSize);
+    ~TileCache();
 
     void tileCacheLayerBoundsChanged();
 
     void setNeedsDisplay();
     void setNeedsDisplayInRect(const IntRect&);
     void drawLayer(WebTileLayer*, CGContextRef);
+    void setContentsScale(CGFloat);
 
     bool acceleratesDrawing() const { return m_acceleratesDrawing; }
     void setAcceleratesDrawing(bool);

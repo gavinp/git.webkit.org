@@ -86,6 +86,7 @@
 #include "ScopedEventQueue.h"
 #include "SelectorQuery.h"
 #include "ShadowRoot.h"
+#include "ShadowRootList.h"
 #include "StaticNodeList.h"
 #include "StorageEvent.h"
 #include "TagNodeList.h"
@@ -227,7 +228,10 @@ void Node::dumpStatistics()
                 break;
             }
             case DOCUMENT_FRAGMENT_NODE: {
-                ++fragmentNodes;
+                if (node->isShadowRoot())
+                    ++shadowRootNodes;
+                else
+                    ++fragmentNodes;
                 break;
             }
             case NOTATION_NODE: {
@@ -236,10 +240,6 @@ void Node::dumpStatistics()
             }
             case XPATH_NAMESPACE_NODE: {
                 ++xpathNSNodes;
-                break;
-            }
-            case SHADOW_ROOT_NODE: {
-                ++shadowRootNodes;
                 break;
             }
         }
@@ -352,8 +352,7 @@ Node::StyleChange Node::diff(const RenderStyle* s1, const RenderStyle* s2)
     if ((s1 && s2) && (s1->flowThread() != s2->flowThread()))
         ch = Detach;
 
-    // When either the region thread or the region index has changed,
-    // we need to prepare a separate render region object.
+    // When the region thread has changed, we need to prepare a separate render region object.
     if ((s1 && s2) && (s1->regionThread() != s2->regionThread()))
         ch = Detach;
 
@@ -632,7 +631,7 @@ void Node::normalize()
             continue;
         }
 
-        RefPtr<Text> text = static_cast<Text*>(node.get());
+        RefPtr<Text> text = toText(node.get());
 
         // Remove empty text nodes.
         if (!text->length()) {
@@ -647,7 +646,7 @@ void Node::normalize()
         while (Node* nextSibling = node->nextSibling()) {
             if (nextSibling->nodeType() != TEXT_NODE)
                 break;
-            RefPtr<Text> nextText = static_cast<Text*>(nextSibling);
+            RefPtr<Text> nextText = toText(nextSibling);
 
             // Remove empty text nodes.
             if (!nextText->length()) {
@@ -810,7 +809,7 @@ bool Node::hasNonEmptyBoundingBox() const
 
 inline static ShadowRoot* shadowRoot(Node* node)
 {
-    return node->isElementNode() ? toElement(node)->shadowRoot() : 0;
+    return node->isElementNode() && toElement(node)->hasShadowRoot() ? toElement(node)->shadowRootList()->youngestShadowRoot() : 0;
 }
 
 inline void Node::setStyleChange(StyleChangeType changeType)
@@ -1759,11 +1758,13 @@ bool Node::isEqualNode(Node* other) const
         NamedNodeMap* attributes = toElement(this)->updatedAttributes();
         NamedNodeMap* otherAttributes = toElement(other)->updatedAttributes();
 
-        if (attributes && !attributes->mapsEquivalent(otherAttributes))
-            return false;
-
-        if (otherAttributes && !otherAttributes->mapsEquivalent(attributes))
-            return false;
+        if (attributes) {
+            if (!attributes->mapsEquivalent(otherAttributes))
+                return false;
+        } else if (otherAttributes) {
+            if (!otherAttributes->mapsEquivalent(attributes))
+                return false;
+        }
     }
     
     Node* child = firstChild();
@@ -1844,7 +1845,6 @@ bool Node::isDefaultNamespace(const AtomicString& namespaceURIMaybeEmpty) const
         case NOTATION_NODE:
         case DOCUMENT_TYPE_NODE:
         case DOCUMENT_FRAGMENT_NODE:
-        case SHADOW_ROOT_NODE:
             return false;
         case ATTRIBUTE_NODE: {
             const Attr* attr = static_cast<const Attr*>(this);
@@ -1878,7 +1878,6 @@ String Node::lookupPrefix(const AtomicString &namespaceURI) const
         case NOTATION_NODE:
         case DOCUMENT_FRAGMENT_NODE:
         case DOCUMENT_TYPE_NODE:
-        case SHADOW_ROOT_NODE:
             return String();
         case ATTRIBUTE_NODE: {
             const Attr *attr = static_cast<const Attr *>(this);
@@ -1937,7 +1936,6 @@ String Node::lookupNamespaceURI(const String &prefix) const
         case NOTATION_NODE:
         case DOCUMENT_TYPE_NODE:
         case DOCUMENT_FRAGMENT_NODE:
-        case SHADOW_ROOT_NODE:
             return String();
         case ATTRIBUTE_NODE: {
             const Attr *attr = static_cast<const Attr *>(this);
@@ -2005,7 +2003,6 @@ static void appendTextContent(const Node* node, bool convertBRsToNewlines, bool&
     case Node::ENTITY_NODE:
     case Node::ENTITY_REFERENCE_NODE:
     case Node::DOCUMENT_FRAGMENT_NODE:
-    case Node::SHADOW_ROOT_NODE:
         isNullString = false;
         for (Node* child = node->firstChild(); child; child = child->nextSibling()) {
             if (child->nodeType() == Node::COMMENT_NODE || child->nodeType() == Node::PROCESSING_INSTRUCTION_NODE)
@@ -2043,8 +2040,7 @@ void Node::setTextContent(const String& text, ExceptionCode& ec)
         case ATTRIBUTE_NODE:
         case ENTITY_NODE:
         case ENTITY_REFERENCE_NODE:
-        case DOCUMENT_FRAGMENT_NODE:
-        case SHADOW_ROOT_NODE: {
+        case DOCUMENT_FRAGMENT_NODE: {
             ContainerNode* container = toContainerNode(this);
 #if ENABLE(MUTATION_OBSERVERS)
             ChildListMutationScope mutation(this);
@@ -2483,6 +2479,11 @@ static inline HashSet<SVGElementInstance*> instancesForSVGElement(Node* node)
 }
 #endif
 
+static inline bool isTouchEventType(const AtomicString& eventType)
+{
+    return eventType == eventNames().touchstartEvent || eventType == eventNames().touchmoveEvent || eventType == eventNames().touchendEvent || eventType == eventNames().touchcancelEvent;
+}
+
 static inline bool tryAddEventListener(Node* targetNode, const AtomicString& eventType, PassRefPtr<EventListener> listener, bool useCapture)
 {
     if (!targetNode->EventTarget::addEventListener(eventType, listener, useCapture))
@@ -2492,6 +2493,8 @@ static inline bool tryAddEventListener(Node* targetNode, const AtomicString& eve
         document->addListenerTypeIfNeeded(eventType);
         if (eventType == eventNames().mousewheelEvent)
             document->didAddWheelEventHandler();
+        else if (isTouchEventType(eventType))
+            document->didAddTouchEventHandler();
     }
         
     return true;
@@ -2541,6 +2544,8 @@ static inline bool tryRemoveEventListener(Node* targetNode, const AtomicString& 
     if (Document* document = targetNode->document()) {
         if (eventType == eventNames().mousewheelEvent)
             document->didRemoveWheelEventHandler();
+        else if (isTouchEventType(eventType))
+            document->didRemoveTouchEventHandler();
     }
     
     return true;
@@ -2721,6 +2726,39 @@ void Node::notifyMutationObserversNodeWillDetach()
 }
 #endif // ENABLE(MUTATION_OBSERVERS)
 
+#if ENABLE(STYLE_SCOPED)
+bool Node::hasScopedHTMLStyleChild() const
+{
+    return hasRareData() && rareData()->hasScopedHTMLStyleChild();
+}
+
+size_t Node::numberOfScopedHTMLStyleChildren() const
+{
+    return hasRareData() ? rareData()->numberOfScopedHTMLStyleChildren() : 0;
+}
+
+void Node::registerScopedHTMLStyleChild()
+{
+    ensureRareData()->registerScopedHTMLStyleChild();
+}
+
+void Node::unregisterScopedHTMLStyleChild()
+{
+    ASSERT(hasRareData());
+    if (hasRareData())
+        rareData()->unregisterScopedHTMLStyleChild();
+}
+#else
+bool Node::hasScopedHTMLStyleChild() const
+{
+    return 0;
+}
+
+size_t Node::numberOfScopedHTMLStyleChildren() const
+{
+    return 0;
+}
+#endif
 
 void Node::handleLocalEvents(Event* event)
 {

@@ -280,6 +280,7 @@ http/tests/security/filesystem-iframe-from-remote.html
 http/tests/websocket/tests/hybi/send-file-blob.html
 http/tests/websocket/tests/hybi/send-file-blob-fail.html
 http/tests/workers/terminate-during-sync-operation.html
+fast/mutation/filesystem-callback-delivery.html
 
 # Requires WebP support.
 fast/canvas/canvas-toDataURL-webp.html
@@ -370,9 +371,6 @@ http/tests/security/text-track-crossorigin.html
 
 # CSS Filters is disabled
 css3/filters
-
-# MutationObservers are net yet enabled. http://webkit.org/b/68729
-fast/mutation
 
 # layoutTestController.overridePreference("WebKit*FontMap"...) is not
 # supported.
@@ -1446,6 +1444,10 @@ svg/W3C-SVG-1.1-SE/types-dom-07-f.svg
 svg/css/composite-shadow-example.html
 svg/css/composite-shadow-with-opacity.html
 svg/css/stars-with-shadow.html
+svg/carto.net/tabgroup.svg
+
+# https://bugs.webkit.org/show_bug.cgi?id=78673
+svg/animations/animate-text-nested-transforms.html
 
 # https://bugs.webkit.org/show_bug.cgi?id=73409
 fast/forms/placeholder-set-attribute.html
@@ -1491,6 +1493,7 @@ fast/table/027.html
 fast/table/027-vertical.html
 tables/mozilla/bugs/bug14929.html
 tables/mozilla/bugs/bug2947.html
+fast/js/constructor-length.html
 
 # https://bugs.webkit.org/show_bug.cgi?id=74276
 fast/events/dont-loose-last-event.html
@@ -1577,9 +1580,6 @@ fast/text/font-kerning.html
 # Needs custom policy delegate enhancement to log downloads
 http/tests/download
 
-# https://bugs.webkit.org/show_bug.cgi?id=76632
-fast/forms/implicit-submission.html
-
 # https://bugs.webkit.org/show_bug.cgi?id=77015
 fast/events/clear-drag-state.html
 fast/events/clear-edit-drag-state.html
@@ -1605,3 +1605,21 @@ fast/forms/listbox-clear-restore.html
 # Synthetic bold is illegible under some scaling transforms
 # https://bugs.webkit.org/show_bug.cgi?id=78044
 fast/text/synthetic-bold-transformed.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=78345
+security/block-test.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=78434
+fast/dom/Window/window-custom-prototype.html
+http/tests/security/cross-frame-access-object-getPrototypeOf.html
+
+# GTK port DRT doesn't support some API like scheduleAsynchronousKeyDown.
+# http://webkit.org/b/78481, http://webkit.org/b/78290
+fast/mutation/end-of-task-delivery.html
+fast/mutation/inline-event-listener.html
+
+# Replace old strtod with new strtod (REGRESSION caused by r107625)
+# https://bugs.webkit.org/show_bug.cgi?id=68044
+fast/viewport/viewport-67.html
+fast/viewport/viewport-68.html
+fast/viewport/viewport-warnings-5.html

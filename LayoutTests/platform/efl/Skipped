@@ -19,21 +19,47 @@ fast/events/wheelevent-direction-inverted-from-device.html
 fast/events/wheelevent-in-horizontal-scrollbar-in-rtl.html
 fast/events/wheelevent-in-vertical-scrollbar-in-rtl.html
 
-# EFL's EventSender does not implement zoomPage{In,Out} and textZoom{In,Out} yet
-fast/css/ignore-text-zoom.html
-fast/css/preserve-user-specified-zoom-level-on-reload.html
-fast/css/zoom-body-scroll.html
-fast/css/zoom-change-triggering-layout.html
-fast/dom/Document/CaretRangeFromPoint/hittest-relative-to-viewport.html
-fast/dom/elementFromPoint-relative-to-viewport.html
-fast/dom/horizontal-scrollbar-in-rtl.html
-fast/dom/vertical-scrollbar-in-rtl.html
-fast/events/clientXY-in-zoom-and-scroll.html
-fast/events/touch/touch-coords-in-zoom-and-scroll.html
-fast/events/zoom-dblclick.html
-fast/images/imagemap-focus-ring-zoom.html
-fast/loader/policy-delegate-action-hit-test-zoomed.html
-svg
+# EFL has not fully implemented about some SVG attributes
+svg/animations/svgboolean-animation-1.html
+svg/animations/svginteger-animation-1.html
+svg/animations/svgnumberoptionalnumber-animation-1.html
+svg/animations/svgnumberoptionalnumber-animation-2.html
+svg/animations/svgnumberoptionalnumber-animation-3.html
+svg/animations/svgnumberoptionalnumber-animation-4.html
+svg/as-object
+svg/css/rect-gradient-stroke-shadow.svg
+svg/custom
+svg/dom/altGlyph-dom.xhtml
+svg/dom/baseVal-animVal-crash.html
+svg/dom/css-transforms.xhtml
+svg/dom/font-face-elements.html
+svg/dom/operatorAttribute.html
+svg/dom/SVGAnimatedEnumeration-SVGComponentTransferFunctionElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFEBlendElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFEColorMatrixElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFECompositeElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFEConvolveMatrixElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFEDisplacementMapElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFEMorphologyElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFETurbulenceElement.html
+svg/dom/SVGAnimatedEnumeration-SVGFilterElement.html
+svg/dom/SVGAnimatedInteger.html
+svg/dom/SVGAnimatedNumber.html
+svg/dom/SVGLength-px-with-context.html
+svg/dom/SVGPathSegList-cloning.html
+svg/dynamic-updates
+svg/filters
+svg/foreignObject/filter.html
+svg/foreignObject/text-tref-02-b.svg
+svg/overflow/overflow-on-outermost-svg-element-defaults.svg
+svg/overflow/overflow-on-outermost-svg-element-ignore-attribute-1.svg
+svg/overflow/overflow-on-outermost-svg-element-ignore-attribute-2.svg
+svg/overflow/overflow-on-outermost-svg-element-ignore-attribute-3.svg
+svg/text
+svg/W3C-SVG-1.1
+svg/W3C-SVG-1.1-SE
+svg/zoom/page/relative-sized-document-scrollbars.svg
+svg/zoom/page/zoom-zoom-coords.xhtml
 
 # EFL's EventSender needs to emit double clicks
 fast/events/dblclick-addEventListener.html
@@ -1045,6 +1071,7 @@ fast/animation
 fast/filesystem
 http/tests/filesystem
 http/tests/security/filesystem-iframe-from-remote.html
+fast/mutation/end-of-task-delivery.html
 
 # The EFL port has no support for Geolocation
 fast/dom/Geolocation
@@ -1220,6 +1247,10 @@ fast/dom/Window/slow-unload-handler-only-frame-is-stopped.html
 
 # The EFL port has no global history delegate
 http/tests/globalhistory
+
+# Fails because MutationObservers are not notified at end-of-task
+# https://bugs.webkit.org/show_bug.cgi?id=78290
+fast/mutation/end-of-task-delivery.html
 
 # --------------------------------
 # Tests which are expected to fail
@@ -1960,9 +1991,6 @@ fast/forms/week
 # ENABLE_GAMEPAD not enabled.
 gamepad/
 
-# MutationObservers are net yet enabled. http://webkit.org/b/68729
-fast/mutation
-
 # HiDPI tests require test infrastructure enhancements
 fast/hidpi
 
@@ -1987,6 +2015,7 @@ fast/table/027.html
 fast/table/027-vertical.html
 tables/mozilla/bugs/bug14929.html
 tables/mozilla/bugs/bug2947.html
+fast/js/constructor-length.html
 
 # The test hits an ASSERT in Debug.
 # https://bugs.webkit.org/show_bug.cgi?id=68859

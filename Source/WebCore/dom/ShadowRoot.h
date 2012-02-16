@@ -30,16 +30,17 @@
 #include "DocumentFragment.h"
 #include "ExceptionCode.h"
 #include "TreeScope.h"
+#include <wtf/DoublyLinkedList.h>
 
 namespace WebCore {
 
-class ContentInclusionSelector;
 class Document;
 class HTMLContentElement;
+class HTMLContentSelector;
 
-class ShadowRoot : public DocumentFragment, public TreeScope {
+class ShadowRoot : public DocumentFragment, public TreeScope, public DoublyLinkedListNode<ShadowRoot> {
+    friend class WTF::DoublyLinkedListNode<ShadowRoot>;
 public:
-    static PassRefPtr<ShadowRoot> create(Document*);
     static PassRefPtr<ShadowRoot> create(Element*, ExceptionCode&);
 
     // FIXME: We will support multiple shadow subtrees, however current implementation does not work well
@@ -58,9 +59,9 @@ public:
     void clearNeedsReattachHostChildrenAndShadow();
     bool needsReattachHostChildrenAndShadow();
 
-    HTMLContentElement* includerFor(Node*) const;
+    HTMLContentElement* insertionPointFor(Node*) const;
     void hostChildrenChanged();
-    bool isInclusionSelectorActive() const;
+    bool isSelectorActive() const;
 
     virtual void attach();
     void reattachHostChildrenAndShadow();
@@ -70,29 +71,28 @@ public:
 
     Element* host() const { return shadowHost(); }
 
-    ContentInclusionSelector* inclusions() const;
-    ContentInclusionSelector* ensureInclusions();
+    HTMLContentSelector* selector() const;
+    HTMLContentSelector* ensureSelector();
+
+    ShadowRoot* youngerShadowRoot() const { return prev(); }
+    ShadowRoot* olderShadowRoot() const { return next(); }
 
 private:
     ShadowRoot(Document*);
     virtual ~ShadowRoot();
 
     virtual String nodeName() const;
-    virtual NodeType nodeType() const;
     virtual PassRefPtr<Node> cloneNode(bool deep);
     virtual bool childTypeAllowed(NodeType) const;
 
     bool hasContentElement() const;
 
+    ShadowRoot* m_prev;
+    ShadowRoot* m_next;
     bool m_applyAuthorSheets : 1;
     bool m_needsRecalculateContent : 1;
-    OwnPtr<ContentInclusionSelector> m_inclusions;
+    OwnPtr<HTMLContentSelector> m_selector;
 };
-
-inline PassRefPtr<ShadowRoot> ShadowRoot::create(Document* document)
-{
-    return adoptRef(new ShadowRoot(document));
-}
 
 inline void ShadowRoot::clearNeedsReattachHostChildrenAndShadow()
 {
@@ -106,7 +106,7 @@ inline bool ShadowRoot::needsReattachHostChildrenAndShadow()
 
 inline ShadowRoot* toShadowRoot(Node* node)
 {
-    ASSERT(!node || node->nodeType() == Node::SHADOW_ROOT_NODE);
+    ASSERT(!node || node->isShadowRoot());
     return static_cast<ShadowRoot*>(node);
 }
 

@@ -189,8 +189,10 @@ sub SkipFunction {
 
     my $functionName = "webkit_dom_" . $decamelize . "_" . $prefix . decamelize($function->signature->name);
     my $isCustomFunction = $function->signature->extendedAttributes->{"Custom"};
+    my $callWith = $function->signature->extendedAttributes->{"CallWith"};
+    my $isUnsupportedCallWith = $codeGenerator->ExtendedAttributeContains($callWith, "ScriptArguments") || $codeGenerator->ExtendedAttributeContains($callWith, "CallStack");
 
-    if ($isCustomFunction &&
+    if (($isCustomFunction || $isUnsupportedCallWith) &&
         $functionName ne "webkit_dom_node_replace_child" &&
         $functionName ne "webkit_dom_node_insert_before" &&
         $functionName ne "webkit_dom_node_remove_child" &&

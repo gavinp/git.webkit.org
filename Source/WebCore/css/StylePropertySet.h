@@ -34,7 +34,7 @@ namespace WebCore {
 class PropertySetCSSStyleDeclaration;
 class StyledElement;
 
-class StylePropertySet : public WTF::RefCountedBase {
+class StylePropertySet : public RefCounted<StylePropertySet> {
 public:
     ~StylePropertySet();
 
@@ -62,8 +62,6 @@ public:
     {
         return adoptRef(new StylePropertySet(element, /*isInlineStyle*/ false));
     }
-
-    void deref();
 
     unsigned propertyCount() const { return m_properties.size(); }
     bool isEmpty() const { return m_properties.isEmpty(); }
@@ -161,6 +159,7 @@ private:
     bool m_strictParsing : 1;
     bool m_parentIsElement : 1;
     bool m_isInlineStyleDeclaration : 1;
+    mutable bool m_hasCSSOMWrapper : 1;
 
     union Parent {
         Parent(CSSRule* rule) : rule(rule) { }
@@ -168,8 +167,6 @@ private:
         CSSRule* rule;
         StyledElement* element;
     } m_parent;
-    
-    mutable RefPtr<PropertySetCSSStyleDeclaration> m_cssStyleDeclaration;
     
     friend class PropertySetCSSStyleDeclaration;
 };

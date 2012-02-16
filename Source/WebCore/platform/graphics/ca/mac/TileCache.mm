@@ -31,6 +31,7 @@
 #import "WebLayer.h"
 #import "WebTileCacheLayer.h"
 #import "WebTileLayer.h"
+#import <wtf/MainThread.h>
 #import <utility>
 
 using namespace std;
@@ -60,6 +61,11 @@ TileCache::TileCache(WebTileCacheLayer* tileCacheLayer, const IntSize& tileSize)
     [CATransaction setDisableActions:YES];
     [m_tileCacheLayer addSublayer:m_tileContainerLayer.get()];
     [CATransaction commit];
+}
+
+TileCache::~TileCache()
+{
+    ASSERT(isMainThread());
 }
 
 void TileCache::tileCacheLayerBoundsChanged()
@@ -154,6 +160,18 @@ void TileCache::drawLayer(WebTileLayer* layer, CGContextRef context)
 
     CGContextEndTransparencyLayer(context);
     CGContextRestoreGState(context);
+}
+
+void TileCache::setContentsScale(CGFloat contentsScale)
+{
+    for (TileMap::const_iterator it = m_tiles.begin(), end = m_tiles.end(); it != end; ++it) {
+        [it->second.get() setContentsScale:contentsScale];
+        [it->second.get() setNeedsDisplay];
+    }
+
+    PlatformCALayer* platformLayer = PlatformCALayer::platformCALayer(m_tileCacheLayer);
+    platformLayer->owner()->platformCALayerDidCreateTiles();
+    revalidateTiles();
 }
 
 void TileCache::setAcceleratesDrawing(bool acceleratesDrawing)
@@ -331,6 +349,8 @@ RetainPtr<WebTileLayer> TileCache::createTileLayer()
     [layer.get() setTileCache:this];
     [layer.get() setBorderColor:m_tileDebugBorderColor.get()];
     [layer.get() setBorderWidth:m_tileDebugBorderWidth];
+    [layer.get() setEdgeAntialiasingMask:0];
+    [layer.get() setContentsScale:[m_tileCacheLayer contentsScale]];
 
 #if !defined(BUILDING_ON_LEOPARD) && !defined(BUILDING_ON_SNOW_LEOPARD)
     [layer.get() setAcceleratesDrawing:m_acceleratesDrawing];

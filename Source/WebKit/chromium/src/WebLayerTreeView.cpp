@@ -43,11 +43,10 @@ WebLayerTreeView::Settings::operator CCSettings() const
     settings.showFPSCounter = showFPSCounter;
     settings.showPlatformLayerTree = showPlatformLayerTree;
     settings.refreshRate = refreshRate;
+    settings.perTilePainting = perTilePainting;
     settings.partialSwapEnabled = partialSwapEnabled;
 
-    // FIXME: showFPSCounter / showPlatformLayerTree aren't supported currently.
-    settings.showFPSCounter = false;
-    settings.showPlatformLayerTree = false;
+    // FIXME: showFPSCounter / showPlatformLayerTree / maxPartialTextureUpdates aren't supported currently.
     return settings;
 }
 

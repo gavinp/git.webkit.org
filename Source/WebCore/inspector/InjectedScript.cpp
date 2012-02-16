@@ -126,7 +126,7 @@ Node* InjectedScript::nodeForObjectId(const String& objectId)
     function.appendArgument(objectId);
 
     bool hadException = false;
-    ScriptValue resultValue = function.call(hadException);
+    ScriptValue resultValue = callFunctionWithEvalEnabled(function, hadException);
     ASSERT(!hadException);
 
     return InjectedScriptHost::scriptValueAsNode(resultValue);
@@ -146,7 +146,9 @@ PassRefPtr<InspectorArray> InjectedScript::wrapCallFrames(const ScriptValue& cal
     ASSERT(!hasNoValue());
     ScriptFunctionCall function(m_injectedScriptObject, "wrapCallFrames");
     function.appendArgument(callFrames);
-    ScriptValue callFramesValue = function.call();
+    bool hadException = false;
+    ScriptValue callFramesValue = callFunctionWithEvalEnabled(function, hadException);
+    ASSERT(!hadException);
     RefPtr<InspectorValue> result = callFramesValue.toInspectorValue(m_injectedScriptObject.scriptState());
     if (result->type() == InspectorValue::TypeArray)
         return result->asArray();
@@ -154,7 +156,7 @@ PassRefPtr<InspectorArray> InjectedScript::wrapCallFrames(const ScriptValue& cal
 }
 #endif
 
-PassRefPtr<InspectorObject> InjectedScript::wrapObject(ScriptValue value, const String& groupName)
+PassRefPtr<InspectorObject> InjectedScript::wrapObject(ScriptValue value, const String& groupName) const
 {
     ASSERT(!hasNoValue());
     ScriptFunctionCall wrapFunction(m_injectedScriptObject, "wrapObject");
@@ -162,7 +164,7 @@ PassRefPtr<InspectorObject> InjectedScript::wrapObject(ScriptValue value, const 
     wrapFunction.appendArgument(groupName);
     wrapFunction.appendArgument(canAccessInspectedWindow());
     bool hadException = false;
-    ScriptValue r = wrapFunction.call(hadException);
+    ScriptValue r = callFunctionWithEvalEnabled(wrapFunction, hadException);
     if (hadException) {
         RefPtr<InspectorObject> result = InspectorObject::create();
         result->setString("description", "<exception>");
@@ -174,6 +176,12 @@ PassRefPtr<InspectorObject> InjectedScript::wrapObject(ScriptValue value, const 
 PassRefPtr<InspectorObject> InjectedScript::wrapNode(Node* node, const String& groupName)
 {
     return wrapObject(nodeAsScriptValue(node), groupName);
+}
+
+PassRefPtr<InspectorObject> InjectedScript::wrapSerializedObject(SerializedScriptValue* serializedScriptValue, const String& groupName) const
+{
+    ScriptValue scriptValue = serializedScriptValue->deserializeForInspector(m_injectedScriptObject.scriptState());
+    return scriptValue.hasNoValue() ? 0 : wrapObject(scriptValue, groupName);
 }
 
 void InjectedScript::inspectNode(Node* node)
@@ -190,24 +198,20 @@ void InjectedScript::releaseObjectGroup(const String& objectGroup)
     ASSERT(!hasNoValue());
     ScriptFunctionCall releaseFunction(m_injectedScriptObject, "releaseObjectGroup");
     releaseFunction.appendArgument(objectGroup);
-    releaseFunction.call();
+    bool hadException = false;
+    callFunctionWithEvalEnabled(releaseFunction, hadException);
+    ASSERT(!hadException);
 }
 
-bool InjectedScript::canAccessInspectedWindow()
+bool InjectedScript::canAccessInspectedWindow() const
 {
     return m_inspectedStateAccessCheck(m_injectedScriptObject.scriptState());
 }
 
-void InjectedScript::makeCall(ScriptFunctionCall& function, RefPtr<InspectorValue>* result)
+ScriptValue InjectedScript::callFunctionWithEvalEnabled(ScriptFunctionCall& function, bool& hadException) const
 {
-    if (hasNoValue() || !canAccessInspectedWindow()) {
-        *result = InspectorValue::null();
-        return;
-    }
-
     DOMWindow* domWindow = domWindowFromScriptState(m_injectedScriptObject.scriptState());
     InspectorInstrumentationCookie cookie = domWindow && domWindow->frame() ? InspectorInstrumentation::willCallFunction(domWindow->frame()->page(), "InjectedScript", 1) : InspectorInstrumentationCookie();
-    bool hadException = false;
 
     ScriptState* scriptState = m_injectedScriptObject.scriptState();
     bool evalIsDisabled = false;
@@ -224,6 +228,18 @@ void InjectedScript::makeCall(ScriptFunctionCall& function, RefPtr<InspectorValu
         setEvalEnabled(scriptState, false);
 
     InspectorInstrumentation::didCallFunction(cookie);
+    return resultValue;
+}
+
+void InjectedScript::makeCall(ScriptFunctionCall& function, RefPtr<InspectorValue>* result)
+{
+    if (hasNoValue() || !canAccessInspectedWindow()) {
+        *result = InspectorValue::null();
+        return;
+    }
+
+    bool hadException = false;
+    ScriptValue resultValue = callFunctionWithEvalEnabled(function, hadException);
 
     ASSERT(!hadException);
     if (!hadException) {

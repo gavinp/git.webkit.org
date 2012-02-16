@@ -36,23 +36,14 @@ class StyledElement : public Element {
 public:
     virtual ~StyledElement();
 
-    void addCSSLength(int id, const String& value);
-    void addCSSProperty(int id, const String& value);
-    void addCSSProperty(int id, int value);
-    void addCSSImageProperty(int propertyID, const String& url);
-    void addCSSColor(int id, const String& color);
-    void removeCSSProperties(int id1, int id2 = CSSPropertyInvalid, int id3 = CSSPropertyInvalid, int id4 = CSSPropertyInvalid, int id5 = CSSPropertyInvalid, int id6 = CSSPropertyInvalid, int id7 = CSSPropertyInvalid, int id8 = CSSPropertyInvalid);
-    void removeCSSProperty(int id) { removeCSSProperties(id); }
-
     virtual StylePropertySet* additionalAttributeStyle() { return 0; }
     void invalidateStyleAttribute();
 
     StylePropertySet* inlineStyleDecl() const { return attributeData() ? attributeData()->inlineStyleDecl() : 0; }
-    StylePropertySet* ensureInlineStyleDecl() { return ensureAttributeDataWithoutUpdate()->ensureInlineStyleDecl(this); }
+    StylePropertySet* ensureInlineStyleDecl() { return ensureAttributeData()->ensureInlineStyleDecl(this); }
     virtual CSSStyleDeclaration* style() OVERRIDE { return ensureInlineStyleDecl()->ensureCSSStyleDeclaration(); }
 
-    StylePropertySet* attributeStyle() const { return attributeData() ? attributeData()->attributeStyle() : 0; }
-    StylePropertySet* ensureAttributeStyle() { return ensureAttributeDataWithoutUpdate()->ensureAttributeStyle(this); }
+    StylePropertySet* attributeStyle();
 
     const SpaceSplitString& classNames() const;
 
@@ -66,6 +57,9 @@ protected:
     virtual void parseAttribute(Attribute*);
     virtual void copyNonAttributeProperties(const Element*);
 
+    virtual bool isPresentationAttribute(Attribute*) const { return false; }
+    virtual void collectStyleForAttribute(Attribute*, StylePropertySet*) { }
+
     virtual void addSubresourceAttributeURLs(ListHashSet<KURL>&) const;
 
     // classAttributeChanged() exists to share code between
@@ -75,6 +69,8 @@ protected:
 
 private:
     virtual void updateStyleAttribute() const;
+
+    void updateAttributeStyle();
 
     void destroyInlineStyleDecl()
     {
@@ -93,6 +89,13 @@ inline const SpaceSplitString& StyledElement::classNames() const
 inline void StyledElement::invalidateStyleAttribute()
 {
     clearIsStyleAttributeValid();
+}
+
+inline StylePropertySet* StyledElement::attributeStyle()
+{
+    if (attributeStyleDirty())
+        updateAttributeStyle();
+    return attributeData() ? attributeData()->attributeStyle() : 0;
 }
 
 } //namespace

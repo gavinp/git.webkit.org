@@ -57,6 +57,7 @@
 #include "NodeRenderingContext.h"
 #include "Page.h"
 #include "RenderLayer.h"
+#include "RenderRegion.h"
 #include "RenderView.h"
 #include "RenderWidget.h"
 #include "Settings.h"
@@ -616,27 +617,28 @@ void Element::setAttribute(const AtomicString& name, const AtomicString& value, 
 
     const AtomicString& localName = shouldIgnoreAttributeCase(this) ? name.lower() : name;
 
-    size_t index = ensureUpdatedAttributes()->getAttributeItemIndex(localName, false);
-    const QualifiedName& qName = index != notFound ? m_attributeMap->attributeItem(index)->name() : QualifiedName(nullAtom, localName, nullAtom);
+    size_t index = ensureUpdatedAttributeData()->getAttributeItemIndex(localName, false);
+    const QualifiedName& qName = index != notFound ? attributeItem(index)->name() : QualifiedName(nullAtom, localName, nullAtom);
     setAttributeInternal(index, qName, value);
 }
 
 void Element::setAttribute(const QualifiedName& name, const AtomicString& value)
 {
-    setAttributeInternal(ensureUpdatedAttributes()->getAttributeItemIndex(name), name, value);
+    setAttributeInternal(ensureUpdatedAttributeData()->getAttributeItemIndex(name), name, value);
 }
 
 inline void Element::setAttributeInternal(size_t index, const QualifiedName& name, const AtomicString& value)
 {
-    Attribute* old = index != notFound ? m_attributeMap->attributeItem(index) : 0;
+    ElementAttributeData* attributeData = &m_attributeMap->m_attributeData;
+    Attribute* old = index != notFound ? attributeData->attributeItem(index) : 0;
     if (value.isNull()) {
         if (old)
-            m_attributeMap->removeAttribute(index);
+            attributeData->removeAttribute(index, this);
         return;
     }
 
     if (!old) {
-        m_attributeMap->addAttribute(createAttribute(name, value));
+        attributeData->addAttribute(createAttribute(name, value), this);
         return;
     }
 
@@ -750,27 +752,28 @@ void Element::parserSetAttributeMap(PassOwnPtr<NamedNodeMap> list, FragmentScrip
     m_attributeMap = list;
 
     if (m_attributeMap) {
+        ElementAttributeData* attributeData = &m_attributeMap->m_attributeData;
         m_attributeMap->m_element = this;
         // If the element is created as result of a paste or drag-n-drop operation
         // we want to remove all the script and event handlers.
         if (scriptingPermission == FragmentScriptingNotAllowed) {
             unsigned i = 0;
             while (i < m_attributeMap->length()) {
-                const QualifiedName& attributeName = m_attributeMap->m_attributes[i]->name();
+                const QualifiedName& attributeName = attributeData->m_attributes[i]->name();
                 if (isEventHandlerAttribute(attributeName)) {
-                    m_attributeMap->m_attributes.remove(i);
+                    attributeData->m_attributes.remove(i);
                     continue;
                 }
 
-                if (isAttributeToRemove(attributeName, m_attributeMap->m_attributes[i]->value()))
-                    m_attributeMap->m_attributes[i]->setValue(nullAtom);
+                if (isAttributeToRemove(attributeName, attributeData->m_attributes[i]->value()))
+                    attributeData->m_attributes[i]->setValue(nullAtom);
                 i++;
             }
         }
         // Store the set of attributes that changed on the stack in case
         // attributeChanged mutates m_attributeMap.
         Vector<RefPtr<Attribute> > attributes;
-        m_attributeMap->copyAttributesToVector(attributes);
+        attributeData->copyAttributesToVector(attributes);
         for (Vector<RefPtr<Attribute> >::iterator iter = attributes.begin(); iter != attributes.end(); ++iter)
             attributeChanged(iter->get());
     }
@@ -862,6 +865,8 @@ void Element::willRemove()
     if (containsFullScreenElement())
         setContainsFullScreenElementOnAncestorsCrossingFrameBoundaries(false);
 #endif
+    if (ShadowRootList* shadowRoots = shadowRootList())
+        shadowRoots->willRemove();
     ContainerNode::willRemove();
 }
 
@@ -870,8 +875,8 @@ void Element::insertedIntoDocument()
     // need to do superclass processing first so inDocument() is true
     // by the time we reach updateId
     ContainerNode::insertedIntoDocument();
-    if (ShadowRoot* shadow = shadowRoot())
-        shadow->insertedIntoDocument();
+    if (ShadowRootList* shadowRoots = shadowRootList())
+        shadowRoots->insertedIntoDocument();
 
     if (m_attributeMap) {
         if (hasID()) {
@@ -903,8 +908,8 @@ void Element::removedFromDocument()
     }
 
     ContainerNode::removedFromDocument();
-    if (ShadowRoot* shadow = shadowRoot())
-        shadow->removedFromDocument();
+    if (ShadowRootList* shadowRoots = shadowRootList())
+        shadowRoots->removedFromDocument();
 }
 
 void Element::insertedIntoTree(bool deep)
@@ -912,8 +917,8 @@ void Element::insertedIntoTree(bool deep)
     ContainerNode::insertedIntoTree(deep);
     if (!deep)
         return;
-    if (ShadowRoot* shadow = shadowRoot())
-        shadow->insertedIntoTree(true);
+    if (ShadowRootList* shadowRoots = shadowRootList())
+        shadowRoots->insertedIntoTree(true);
 
 #if ENABLE(FULLSCREEN_API)
     if (containsFullScreenElement() && parentElement() && !parentElement()->containsFullScreenElement())
@@ -926,8 +931,8 @@ void Element::removedFromTree(bool deep)
     ContainerNode::removedFromTree(deep);
     if (!deep)
         return;
-    if (ShadowRoot* shadow = shadowRoot())
-        shadow->removedFromTree(true);
+    if (ShadowRootList* shadowRoots = shadowRootList())
+        shadowRoots->removedFromTree(true);
 }
 
 void Element::attach()
@@ -939,10 +944,10 @@ void Element::attach()
     StyleSelectorParentPusher parentPusher(this);
 
     // When a shadow root exists, it does the work of attaching the children.
-    if (ShadowRoot* shadow = shadowRoot()) {
+    if (hasShadowRoot()) {
         parentPusher.push();
         Node::attach();
-        shadow->attach();
+        shadowRootList()->attach();
 
         // In a shadow tree, some of light children may be attached by 'content' element.
         // However, when there is no content element or content element does not select
@@ -978,8 +983,8 @@ void Element::detach()
     if (hasRareData())
         rareData()->resetComputedStyle();
     ContainerNode::detach();
-    if (ShadowRoot* shadow = shadowRoot())
-        shadow->detach();
+    if (ShadowRootList* shadowRoots = shadowRootList())
+        shadowRoots->detach();
 
     RenderWidget::resumeWidgetHierarchyUpdates();
 }
@@ -1121,7 +1126,7 @@ void Element::recalcStyle(StyleChange change)
     bool forceCheckOfAnyElementSibling = false;
     for (Node *n = firstChild(); n; n = n->nextSibling()) {
         if (n->isTextNode()) {
-            static_cast<Text*>(n)->recalcTextStyle(change);
+            toText(n)->recalcTextStyle(change);
             continue;
         } 
         if (!n->isElementNode()) 
@@ -1138,7 +1143,8 @@ void Element::recalcStyle(StyleChange change)
         forceCheckOfAnyElementSibling = forceCheckOfAnyElementSibling || (childRulesChanged && hasIndirectAdjacentRules);
     }
     // FIXME: This does not care about sibling combinators. Will be necessary in XBL2 world.
-    if (ShadowRoot* shadow = shadowRoot()) {
+    if (hasShadowRoot()) {
+        ShadowRoot* shadow = shadowRootList()->youngestShadowRoot();
         if (change >= Inherit || shadow->childNeedsStyleRecalc() || shadow->needsStyleRecalc()) {
             parentPusher.push();
             shadow->recalcShadowTreeStyle(change);
@@ -1152,9 +1158,19 @@ void Element::recalcStyle(StyleChange change)
         didRecalcStyle(change);
 }
 
-ShadowRoot* Element::shadowRoot() const
+bool Element::hasShadowRoot() const
 {
-    return hasRareData() ? rareData()->m_shadowRoot : 0;
+    if (ShadowRootList* list = shadowRootList())
+        return list->hasShadowRoot();
+    return false;
+}
+
+ShadowRootList* Element::shadowRootList() const
+{
+    if (!hasRareData())
+        return 0;
+
+    return &rareData()->m_shadowRootList;
 }
 
 static bool validateShadowRoot(Document* document, ShadowRoot* shadowRoot, ExceptionCode& ec)
@@ -1175,16 +1191,19 @@ static bool validateShadowRoot(Document* document, ShadowRoot* shadowRoot, Excep
     return true;
 }
 
-void Element::setShadowRoot(PassRefPtr<ShadowRoot> prpShadowRoot, ExceptionCode& ec)
+void Element::setShadowRoot(PassRefPtr<ShadowRoot> shadowRoot, ExceptionCode& ec)
 {
-    RefPtr<ShadowRoot> shadowRoot = prpShadowRoot;
     if (!validateShadowRoot(document(), shadowRoot.get(), ec))
         return;
 
+    if (!hasRareData())
+        ensureRareData();
+
     removeShadowRoot();
 
-    ensureRareData()->m_shadowRoot = shadowRoot.get();
     shadowRoot->setShadowHost(this);
+    shadowRootList()->pushShadowRoot(shadowRoot.get());
+
     if (inDocument())
         shadowRoot->insertedIntoDocument();
     if (attached()) {
@@ -1196,23 +1215,20 @@ void Element::setShadowRoot(PassRefPtr<ShadowRoot> prpShadowRoot, ExceptionCode&
 
 ShadowRoot* Element::ensureShadowRoot()
 {
-    if (ShadowRoot* existingRoot = shadowRoot())
-        return existingRoot;
+    if (hasShadowRoot())
+        return shadowRootList()->oldestShadowRoot();
 
     return ShadowRoot::create(this, ShadowRoot::CreatingUserAgentShadowRoot).get();
 }
 
 void Element::removeShadowRoot()
 {
-    if (!hasRareData())
+    if (!hasShadowRoot())
         return;
 
-    ElementRareData* data = rareData();
-    if (RefPtr<ShadowRoot> oldRoot = data->m_shadowRoot) {
-        data->m_shadowRoot = 0;
+    while (RefPtr<ShadowRoot> oldRoot = shadowRootList()->popShadowRoot()) {
         document()->removeFocusedNodeOfSubtree(oldRoot.get());
 
-        // Remove from rendering tree
         if (oldRoot->attached())
             oldRoot->detach();
 
@@ -1223,9 +1239,10 @@ void Element::removeShadowRoot()
         else
             oldRoot->removedFromTree(true);
         if (attached()) {
-            for (Node* child = firstChild(); child; child = child->nextSibling())
+            for (Node* child = firstChild(); child; child = child->nextSibling()) {
                 if (!child->attached())
                     child->lazyAttach();
+            }
         }
     }
 }
@@ -1361,8 +1378,8 @@ void Element::childrenChanged(bool changedByParser, Node* beforeChange, Node* af
         checkForSiblingStyleChanges(this, renderStyle(), false, beforeChange, afterChange, childCountDelta);
 
     if (hasRareData()) {
-        if (ShadowRoot* root = shadowRoot())
-            root->hostChildrenChanged();
+        if (ShadowRootList* list = shadowRootList())
+            list->hostChildrenChanged();
     }
 }
 
@@ -1473,15 +1490,16 @@ void Element::setAttributeNS(const AtomicString& namespaceURI, const AtomicStrin
 
 void Element::removeAttribute(const String& name)
 {
-    if (!m_attributeMap)
+    ElementAttributeData* attributeData = this->attributeData();
+    if (!attributeData)
         return;
 
     String localName = shouldIgnoreAttributeCase(this) ? name.lower() : name;
-    size_t index = m_attributeMap->getAttributeItemIndex(localName, false);
+    size_t index = attributeData->getAttributeItemIndex(localName, false);
     if (index == notFound)
         return;
 
-    m_attributeMap->removeAttribute(index);
+    attributeData->removeAttribute(index, this);
 }
 
 void Element::removeAttributeNS(const String& namespaceURI, const String& localName)
@@ -1508,22 +1526,22 @@ PassRefPtr<Attr> Element::getAttributeNodeNS(const String& namespaceURI, const S
 
 bool Element::hasAttribute(const String& name) const
 {
-    NamedNodeMap* attrs = updatedAttributes();
-    if (!attrs)
+    ElementAttributeData* attributeData = updatedAttributeData();
+    if (!attributeData)
         return false;
 
     // This call to String::lower() seems to be required but
     // there may be a way to remove it.
     String localName = shouldIgnoreAttributeCase(this) ? name.lower() : name;
-    return attrs->getAttributeItem(localName, false);
+    return attributeData->getAttributeItem(localName, false);
 }
 
 bool Element::hasAttributeNS(const String& namespaceURI, const String& localName) const
 {
-    NamedNodeMap* attrs = updatedAttributes();
-    if (!attrs)
+    ElementAttributeData* attributeData = updatedAttributeData();
+    if (!attributeData)
         return false;
-    return attrs->getAttributeItem(QualifiedName(nullAtom, localName, namespaceURI));
+    return attributeData->getAttributeItem(QualifiedName(nullAtom, localName, namespaceURI));
 }
 
 CSSStyleDeclaration *Element::style()
@@ -1558,7 +1576,7 @@ void Element::focus(bool restorePreviousSelection)
         // If a focus event handler changes the focus to a different node it
         // does not make sense to continue and update appearence.
         protect = this;
-        if (shadowRoot() && page->focusController()->transferFocusToElementInShadowRoot(this, restorePreviousSelection))
+        if (hasShadowRoot() && page->focusController()->transferFocusToElementInShadowRoot(this, restorePreviousSelection))
             return;
         if (!page->focusController()->setFocusedNode(this, doc->frame()))
             return;
@@ -1710,15 +1728,12 @@ void Element::cancelFocusAppearanceUpdate()
 
 void Element::normalizeAttributes()
 {
-    NamedNodeMap* attrs = updatedAttributes();
-    if (!attrs)
-        return;
-
-    if (attrs->isEmpty())
+    ElementAttributeData* attributeData = updatedAttributeData();
+    if (!attributeData || attributeData->isEmpty())
         return;
 
     Vector<RefPtr<Attribute> > attributeVector;
-    attrs->copyAttributesToVector(attributeVector);
+    attributeData->copyAttributesToVector(attributeVector);
     size_t numAttrs = attributeVector.size();
     for (size_t i = 0; i < numAttrs; ++i) {
         if (Attr* attr = attributeVector[i]->attr())
@@ -1750,30 +1765,6 @@ unsigned Element::childElementCount() const
     }
     return count;
 }
-
-#if ENABLE(STYLE_SCOPED)
-bool Element::hasScopedHTMLStyleChild() const
-{
-    return hasRareData() && rareData()->hasScopedHTMLStyleChild();
-}
-
-size_t Element::numberOfScopedHTMLStyleChildren() const
-{
-    return hasRareData() ? rareData()->numberOfScopedHTMLStyleChildren() : 0;
-}
-
-void Element::registerScopedHTMLStyleChild()
-{
-    ensureRareData()->registerScopedHTMLStyleChild();
-}
-
-void Element::unregisterScopedHTMLStyleChild()
-{
-    ASSERT(hasRareData());
-    if (hasRareData())
-        rareData()->unregisterScopedHTMLStyleChild();
-}
-#endif
 
 bool Element::webkitMatchesSelector(const String& selector, ExceptionCode& ec)
 {
@@ -1969,6 +1960,31 @@ PassRefPtr<WebKitAnimationList> Element::webkitGetAnimations() const
         return 0;
     
     return animController->animationsForRenderer(renderer());
+}
+
+const AtomicString& Element::webkitRegionOverflow() const
+{
+    if (renderer() && renderer()->isRenderRegion()) {
+        RenderRegion* region = toRenderRegion(renderer());
+        switch (region->regionState()) {
+        case RenderRegion::RegionFit: {
+            DEFINE_STATIC_LOCAL(AtomicString, fitState, ("fit"));
+            return fitState;
+        }
+        case RenderRegion::RegionEmpty: {
+            DEFINE_STATIC_LOCAL(AtomicString, emptyState, ("empty"));
+            return emptyState;
+        }
+        case RenderRegion::RegionOverflow: {
+            DEFINE_STATIC_LOCAL(AtomicString, overflowState, ("overflow"));
+            return overflowState;
+        }
+        default:
+            break;
+        }
+    }
+    DEFINE_STATIC_LOCAL(AtomicString, undefinedState, ("undefined"));
+    return undefinedState;
 }
 
 #ifndef NDEBUG

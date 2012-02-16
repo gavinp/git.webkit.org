@@ -50,16 +50,9 @@
 #include "RenderTreeAsText.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
+#include "ShadowRootList.h"
 #include "SpellChecker.h"
 #include "TextIterator.h"
-
-#if ENABLE(GESTURE_EVENTS)
-#include "PlatformGestureEvent.h"
-#endif
-
-#if ENABLE(SMOOTH_SCROLLING)
-#include "ScrollAnimator.h"
-#endif
 
 #if ENABLE(INPUT_COLOR)
 #include "ColorChooser.h"
@@ -173,11 +166,11 @@ String Internals::elementRenderTreeAsText(Element* element, ExceptionCode& ec)
     return representation;
 }
 
-size_t Internals::numberOfScopedHTMLStyleChildren(const Element* element, ExceptionCode& ec) const
+size_t Internals::numberOfScopedHTMLStyleChildren(const Node* scope, ExceptionCode& ec) const
 {
-    if (element)
+    if (scope && (scope->isElementNode() || scope->isShadowRoot()))
 #if ENABLE(STYLE_SCOPED)
-        return element->numberOfScopedHTMLStyleChildren();
+        return scope->numberOfScopedHTMLStyleChildren();
 #else
         return 0;
 #endif
@@ -193,20 +186,43 @@ Internals::ShadowRootIfShadowDOMEnabledOrNode* Internals::ensureShadowRoot(Eleme
         return 0;
     }
 
-    if (ShadowRoot* root = host->shadowRoot())
-        return root;
+    if (host->hasShadowRoot())
+        return host->shadowRootList()->youngestShadowRoot();
 
     return ShadowRoot::create(host, ec).get();
 }
 
 Internals::ShadowRootIfShadowDOMEnabledOrNode* Internals::shadowRoot(Element* host, ExceptionCode& ec)
 {
+    // FIXME: Internals::shadowRoot() in tests should be converted to youngestShadowRoot() or oldestShadowRoot().
+    // https://bugs.webkit.org/show_bug.cgi?id=78465
+    return youngestShadowRoot(host, ec);
+}
+
+Internals::ShadowRootIfShadowDOMEnabledOrNode* Internals::youngestShadowRoot(Element* host, ExceptionCode& ec)
+{
     if (!host) {
         ec = INVALID_ACCESS_ERR;
         return 0;
     }
 
-    return host->shadowRoot();
+    if (!host->hasShadowRoot())
+        return 0;
+
+    return host->shadowRootList()->youngestShadowRoot();
+}
+
+Internals::ShadowRootIfShadowDOMEnabledOrNode* Internals::oldestShadowRoot(Element* host, ExceptionCode& ec)
+{
+    if (!host) {
+        ec = INVALID_ACCESS_ERR;
+        return 0;
+    }
+
+    if (!host->hasShadowRoot())
+        return 0;
+
+    return host->shadowRootList()->oldestShadowRoot();
 }
 
 void Internals::removeShadowRoot(Element* host, ExceptionCode& ec)
@@ -226,7 +242,7 @@ Element* Internals::includerFor(Node* node, ExceptionCode& ec)
         return 0;
     }
 
-    return NodeRenderingContext(node).includer();
+    return NodeRenderingContext(node).insertionPoint();
 }
 
 String Internals::shadowPseudoId(Element* element, ExceptionCode& ec)

@@ -74,14 +74,27 @@ public:
     // Should be called whenever the slow repaint objects counter changes between zero and one.
     void frameViewHasSlowRepaintObjectsDidChange(FrameView*);
 
-    // Should be called whenever the scroll layer for the given frame view changes.
-    void frameViewScrollLayerDidChange(FrameView*, const GraphicsLayer*);
+    // Should be called whenever the fixed objects counter changes between zero and one.
+    // FIXME: This is a temporary workaround so that we'll fall into main thread scrolling mode
+    // if a page has fixed elements. The scrolling tree should know about the fixed elements
+    // so it can make sure they stay fixed even when we scroll on the scrolling thread.
+    void frameViewHasFixedObjectsDidChange(FrameView*);
+
+    // Should be called whenever the root layer for the given frame view changes.
+    void frameViewRootLayerDidChange(FrameView*);
 
     // Should be called whenever the horizontal scrollbar layer for the given frame view changes.
     void frameViewHorizontalScrollbarLayerDidChange(FrameView*, GraphicsLayer* horizontalScrollbarLayer);
 
     // Should be called whenever the horizontal scrollbar layer for the given frame view changes.
     void frameViewVerticalScrollbarLayerDidChange(FrameView*, GraphicsLayer* verticalScrollbarLayer);
+
+    // Requests that the scrolling coordinator updates the scroll position of the given frame view. If this function returns true, it means that the
+    // position will be updated asynchronously. If it returns false, the caller should update the scrolling position itself.
+    bool requestScrollPositionUpdate(FrameView*, const IntPoint&);
+
+    // Handle the wheel event on the scrolling thread. Returns whether the event was handled or not.
+    bool handleWheelEvent(FrameView*, const PlatformWheelEvent&);
 
     // Dispatched by the scrolling tree whenever the main frame scroll position changes.
     void updateMainFrameScrollPosition(const IntPoint&);
@@ -93,6 +106,7 @@ private:
     explicit ScrollingCoordinator(Page*);
 
     void recomputeWheelEventHandlerCount();
+    void updateShouldUpdateScrollLayerPositionOnMainThread();
 
     void scheduleTreeStateCommit();
     void scrollingTreeStateCommitterTimerFired(Timer<ScrollingCoordinator>*);

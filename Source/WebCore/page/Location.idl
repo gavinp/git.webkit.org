@@ -32,15 +32,16 @@ module window {
 #if defined(V8_BINDING) && V8_BINDING
         CheckDomainSecurity,
 #endif
-        JSCustomGetOwnPropertySlotDelegate,
+        JSCustomGetOwnPropertySlotAndDescriptor,
         CustomNamedSetter,
         JSGenerateIsReachable=ImplFrame,
         CustomDeleteProperty,
-        CustomGetPropertyNames,
+        CustomEnumerateProperty,
         JSCustomDefineOwnProperty,
-        JSCustomPrototypePutDelegate,
-        JSCustomPrototypeDefineOwnProperty,
-        OmitConstructor
+        JSCustomNamedGetterOnPrototype,
+        JSCustomDefineOwnPropertyOnPrototype,
+        OmitConstructor,
+        V8CustomToJSObject
     ] Location {
 #if !defined(LANGUAGE_CPP) || !LANGUAGE_CPP
                  attribute [DoNotCheckDomainSecurityOnSetter, CustomSetter, V8Unforgeable] DOMString href;

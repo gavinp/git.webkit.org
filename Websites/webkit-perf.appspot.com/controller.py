@@ -55,7 +55,7 @@ def get_persistent_cache(name):
     if value:
         return value
     cache = PersistentCache.get_by_key_name(name)
-    memcache.set(name, cache)
+    memcache.set(name, cache.value)
     return cache.value
 
 
@@ -122,3 +122,7 @@ class CachedRunsHandler(webapp2.RequestHandler):
             self.response.out.write(runs)
         else:
             schedule_runs_update(test_id, branch_id, platform_id)
+
+
+def schedule_report_process(log):
+    taskqueue.add(url='/api/test/report/process', params={'id': log.key().id()})

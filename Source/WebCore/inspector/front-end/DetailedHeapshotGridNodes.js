@@ -69,18 +69,20 @@ WebInspector.HeapSnapshotGridNode.prototype = {
     {
         var cell = document.createElement("td");
         cell.className = columnIdentifier + "-column";
-        var div = document.createElement("div");
-        var valueSpan = document.createElement("span");
-        valueSpan.textContent = this.data[columnIdentifier];
-        div.appendChild(valueSpan);
-        var percentColumn = columnIdentifier + "-percent";
-        if (percentColumn in this.data) {
-            var percentSpan = document.createElement("span");
-            percentSpan.className = "percent-column";
-            percentSpan.textContent = this.data[percentColumn];
-            div.appendChild(percentSpan);
+        if (this.dataGrid.snapshot.totalSize !== 0) {
+            var div = document.createElement("div");
+            var valueSpan = document.createElement("span");
+            valueSpan.textContent = this.data[columnIdentifier];
+            div.appendChild(valueSpan);
+            var percentColumn = columnIdentifier + "-percent";
+            if (percentColumn in this.data) {
+                var percentSpan = document.createElement("span");
+                percentSpan.className = "percent-column";
+                percentSpan.textContent = this.data[percentColumn];
+                div.appendChild(percentSpan);
+            }
+            cell.appendChild(div);
         }
-        cell.appendChild(div);
         return cell;
     },
 
@@ -379,16 +381,14 @@ WebInspector.HeapSnapshotObjectNode = function(tree, isFromBaseSnapshot, edge, p
 WebInspector.HeapSnapshotObjectNode.prototype = {
     updateHasChildren: function(parentGridNode)
     {
-        if (this.showRetainingEdges) {
-            this._parentGridNode = parentGridNode;
-            var ancestor = parentGridNode;
-            while (ancestor) {
-                if (ancestor.snapshotNodeId === this.snapshotNodeId) {
-                    this._cycledWithAncestorGridNode = ancestor;
-                    return;
-                }
-                ancestor = ancestor._parentGridNode;
+        this._parentGridNode = parentGridNode;
+        var ancestor = parentGridNode;
+        while (ancestor) {
+            if (ancestor.snapshotNodeId === this.snapshotNodeId) {
+                this._cycledWithAncestorGridNode = ancestor;
+                return;
             }
+            ancestor = ancestor._parentGridNode;
         }
         WebInspector.HeapSnapshotGenericObjectNode.prototype.updateHasChildren.call(this);
     },
@@ -468,7 +468,7 @@ WebInspector.HeapSnapshotObjectNode.prototype = {
 
     _prefixObjectCell: function(div, data)
     {
-        if (this.showRetainingEdges && this._cycledWithAncestorGridNode)
+        if (this._cycledWithAncestorGridNode)
             div.className += " cycled-ancessor-node";
 
         var nameSpan = document.createElement("span");

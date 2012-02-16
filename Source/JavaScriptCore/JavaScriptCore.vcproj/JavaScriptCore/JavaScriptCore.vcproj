@@ -1586,6 +1586,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\bytecode\PolymorphicPutByIdList.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\bytecode\PredictedType.cpp"
 				>
 			</File>
@@ -2055,6 +2059,10 @@
                             </File>
                             <File
                                     RelativePath="..\..\heap\ConservativeRoots.h"
+                                    >
+                            </File>
+                            <File
+                                    RelativePath="..\..\heap\GCAssertions.h"
                                     >
                             </File>
                             <File
