@@ -351,6 +351,11 @@
 #define WTF_OS_FREEBSD 1
 #endif
 
+/* OS(HURD) - GNU/Hurd */
+#ifdef __GNU__
+#define WTF_OS_HURD 1
+#endif
+
 /* OS(LINUX) - Linux */
 #ifdef __linux__
 #define WTF_OS_LINUX 1
@@ -394,6 +399,7 @@
     || OS(ANDROID)          \
     || OS(DARWIN)           \
     || OS(FREEBSD)          \
+    || OS(HURD)             \
     || OS(LINUX)            \
     || OS(NETBSD)           \
     || OS(OPENBSD)          \
@@ -597,11 +603,11 @@
 #define WTF_USE_PTHREADS 1
 
 #if PLATFORM(IOS_SIMULATOR)
-    #define ENABLE_INTERPRETER 1
+    #define ENABLE_CLASSIC_INTERPRETER 1
     #define ENABLE_JIT 0
     #define ENABLE_YARR_JIT 0
 #else
-    #define ENABLE_INTERPRETER 1
+    #define ENABLE_CLASSIC_INTERPRETER 1
     #define ENABLE_JIT 1
     #define ENABLE_YARR_JIT 1
 #endif
@@ -922,6 +928,12 @@
 #define ENABLE_JIT 1
 #endif
 
+/* On some of the platforms where we have a JIT, we want to also have the 
+   low-level interpreter. */
+#if !defined(ENABLE_LLINT) && ENABLE(JIT) && OS(DARWIN) && (CPU(X86) || CPU(ARM_THUMB2)) && USE(JSVALUE32_64)
+#define ENABLE_LLINT 1
+#endif
+
 #if !defined(ENABLE_DFG_JIT) && ENABLE(JIT)
 /* Enable the DFG JIT on X86 and X86_64.  Only tested on Mac and GNU/Linux. */
 #if (CPU(X86) || CPU(X86_64)) && (PLATFORM(MAC) || OS(LINUX))
@@ -956,10 +968,10 @@
 #endif
 
 /* Ensure that either the JIT or the interpreter has been enabled. */
-#if !defined(ENABLE_INTERPRETER) && !ENABLE(JIT)
-#define ENABLE_INTERPRETER 1
+#if !defined(ENABLE_CLASSIC_INTERPRETER) && !ENABLE(JIT)
+#define ENABLE_CLASSIC_INTERPRETER 1
 #endif
-#if !(ENABLE(JIT) || ENABLE(INTERPRETER))
+#if !(ENABLE(JIT) || ENABLE(CLASSIC_INTERPRETER))
 #error You have to have at least one execution model enabled to build JSC
 #endif
 
@@ -992,8 +1004,8 @@
 #if COMPILER(GCC) || (RVCT_VERSION_AT_LEAST(4, 0, 0, 0) && defined(__GNUC__))
 #define HAVE_COMPUTED_GOTO 1
 #endif
-#if HAVE(COMPUTED_GOTO) && ENABLE(INTERPRETER)
-#define ENABLE_COMPUTED_GOTO_INTERPRETER 1
+#if HAVE(COMPUTED_GOTO) && ENABLE(CLASSIC_INTERPRETER)
+#define ENABLE_COMPUTED_GOTO_CLASSIC_INTERPRETER 1
 #endif
 
 /* Regular Expression Tracing - Set to 1 to trace RegExp's in jsc.  Results dumped at exit */

@@ -242,12 +242,12 @@ public:
     unsigned columnCount(ColumnInfo*) const;
     LayoutRect columnRectAt(ColumnInfo*, unsigned) const;
 
-    LayoutUnit paginationStrut() const { return m_rareData ? m_rareData->m_paginationStrut : 0; }
+    LayoutUnit paginationStrut() const { return m_rareData ? m_rareData->m_paginationStrut : zeroLayoutUnit; }
     void setPaginationStrut(LayoutUnit);
     
     // The page logical offset is the object's offset from the top of the page in the page progression
     // direction (so an x-offset in vertical text and a y-offset for horizontal text).
-    int pageLogicalOffset() const { return m_rareData ? m_rareData->m_pageLogicalOffset : 0; }
+    LayoutUnit pageLogicalOffset() const { return m_rareData ? m_rareData->m_pageLogicalOffset : zeroLayoutUnit; }
     void setPageLogicalOffset(int);
 
     RootInlineBox* lineGridBox() const { return m_rareData ? m_rareData->m_lineGridBox : 0; }
@@ -381,7 +381,7 @@ protected:
         return moveChildrenTo(toBlock, startChild, endChild, 0, fullRemoveInsert);
     }
     void moveChildrenTo(RenderBlock* toBlock, RenderObject* startChild, RenderObject* endChild, RenderObject* beforeChild, bool fullRemoveInsert = false);
-    
+
     LayoutUnit maxPositiveMarginBefore() const { return m_rareData ? m_rareData->m_margins.positiveMarginBefore() : RenderBlockRareData::positiveMarginBeforeDefault(this); }
     LayoutUnit maxNegativeMarginBefore() const { return m_rareData ? m_rareData->m_margins.negativeMarginBefore() : RenderBlockRareData::negativeMarginBeforeDefault(this); }
     LayoutUnit maxPositiveMarginAfter() const { return m_rareData ? m_rareData->m_margins.positiveMarginAfter() : RenderBlockRareData::positiveMarginAfterDefault(this); }
@@ -822,6 +822,7 @@ private:
     void updateScrollInfoAfterLayout();
 
     RenderObject* splitAnonymousBlocksAroundChild(RenderObject* beforeChild);
+    RenderObject* splitTablePartsAroundChild(RenderObject* beforeChild);
     void splitBlocks(RenderBlock* fromBlock, RenderBlock* toBlock, RenderBlock* middleBlock,
                      RenderObject* beforeChild, RenderBoxModelObject* oldCont);
     void splitFlow(RenderObject* beforeChild, RenderBlock* newBlockBox,

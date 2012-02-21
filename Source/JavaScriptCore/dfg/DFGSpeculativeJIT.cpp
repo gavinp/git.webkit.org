@@ -1073,7 +1073,14 @@ void SpeculativeJIT::checkArgumentTypes()
         m_variables[i] = ValueSource(ValueInRegisterFile);
     
     for (int i = 0; i < m_jit.codeBlock()->numParameters(); ++i) {
-        VariableAccessData* variableAccessData = at(m_jit.graph().m_arguments[i]).variableAccessData();
+        Node& node = at(m_jit.graph().m_arguments[i]);
+        ASSERT(node.op == SetArgument);
+        if (!node.shouldGenerate()) {
+            // The argument is dead. We don't do any checks for such arguments.
+            continue;
+        }
+        
+        VariableAccessData* variableAccessData = node.variableAccessData();
         VirtualRegister virtualRegister = variableAccessData->local();
         PredictedType predictedType = variableAccessData->prediction();
 #if USE(JSVALUE64)
@@ -1282,8 +1289,8 @@ ValueRecovery SpeculativeJIT::computeValueRecoveryFor(const ValueSource& valueSo
         return ValueRecovery::alreadyInRegisterFileAsUnboxedDouble();
 
     case HaveNode: {
-        if (m_jit.isConstant(valueSource.nodeIndex()))
-            return ValueRecovery::constant(m_jit.valueOfJSConstant(valueSource.nodeIndex()));
+        if (isConstant(valueSource.nodeIndex()))
+            return ValueRecovery::constant(valueOfJSConstant(valueSource.nodeIndex()));
     
         Node* nodePtr = &at(valueSource.nodeIndex());
         if (!nodePtr->shouldGenerate()) {
@@ -2213,7 +2220,7 @@ void SpeculativeJIT::compileSoftModulo(Node& node)
 
 void SpeculativeJIT::compileAdd(Node& node)
 {
-    if (m_jit.graph().addShouldSpeculateInteger(node, m_jit.codeBlock())) {
+    if (m_jit.graph().addShouldSpeculateInteger(node)) {
         if (isNumberConstant(node.child1().index())) {
             int32_t imm1 = valueOfNumberConstantAsInt32(node.child1().index());
             SpeculateIntegerOperand op2(this, node.child2());
@@ -2298,7 +2305,7 @@ void SpeculativeJIT::compileAdd(Node& node)
 
 void SpeculativeJIT::compileArithSub(Node& node)
 {
-    if (m_jit.graph().addShouldSpeculateInteger(node, m_jit.codeBlock())) {
+    if (m_jit.graph().addShouldSpeculateInteger(node)) {
         if (isNumberConstant(node.child2().index())) {
             SpeculateIntegerOperand op1(this, node.child1());
             int32_t imm2 = valueOfNumberConstantAsInt32(node.child2().index());

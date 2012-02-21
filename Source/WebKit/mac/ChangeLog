@@ -1,3 +1,45 @@
+2012-02-17  Mihnea Ovidenie  <mihnea@adobe.com>
+
+        CSS regions enabled by default
+        https://bugs.webkit.org/show_bug.cgi?id=78525
+
+        Reviewed by David Hyatt.
+
+        Add a runtime preference to enable/disable regions functionality at runtime(WebKitCSSRegionsEnabled).
+        CSSRegions are still enabled by default.
+        In DRT, use layoutTestController.overridePreference("WebKitCSSRegionsEnabled", "0") to disable the css regions functionality.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences cssRegionsEnabled]):
+        (-[WebPreferences setCSSRegionsEnabled:]):
+        * WebView/WebPreferencesPrivate.h:
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]):
+
+2012-02-17  Enrica Casucci  <enrica@apple.com>
+
+        Refactor DragData class to use PlatformStrategies in the Mac implementation.
+        https://bugs.webkit.org/show_bug.cgi?id=78768
+
+        Reviewed by Darin Adler.
+
+        * WebCoreSupport/WebPlatformStrategies.h: Added color() method.
+        * WebCoreSupport/WebPlatformStrategies.mm:
+        (WebPlatformStrategies::color):
+
+2012-02-16  Brady Eidson  <beidson@apple.com>
+
+        <rdar://problem/10616280> and https://bugs.webkit.org/show_bug.cgi?id=78767
+        REGRESSION (r90471) - iAd Producer 2.0.1 produces blank pages
+
+        Reviewed by Sam Weinig.
+
+        * WebView/WebView.mm:
+        (-[WebView _needsIsLoadingInAPISenseQuirk]):
+        (-[WebView _preferencesChanged:]):
+
 2012-02-15  Enrica Casucci  <enrica@apple.com>
 
         Refactor ClipboardMac class to use PlatformStrategies.

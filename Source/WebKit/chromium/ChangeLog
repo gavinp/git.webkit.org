@@ -1,3 +1,396 @@
+2012-02-20  Peter Beverloo  <peter@chromium.org>
+
+        Unreviewed.  Rolled DEPS.
+
+        * DEPS:
+
+2012-02-20  Kenichi Ishibashi  <bashi@chromium.org>
+
+        [WebSocket] Add deflater/inflater classes
+        https://bugs.webkit.org/show_bug.cgi?id=78449
+
+        Add tests which ensure WebSocketDeflater/WebSocketInflater can
+        compress/decompress data correctly.
+
+        Reviewed by Kent Tamura.
+
+        * WebKit.gypi: Added zlib dependency.
+        * WebKitUnitTests.gyp: Ditto.
+        * tests/WebSocketDeflaterTest.cpp: Added.
+        (WebCore):
+        (WebCore::TEST):
+
+2012-02-17  Yury Semikhatsky  <yurys@chromium.org>
+
+        [Chromium] Web Inspector: terminated workers are not removed from dedicated worker list
+        https://bugs.webkit.org/show_bug.cgi?id=78899
+
+        Pass original WorkerContextProxy object to the inspector instrumentation instead
+        of Chromium-specific one for consistency with WorkerMessagingProxy implementation
+        in WebCore.
+
+        Reviewed by Pavel Feldman.
+
+        * src/WebWorkerClientImpl.cpp:
+        (WebKit::WebWorkerClientImpl::startWorkerContext):
+
+2012-02-18  raman Tenneti  <rtenneti@chromium.org>
+
+        Track the NPN protocol version negotiated with the server
+        https://bugs.webkit.org/show_bug.cgi?id=77349
+
+        Reviewed by Darin Fisher.
+
+        [chromium] Added ExtraData to WebURLResponse.
+
+        * WebKit.gypi:
+        * public/platform/WebURLResponse.h:
+        (ExtraData):
+        (WebKit::WebURLResponse::ExtraData::~ExtraData):
+        (WebURLResponse):
+        * src/WebURLResponse.cpp:
+        (WebKit::WebURLResponse::extraData):
+        (WebKit):
+        (WebKit::WebURLResponse::setExtraData):
+        * tests/WebURLResponseTest.cpp: Added.
+        (WebKit):
+        (TestExtraData):
+        (WebKit::TestExtraData::TestExtraData):
+        (WebKit::TestExtraData::~TestExtraData):
+        (WebKit::TEST):
+
+2012-02-17  Joshua Bell  <jsbell@chromium.org>
+
+        IndexedDB: Support overloaded methods that take IDBKey or IDBKeyRange
+        https://bugs.webkit.org/show_bug.cgi?id=78399
+
+        Implements the WebKit API for IDBObjectStore.delete(IDBKeyRange),
+        to exercise the overload capability.
+
+        Reviewed by Tony Chang.
+
+        * src/IDBObjectStoreBackendProxy.cpp:
+        (WebKit::IDBObjectStoreBackendProxy::deleteFunction):
+        (WebKit):
+        * src/IDBObjectStoreBackendProxy.h:
+        (IDBObjectStoreBackendProxy):
+        * src/WebIDBObjectStoreImpl.cpp:
+        (WebKit::WebIDBObjectStoreImpl::deleteFunction):
+        (WebKit):
+        * src/WebIDBObjectStoreImpl.h:
+        (WebIDBObjectStoreImpl):
+
+2012-02-17  Michal Mocny  <mmocny@google.com>
+
+        [chromium] GL_CHROMIUM_gpu_memory_manager extension
+        https://bugs.webkit.org/show_bug.cgi?id=77155
+
+        Reviewed by James Robinson.
+
+        * public/platform/WebGraphicsContext3D.h:
+        (WebGraphicsMemoryAllocationChangedCallbackCHROMIUM):
+        (WebKit::WebGraphicsContext3D::WebGraphicsMemoryAllocationChangedCallbackCHROMIUM::~WebGraphicsMemoryAllocationChangedCallbackCHROMIUM):
+        (WebGraphicsContext3D):
+        (WebKit::WebGraphicsContext3D::setMemoryAllocationChangedCallbackCHROMIUM):
+        * src/Extensions3DChromium.cpp:
+        (WebCore::Extensions3DChromium::setGpuMemoryAllocationChangedCallbackCHROMIUM):
+        (WebCore):
+        * src/GraphicsContext3DChromium.cpp:
+        (WebCore::GraphicsContext3D::~GraphicsContext3D):
+        (GraphicsContext3DMemoryAllocationChangedCallbackAdapter):
+        (WebCore::GraphicsContext3DMemoryAllocationChangedCallbackAdapter::GraphicsContext3DMemoryAllocationChangedCallbackAdapter):
+        (WebCore::GraphicsContext3DMemoryAllocationChangedCallbackAdapter::~GraphicsContext3DMemoryAllocationChangedCallbackAdapter):
+        (WebCore::GraphicsContext3DMemoryAllocationChangedCallbackAdapter::onMemoryAllocationChanged):
+        (WebCore):
+        (WebCore::GraphicsContext3DPrivate::setGpuMemoryAllocationChangedCallbackCHROMIUM):
+        * src/GraphicsContext3DPrivate.h:
+        (WebCore):
+        * tests/FakeWebGraphicsContext3D.h:
+        (WebKit::FakeWebGraphicsContext3D::setMemoryAllocationChangedCallbackCHROMIUM):
+        (FakeWebGraphicsContext3D):
+
+2012-02-17  Mihnea Ovidenie  <mihnea@adobe.com>
+
+        CSS regions enabled by default
+        https://bugs.webkit.org/show_bug.cgi?id=78525
+
+        Reviewed by David Hyatt.
+
+        Add a runtime preference to enable/disable regions functionality at runtime(WebKitCSSRegionsEnabled).
+        CSSRegions are still enabled by default.
+        In DRT, use layoutTestController.overridePreference("WebKitCSSRegionsEnabled", "0") to disable the css regions functionality.
+
+        * public/WebSettings.h:
+        * src/WebSettingsImpl.cpp:
+        (WebKit::WebSettingsImpl::setExperimentalCSSRegionsEnabled):
+        (WebKit):
+        * src/WebSettingsImpl.h:
+        (WebSettingsImpl):
+
+2012-02-17  Scott Graham  <scottmg@chromium.org>
+
+        [Chromium] pack Gamepad shared memory structure
+        https://bugs.webkit.org/show_bug.cgi?id=78022
+
+        Reviewed by Darin Fisher.
+
+        Add #pragma pack around definition of shared memory structures to
+        avoid differences across compilers and platforms. Add COMPILE_ASSERT
+        to verify expected size.
+
+        * public/platform/WebGamepad.h:
+        (WebKit):
+        * public/platform/WebGamepads.h:
+        (WebKit):
+
+2012-02-17  Tim Dresser  <tdresser@chromium.org>
+
+        [chromium] Refactor video drawing to be more data driven
+        https://bugs.webkit.org/show_bug.cgi?id=76720
+
+        Reviewed by James Robinson.
+
+        CCLayerTreeHostImplTest.didDrawCalledOnAllLayers ensures that
+        CCLayerImpl::didDraw() is called on all layers, including layers
+        on different render surfaces.
+
+        * tests/CCLayerTreeHostImplTest.cpp:
+        (DidDrawCheckLayer):
+        (WebKit::DidDrawCheckLayer::create):
+        (WebKit::DidDrawCheckLayer::didDraw):
+        (WebKit::DidDrawCheckLayer::didDrawCalled):
+        (WebKit::DidDrawCheckLayer::DidDrawCheckLayer):
+        (WebKit):
+        (WebKit::TEST_F):
+
+2012-02-17  Ilya Tikhonovsky  <loislo@chromium.org>
+
+        Unreviewed, rolling out r108071.
+        http://trac.webkit.org/changeset/108071
+        https://bugs.webkit.org/show_bug.cgi?id=77155
+
+        chromium-mac compilation failed
+
+        * public/platform/WebGraphicsContext3D.h:
+        (WebGraphicsContext3D):
+        * src/Extensions3DChromium.cpp:
+        * src/GraphicsContext3DChromium.cpp:
+        (WebCore::GraphicsContext3D::~GraphicsContext3D):
+        * src/GraphicsContext3DPrivate.h:
+        (WebCore):
+        * tests/FakeWebGraphicsContext3D.h:
+
+2012-02-17  Michal Mocny  <mmocny@google.com>
+
+        [chromium] GL_CHROMIUM_gpu_memory_manager extension
+        https://bugs.webkit.org/show_bug.cgi?id=77155
+
+        Reviewed by James Robinson.
+
+        * public/platform/WebGraphicsContext3D.h:
+        (WebGraphicsMemoryAllocationChangedCallbackCHROMIUM):
+        (WebKit::WebGraphicsContext3D::WebGraphicsMemoryAllocationChangedCallbackCHROMIUM::~WebGraphicsMemoryAllocationChangedCallbackCHROMIUM):
+        (WebGraphicsContext3D):
+        (WebKit::WebGraphicsContext3D::setMemoryAllocationChangedCallbackCHROMIUM):
+        * src/Extensions3DChromium.cpp:
+        (WebCore::Extensions3DChromium::setGpuMemoryAllocationChangedCallbackCHROMIUM):
+        (WebCore):
+        * src/GraphicsContext3DChromium.cpp:
+        (WebCore::GraphicsContext3D::~GraphicsContext3D):
+        (GraphicsContext3DMemoryAllocationChangedCallbackAdapter):
+        (WebCore::GraphicsContext3DMemoryAllocationChangedCallbackAdapter::GraphicsContext3DMemoryAllocationChangedCallbackAdapter):
+        (WebCore::GraphicsContext3DMemoryAllocationChangedCallbackAdapter::~GraphicsContext3DMemoryAllocationChangedCallbackAdapter):
+        (WebCore::GraphicsContext3DMemoryAllocationChangedCallbackAdapter::onMemoryAllocationChanged):
+        (WebCore):
+        (WebCore::GraphicsContext3DPrivate::setGpuMemoryAllocationChangedCallbackCHROMIUM):
+        * src/GraphicsContext3DPrivate.h:
+        (WebCore):
+        * tests/FakeWebGraphicsContext3D.h:
+        (WebKit::FakeWebGraphicsContext3D::setMemoryAllocationChangedCallbackCHROMIUM):
+        (FakeWebGraphicsContext3D):
+
+2012-02-17  Ilya Tikhonovsky  <loislo@chromium.org>
+
+        Unreviewed. Chromium DEPS roll
+
+        * DEPS: from 122122 to 122498
+
+2012-02-16  Alexandre Elias  <aelias@google.com>
+
+        [chromium] Bundle page scale factor and limits in CCLayerTreeHost
+        https://bugs.webkit.org/show_bug.cgi?id=78762
+
+        Setting page scale factor and its limits in separate methods
+        may cause clamping bugs if one of them makes it to the
+        impl thread before the other.  Change the API to bundle them together,
+        which matches the existing impl-side interface.
+
+        Reviewed by James Robinson.
+
+        * src/WebViewImpl.cpp:
+        (WebKit::WebViewImpl::computePageScaleFactorLimits):
+        (WebKit::WebViewImpl::setIsAcceleratedCompositingActive):
+        (WebKit::WebViewImpl::updateLayerTreeViewport):
+        * tests/CCLayerTreeHostTest.cpp:
+        (WTF::CCLayerTreeHostTestStartPageScaleAnimation::applyScrollAndScale):
+
+2012-02-16  Varun Jain  <varunjain@google.com>
+
+        [Chromium] Add method to WebViewImpl to extract zoom/scroll params for gesture events on touch devices
+        https://bugs.webkit.org/show_bug.cgi?id=72909
+
+        Reviewed by James Robinson.
+
+        * src/WebViewImpl.cpp:
+        (std):
+        (WebKit):
+        (WebKit::WebViewImpl::computeBlockBounds):
+        (WebKit::WebViewImpl::widenRectWithinPageBounds):
+        (WebKit::WebViewImpl::computeScaleAndScrollForHitRect):
+        * src/WebViewImpl.h:
+        (WebViewImpl):
+        * tests/WebFrameTest.cpp:
+        (WebKit):
+        (WebKit::TEST_F):
+        * tests/data/get_scale_for_auto_zoom_into_div_test.html: Added.
+
+2012-02-16  Sami Kyostila  <skyostil@chromium.org>
+
+        [chromium] LayerChromium::setNeedsDisplay does not apply contents scale correctly
+        https://bugs.webkit.org/show_bug.cgi?id=77464
+
+        Added a new unit test for TiledLayerChromium to verify its invalidation behavior when
+        the contents scale changes. Also enhance and existing unit test for LayerChromium to
+        verify the paint rectangle dimensions instead just checking that it is not empty.
+
+        Reviewed by James Robinson.
+
+        * tests/LayerChromiumTest.cpp:
+        * tests/TiledLayerChromiumTest.cpp:
+        (WTF::FakeTiledLayerChromium::setNeedsDisplayRect):
+        (FakeTiledLayerChromium):
+        (WTF::FakeTiledLayerChromium::lastNeedsDisplayRect):
+        (WTF::TEST):
+        (WTF):
+
+2012-02-16  MORITA Hajime  <morrita@google.com>
+
+        https://bugs.webkit.org/show_bug.cgi?id=78065
+        [Chromium] Should eliminate WebTextCheckingResult legacy APIs
+
+        Reviewed by Kent Tamura.
+
+        Removed unused legacy members.
+
+        * public/WebTextCheckingResult.h:
+        (WebKit::WebTextCheckingResult::WebTextCheckingResult):
+        (WebTextCheckingResult):
+        * src/AssertMatchingEnums.cpp:
+
+2012-02-16  Evan Martin  <evan@chromium.org>
+
+        [chromium] pull third_party/gold to fix linux build
+        https://bugs.webkit.org/show_bug.cgi?id=78842
+
+        Reviewed by Tony Chang.
+
+        The Chrome build now depends on third_party/gold also being checked out.
+
+        * DEPS:
+
+2012-02-15  Michael Nordman  <michaeln@google.com>
+
+        Fix bugs in the implementation of WebDatabase::closeDatabaseImmediately.
+        https://bugs.webkit.org/show_bug.cgi?id=78841
+
+        WebDatabase now delegates this function entirely to DatabaseTracker.
+        This is part of resolving http://crbug.com/98939
+
+        Reviewed by David Levin.
+
+        * src/WebDatabase.cpp:
+        (WebKit::WebDatabase::closeDatabaseImmediately):
+
+2012-02-16  Dana Jansens  <danakj@chromium.org>
+
+        [Chromium] Occlusion tracking with CSS filters
+        https://bugs.webkit.org/show_bug.cgi?id=77498
+
+        Reviewed by James Robinson.
+
+        * tests/CCLayerTreeHostTest.cpp:
+        (CCLayerTreeHostTestLayerOcclusionWithFilters):
+        (WTF::CCLayerTreeHostTestLayerOcclusionWithFilters::CCLayerTreeHostTestLayerOcclusionWithFilters):
+        (WTF::CCLayerTreeHostTestLayerOcclusionWithFilters::beginTest):
+        (WTF::CCLayerTreeHostTestLayerOcclusionWithFilters::afterTest):
+        (WTF):
+
+2012-02-16  Joshua Bell  <jsbell@chromium.org>
+
+        IndexedDB: Chromium WebKit API support for IDBObjectStore.delete(IDBKeyRange)
+        https://bugs.webkit.org/show_bug.cgi?id=78619
+
+        Add an overload to WebIDBObjectStore::deleteFunction(). First part of a two-sided patch.
+
+        Reviewed by Darin Fisher.
+
+        * public/WebIDBObjectStore.h:
+        (WebKit::WebIDBObjectStore::deleteFunction):
+
+2012-02-16  Dana Jansens  <danakj@chromium.org>
+
+        [chromium] Clipping/Transforms applied in wrong order in opaque paint tracking
+        https://bugs.webkit.org/show_bug.cgi?id=78775
+
+        Reviewed by Stephen White.
+
+        * tests/PlatformContextSkiaTest.cpp:
+        (WebCore::TEST):
+
+2012-02-16  Daniel Cheng  <dcheng@chromium.org>
+
+        [chromium] Add WEBKIT_EXPORT to new WebDragData methods.
+        https://bugs.webkit.org/show_bug.cgi?id=78843
+
+        Reviewed by Tony Chang.
+
+        * public/platform/WebDragData.h:
+        (WebDragData):
+
+2012-02-16  Viet-Trung Luu  <viettrungluu@chromium.org>
+
+        [chromium] Add method to WebPluginContainer to check if a rectangle is topmost
+        https://bugs.webkit.org/show_bug.cgi?id=78166
+
+        Reviewed by Darin Fisher.
+
+        * public/WebPluginContainer.h:
+        (WebPluginContainer):
+        * src/WebPluginContainerImpl.cpp:
+        * src/WebPluginContainerImpl.h:
+        (WebPluginContainerImpl):
+
+2012-02-16  Yosifumi Inoue  <yosin@chromium.org>
+
+        Build Fix: R107894 breaks Chromium Linux Build.
+        https://bugs.webkit.org/show_bug.cgi?id=78790
+
+        WebDragDataPrivate::types, inherited from ChromiumDataObject, returns PassRef<DOMStringList> since r107894. However, WebDragData expected to get old return value type HashSet<String>.
+
+        Reviewed by Kent Tamura.
+
+        * src/WebDragData.cpp:
+        (WebKit::WebDragData::items): Use RefPtr<DOMStringList> rather than HashSet<String> for value of m_private->types().
+
+2012-02-15  Sami Kyostila  <skyostil@google.com>
+
+        Enable -webkit-overflow-scrolling CSS property
+        https://bugs.webkit.org/show_bug.cgi?id=78664
+
+        Reviewed by Eric Seidel.
+
+        * features.gypi:
+
 2012-02-15  Tommy Widenflycht  <tommyw@google.com>
 
         MediaStream API: Removing SecurityContext from the embedder API

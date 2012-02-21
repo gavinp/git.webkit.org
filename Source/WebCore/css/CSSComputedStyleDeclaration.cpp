@@ -239,6 +239,7 @@ static const int computedProperties[] = {
     CSSPropertyWebkitHyphenateLimitBefore,
     CSSPropertyWebkitHyphenateLimitLines,
     CSSPropertyWebkitHyphens,
+    CSSPropertyWebkitLineAlign,
     CSSPropertyWebkitLineBoxContain,
     CSSPropertyWebkitLineBreak,
     CSSPropertyWebkitLineClamp,
@@ -266,6 +267,9 @@ static const int computedProperties[] = {
     CSSPropertyWebkitMaskRepeat,
     CSSPropertyWebkitMaskSize,
     CSSPropertyWebkitNbspMode,
+#if ENABLE(OVERFLOW_SCROLLING)
+    CSSPropertyWebkitOverflowScrolling,
+#endif
     CSSPropertyWebkitPerspective,
     CSSPropertyWebkitPerspectiveOrigin,
     CSSPropertyWebkitPrintColorAdjust,
@@ -2119,6 +2123,12 @@ PassRefPtr<CSSValue> CSSComputedStyleDeclaration::getPropertyCSSValue(int proper
         case CSSPropertyWebkitMarginTopCollapse:
         case CSSPropertyWebkitMarginBeforeCollapse:
             return cssValuePool->createValue(style->marginBeforeCollapse());
+#if ENABLE(OVERFLOW_SCROLLING)
+        case CSSPropertyWebkitOverflowScrolling:
+            if (!style->useTouchOverflowScrolling())
+                return cssValuePool->createIdentifierValue(CSSValueAuto);
+            return cssValuePool->createIdentifierValue(CSSValueTouch);
+#endif
         case CSSPropertyWebkitPerspective:
             if (!style->hasPerspective())
                 return cssValuePool->createIdentifierValue(CSSValueNone);
@@ -2222,6 +2232,8 @@ PassRefPtr<CSSValue> CSSComputedStyleDeclaration::getPropertyCSSValue(int proper
             return cssValuePool->createValue(style->lineGrid(), CSSPrimitiveValue::CSS_STRING);
         case CSSPropertyWebkitLineSnap:
             return CSSPrimitiveValue::create(style->lineSnap());
+        case CSSPropertyWebkitLineAlign:
+            return CSSPrimitiveValue::create(style->lineAlign());
         case CSSPropertyWebkitWritingMode:
             return cssValuePool->createValue(style->writingMode());
         case CSSPropertyWebkitTextCombine:

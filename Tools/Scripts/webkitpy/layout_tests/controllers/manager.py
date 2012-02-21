@@ -772,7 +772,7 @@ class Manager(object):
                 worker_connection.set_inline_arguments(self._port)
 
             worker_state = _WorkerState(worker_number, worker_connection)
-            self._worker_states[worker_connection.name] = worker_state
+            self._worker_states[worker_connection.name()] = worker_state
 
             # FIXME: If we start workers up too quickly, DumpRenderTree appears
             # to thrash on something and time out its first few tests. Until
@@ -837,20 +837,6 @@ class Manager(object):
 
     def update(self):
         self.update_summary(self._current_result_summary)
-
-    def _collect_timing_info(self, threads):
-        test_timings = {}
-        individual_test_timings = []
-        thread_timings = []
-
-        for thread in threads:
-            thread_timings.append({'name': thread.getName(),
-                                   'num_tests': thread.get_num_tests(),
-                                   'total_time': thread.get_total_time()})
-            test_timings.update(thread.get_test_group_timing_stats())
-            individual_test_timings.extend(thread.get_test_results())
-
-        return (thread_timings, test_timings, individual_test_timings)
 
     def needs_servers(self):
         return any(self._test_requires_lock(test_name) for test_name in self._test_files) and self._options.http
@@ -1530,7 +1516,7 @@ class _WorkerState(object):
         self.current_test_name = None
         self.next_timeout = None
         self.stats = {}
-        self.stats['name'] = worker_connection.name
+        self.stats['name'] = worker_connection.name()
         self.stats['num_tests'] = 0
         self.stats['total_time'] = 0
 

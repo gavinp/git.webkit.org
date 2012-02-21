@@ -299,6 +299,9 @@ editing/pasteboard/data-transfer-items-drag-drop-string.html
 editing/pasteboard/clipboard-customData.html
 fast/events/drag-customData.html
 
+# PasteBoard::plainText() does not support file names.
+editing/pasteboard/drag-files-to-editable-element.html
+
 # Needs grammar checking.
 editing/spelling/markers.html
 
@@ -352,8 +355,12 @@ fast/css-grid-layout
 fast/css/style-scoped
 
 # ENABLE(SHADOW_DOM) is disabled.
+fast/dom/shadow/content-element-api.html
+fast/dom/shadow/content-element-outside-shadow.html
 fast/dom/shadow/shadow-root-js-api.html
 fast/dom/shadow/shadow-disable.html
+fast/dom/shadow/shadow-root-attached.html
+fast/dom/shadow/shadow-root-new.html
 
 # CSS Regions support not yet enabled. http://webkit.org/b/57312
 fast/regions
@@ -388,6 +395,9 @@ http/tests/canvas/webgl
 http/tests/security/webgl-remote-read-remote-image-allowed.html
 http/tests/security/webgl-remote-read-remote-image-blocked-no-crossorigin.html
 http/tests/security/webgl-remote-read-remote-image-allowed-with-credentials.html
+
+#Vibration API support not yet. http://webkit.org/b/72010
+fast/dom/navigator-vibration.html
 
 ###############################################################################
 # TESTS FAILING
@@ -847,6 +857,9 @@ svg/batik/paints/gradientLimit.svg
 # The middle circle on both rectangles is missing in the pixel output.
 svg/custom/circular-marker-reference-2.svg
 svg/custom/non-circular-marker-reference.svg
+
+# Crashes due to debug assert until we fix issues with style elements in SVG
+svg/custom/use-referencing-style-crash.svg
 
 # Canvas tests
 
@@ -1488,13 +1501,6 @@ svg/text/text-style-recalc-crash.html
 # https://bugs.webkit.org/show_bug.cgi?id=73768
 fast/forms/file/file-input-reset.html
 
-# Needs a rebaseline
-fast/table/027.html
-fast/table/027-vertical.html
-tables/mozilla/bugs/bug14929.html
-tables/mozilla/bugs/bug2947.html
-fast/js/constructor-length.html
-
 # https://bugs.webkit.org/show_bug.cgi?id=74276
 fast/events/dont-loose-last-event.html
 
@@ -1587,11 +1593,6 @@ fast/events/clear-edit-drag-state.html
 # https://bugs.webkit.org/show_bug.cgi?id=77019
 http/tests/media/video-buffering-repaints-controls.html
 
-# ENABLE(SHADOW_DOM) is disabled
-# https://bugs.webkit.org/show_bug.cgi?id=76439
-fast/dom/shadow/content-element-api.html
-fast/dom/shadow/content-element-outside-shadow.html
-
 # https://bugs.webkit.org/show_bug.cgi?id=77413
 fast/parser/nested-fragment-parser-crash.html
 
@@ -1618,8 +1619,13 @@ http/tests/security/cross-frame-access-object-getPrototypeOf.html
 fast/mutation/end-of-task-delivery.html
 fast/mutation/inline-event-listener.html
 
-# Replace old strtod with new strtod (REGRESSION caused by r107625)
-# https://bugs.webkit.org/show_bug.cgi?id=68044
-fast/viewport/viewport-67.html
-fast/viewport/viewport-68.html
-fast/viewport/viewport-warnings-5.html
+# Let MemoryCache reuse cached XHRs (REGRESSION caused by r107672)
+# https://bugs.webkit.org/show_bug.cgi?id=76564
+fast/workers/worker-crash-with-invalid-location.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=78819
+fast/workers/shared-worker-load-error.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=78900
+tables/mozilla/bugs/bug27038-1.html
+tables/mozilla/bugs/bug27038-2.html

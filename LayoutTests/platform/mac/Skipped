@@ -53,6 +53,10 @@ media/video-controls-transformed.html
 media/video-controls-zoomed.html
 media/video-source-error.html
 
+# Crashes due to debug assert until we fix issues with style elements in SVG
+# https://bugs.webkit.org/show_bug.cgi?id=77764
+svg/custom/use-referencing-style-crash.svg
+
 # This test requires media controls has a volume slider.
 media/video-volume-slider.html
 
@@ -279,10 +283,6 @@ http/tests/inspector/compiler-source-mapping-debug.html
 # https://bugs.webkit.org/show_bug.cgi?id=43960
 scrollbars/custom-scrollbar-with-incomplete-style.html
 
-# Timeout on Leopard only.
-# https://bugs.webkit.org/show_bug.cgi?id=45576
-fast/files/apply-blob-url-to-img.html
-
 # Crash due to r66850.
 # https://bugs.webkit.org/show_bug.cgi?id=45575
 fast/files/workers
@@ -420,8 +420,12 @@ fast/css-grid-layout
 fast/css/style-scoped
 
 # ENABLE(SHADOW_DOM) is disabled.
+fast/dom/shadow/content-element-api.html
+fast/dom/shadow/content-element-outside-shadow.html
 fast/dom/shadow/shadow-root-js-api.html
 fast/dom/shadow/shadow-disable.html
+fast/dom/shadow/shadow-root-attached.html
+fast/dom/shadow/shadow-root-new.html
 
 # JSC does not support setIsolatedWorldSecurityOrigin (http://webkit.org/b/61540)
 http/tests/security/isolatedWorld/cross-origin-xhr.html
@@ -549,3 +553,7 @@ media/W3C/video/canPlayType/canPlayType_two_implies_one_6.html
 # Fails because MutationObservers are not notified at end-of-task
 # https://bugs.webkit.org/show_bug.cgi?id=78290
 fast/mutation/end-of-task-delivery.html
+
+# https://bugs.webkit.org/show_bug.cgi?id=72010
+# Needs PageClients::vibrationClient() implementation.
+fast/dom/navigator-vibration.html

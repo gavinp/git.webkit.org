@@ -138,11 +138,10 @@ EncodedJSValue JSC_HOST_CALL objectConstructorGetPrototypeOf(ExecState* exec)
 {
     if (!exec->argument(0).isObject())
         return throwVMError(exec, createTypeError(exec, "Requested prototype of a value that is not an object."));
-        
-    // This uses JSValue::get() instead of directly accessing the prototype from the object
-    // (using JSObject::prototype()) in order to allow objects to override the behavior, such
-    // as returning jsUndefined() for cross-origin access.
-    return JSValue::encode(exec->argument(0).get(exec, exec->propertyNames().underscoreProto));
+    JSObject* object = asObject(exec->argument(0));
+    if (!object->allowsAccessFrom(exec->trueCallerFrame()))
+        return JSValue::encode(jsUndefined());
+    return JSValue::encode(object->prototype());
 }
 
 EncodedJSValue JSC_HOST_CALL objectConstructorGetOwnPropertyDescriptor(ExecState* exec)
@@ -342,9 +341,7 @@ EncodedJSValue JSC_HOST_CALL objectConstructorDefineProperties(ExecState* exec)
 {
     if (!exec->argument(0).isObject())
         return throwVMError(exec, createTypeError(exec, "Properties can only be defined on Objects."));
-    if (!exec->argument(1).isObject())
-        return throwVMError(exec, createTypeError(exec, "Property descriptor list must be an Object."));
-    return JSValue::encode(defineProperties(exec, asObject(exec->argument(0)), asObject(exec->argument(1))));
+    return JSValue::encode(defineProperties(exec, asObject(exec->argument(0)), exec->argument(1).toObject(exec)));
 }
 
 EncodedJSValue JSC_HOST_CALL objectConstructorCreate(ExecState* exec)

@@ -58,6 +58,7 @@ class RenderInline;
 class RenderBlock;
 class RenderFlowThread;
 class RenderLayer;
+class RenderTable;
 class RenderTheme;
 class TransformState;
 class VisiblePosition;
@@ -219,6 +220,8 @@ public:
     // normal flow object.
     void handleDynamicFloatPositionChange();
     
+    RenderTable* createAnonymousTable() const;
+    
     // RenderObject tree manipulation
     //////////////////////////////////////////
     virtual bool canHaveChildren() const { return virtualChildren(); }
@@ -351,6 +354,8 @@ public:
     bool isLegend() const;
 
     bool isHTMLMarquee() const;
+
+    bool isTablePart() const { return isTableCell() || isTableCol() || isTableCaption() || isTableRow() || isTableSection(); }
 
     inline bool isBeforeContent() const;
     inline bool isAfterContent() const;
@@ -801,6 +806,7 @@ public:
     // as a hook to detect the case of document destruction and don't waste time doing unnecessary work.
     bool documentBeingDestroyed() const;
 
+    void destroyAndCleanupAnonymousWrappers();
     virtual void destroy();
 
     // Virtual function helpers for the deprecated Flexible Box Layout (display: -webkit-box).

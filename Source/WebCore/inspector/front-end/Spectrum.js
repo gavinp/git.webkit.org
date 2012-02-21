@@ -33,6 +33,7 @@
 WebInspector.Spectrum = function()
 {
     this._popover = new WebInspector.Popover();
+    this._popover.setCanShrink(false);
     this._popover.element.addEventListener("mousedown", stopPropagation, false);
 
     this._containerElement = document.createElement('div');
@@ -62,14 +63,9 @@ WebInspector.Spectrum = function()
     swatchElement.className = "swatch";
     this._swatchInnerElement = swatchElement.createChild("span", "swatch-inner");
 
-    var displayContainer = rangeContainer.createChild("div");
-
-    var colorLabel = displayContainer.createChild("label");
-    colorLabel.textContent = WebInspector.UIString("color: ");
-
+    var displayContainer = this._containerElement.createChild("div");
     displayContainer.appendChild(swatchElement);
-
-    this._displayElement = displayContainer.createChild("span");
+    this._displayElement = displayContainer.createChild("span", "source-code spectrum-display-value");
 
     WebInspector.Spectrum.draggable(this._sliderElement, hueDrag.bind(this));
     WebInspector.Spectrum.draggable(this._draggerElement, colorDrag.bind(this));
@@ -312,7 +308,7 @@ WebInspector.Spectrum.prototype = {
         this._displayElement.textContent = text;
     },
 
-    get isVisible()
+    get visible()
     {
         return this._popover.visible;
     },
@@ -369,17 +365,17 @@ WebInspector.Spectrum.prototype = {
 
     toggle: function(element, color, format)
     {
-        if (this.isVisible)
+        if (this.visible)
             this.hide();
         else
             this.show(element, color, format);
 
-        return this.isVisible;
+        return this.visible;
     },
 
     show: function(element, color, format)
     {
-        if (this.isVisible) {
+        if (this.visible) {
             if (this.anchorElement === element)
                 return false;
 

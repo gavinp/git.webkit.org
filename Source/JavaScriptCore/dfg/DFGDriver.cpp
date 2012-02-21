@@ -28,9 +28,13 @@
 
 #if ENABLE(DFG_JIT)
 
+#include "DFGArithNodeFlagsInferencePhase.h"
 #include "DFGByteCodeParser.h"
+#include "DFGCFAPhase.h"
+#include "DFGCSEPhase.h"
 #include "DFGJITCompiler.h"
-#include "DFGPropagator.h"
+#include "DFGPredictionPropagationPhase.h"
+#include "DFGVirtualRegisterAllocationPhase.h"
 
 namespace JSC { namespace DFG {
 
@@ -47,16 +51,20 @@ inline bool compile(CompileMode compileMode, JSGlobalData& globalData, CodeBlock
     dataLog("DFG compiling code block %p(%p), number of instructions = %u.\n", codeBlock, codeBlock->alternative(), codeBlock->instructionCount());
 #endif
     
-    Graph dfg;
-    if (!parse(dfg, &globalData, codeBlock))
+    Graph dfg(globalData, codeBlock);
+    if (!parse(dfg))
         return false;
     
     if (compileMode == CompileFunction)
-        dfg.predictArgumentTypes(codeBlock);
+        dfg.predictArgumentTypes();
+
+    performArithNodeFlagsInference(dfg);
+    performPredictionPropagation(dfg);
+    performCSE(dfg);
+    performVirtualRegisterAllocation(dfg);
+    performCFA(dfg);
     
-    propagate(dfg, &globalData, codeBlock);
-    
-    JITCompiler dataFlowJIT(&globalData, dfg, codeBlock);
+    JITCompiler dataFlowJIT(dfg);
     if (compileMode == CompileFunction) {
         ASSERT(jitCodeWithArityCheck);
         

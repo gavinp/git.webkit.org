@@ -33,6 +33,8 @@ import re
 
 from datetime import datetime
 from google.appengine.ext import db
+from google.appengine.api import memcache
+from time import mktime
 
 
 class NumericIdHolder(db.Model):
@@ -44,12 +46,15 @@ def create_in_transaction_with_numeric_id_holder(callback):
     id_holder = NumericIdHolder()
     id_holder.put()
     id_holder = NumericIdHolder.get(id_holder.key())
-    owner = db.run_in_transaction(callback, id_holder.key().id())
-    if owner:
-        id_holder.owner = owner
-        id_holder.put()
-    else:
-        id_holder.delete()
+    owner = None
+    try:
+        owner = db.run_in_transaction(callback, id_holder.key().id())
+        if owner:
+            id_holder.owner = owner
+            id_holder.put()
+    finally:
+        if not owner:
+            id_holder.delete()
     return owner
 
 
@@ -59,30 +64,58 @@ def delete_model_with_numeric_id_holder(model):
     id_holder.delete()
 
 
-def modelFromNumericId(id, expected_kind):
+def model_from_numeric_id(id, expected_kind):
     id_holder = NumericIdHolder.get_by_id(id)
     return id_holder.owner if id_holder and id_holder.owner and isinstance(id_holder.owner, expected_kind) else None
+
+
+def _create_if_possible(model, key, name):
+
+    def execute(id):
+        if model.get_by_key_name(key):
+            return None
+        branch = model(id=id, name=name, key_name=key)
+        branch.put()
+        return branch
+
+    return create_in_transaction_with_numeric_id_holder(execute)
 
 
 class Branch(db.Model):
     id = db.IntegerProperty(required=True)
     name = db.StringProperty(required=True)
 
+    @staticmethod
+    def create_if_possible(key, name):
+        return _create_if_possible(Branch, key, name)
+
 
 class Platform(db.Model):
     id = db.IntegerProperty(required=True)
     name = db.StringProperty(required=True)
+
+    @staticmethod
+    def create_if_possible(key, name):
+        return _create_if_possible(Platform, key, name)
 
 
 class Builder(db.Model):
     name = db.StringProperty(required=True)
     password = db.StringProperty(required=True)
 
+    @staticmethod
+    def create(name, raw_password):
+        return Builder(name=name, password=Builder._hashed_password(raw_password), key_name=name).put()
+
+    def update_password(self, raw_password):
+        self.password = Builder._hashed_password(raw_password)
+        self.put()
+
     def authenticate(self, raw_password):
         return self.password == hashlib.sha256(raw_password).hexdigest()
 
     @staticmethod
-    def hashed_password(raw_password):
+    def _hashed_password(raw_password):
         return hashlib.sha256(raw_password).hexdigest()
 
 
@@ -95,6 +128,15 @@ class Build(db.Model):
     chromiumRevision = db.IntegerProperty()
     timestamp = db.DateTimeProperty(required=True)
 
+    @staticmethod
+    def get_or_insert_from_log(log):
+        builder = log.builder()
+        key_name = builder.name + ':' + str(int(mktime(log.timestamp().timetuple())))
+
+        return Build.get_or_insert(key_name, branch=log.branch(), platform=log.platform(), builder=builder,
+            buildNumber=log.build_number(), timestamp=log.timestamp(),
+            revision=log.webkit_revision(), chromiumRevision=log.chromium_revision())
+
 
 # Used to generate TestMap in the manifest efficiently
 class Test(db.Model):
@@ -106,6 +148,26 @@ class Test(db.Model):
     @staticmethod
     def cache_key(test_id, branch_id, platform_id):
         return 'runs:%d,%d,%d' % (test_id, branch_id, platform_id)
+
+    @staticmethod
+    def update_or_insert(test_name, branch, platform):
+        existing_test = [None]
+
+        def execute(id):
+            test = Test.get_by_key_name(test_name)
+            if test:
+                if branch.key() not in test.branches:
+                    test.branches.append(branch.key())
+                if platform.key() not in test.platforms:
+                    test.platforms.append(platform.key())
+                existing_test[0] = test
+                return None
+
+            test = Test(id=id, name=test_name, key_name=test_name, branches=[branch.key()], platforms=[platform.key()])
+            test.put()
+            return test
+
+        return create_in_transaction_with_numeric_id_holder(execute) or existing_test[0]
 
 
 class TestResult(db.Model):
@@ -121,8 +183,38 @@ class TestResult(db.Model):
     def key_name(build, test_name):
         return build.key().name() + ':' + test_name
 
+    @classmethod
+    def get_or_insert_from_parsed_json(cls, test_name, build, result):
+        key_name = cls.key_name(build, test_name)
 
-# Temporarily store log reports sent by bots
+        def _float_or_none(dictionary, key):
+            value = dictionary.get(key)
+            if value:
+                return float(value)
+            return None
+
+        if not isinstance(result, dict):
+            return cls.get_or_insert(key_name, name=test_name, build=build, value=float(result))
+
+        return cls.get_or_insert(key_name, name=test_name, build=build, value=float(result['avg']),
+            valueMedian=_float_or_none(result, 'median'), valueStdev=_float_or_none(result, 'stdev'),
+            valueMin=_float_or_none(result, 'min'), valueMax=_float_or_none(result, 'max'))
+
+    @staticmethod
+    def generate_runs(branch, platform, test_name):
+        builds = Build.all()
+        builds.filter('branch =', branch)
+        builds.filter('platform =', platform)
+
+        for build in builds:
+            results = TestResult.all()
+            results.filter('name =', test_name)
+            results.filter('build =', build)
+            for result in results:
+                yield build, result
+        raise StopIteration
+
+
 class ReportLog(db.Model):
     timestamp = db.DateTimeProperty(required=True)
     headers = db.TextProperty()
@@ -140,7 +232,7 @@ class ReportLog(db.Model):
     def get_value(self, keyName):
         if not self._parsed_payload():
             return None
-        return self._parsed.get(keyName, '')
+        return self._parsed.get(keyName)
 
     def results(self):
         return self.get_value('results')
@@ -172,9 +264,12 @@ class ReportLog(db.Model):
     def _integer_in_payload(self, keyName):
         try:
             return int(self.get_value(keyName))
+        except TypeError:
+            return None
         except ValueError:
             return None
 
+    # FIXME: We also have timestamp as a member variable.
     def timestamp(self):
         try:
             return datetime.fromtimestamp(self._integer_in_payload('timestamp'))
@@ -184,6 +279,30 @@ class ReportLog(db.Model):
             return None
 
 
-# Used when memcache entry is evicted
 class PersistentCache(db.Model):
     value = db.TextProperty(required=True)
+
+    @staticmethod
+    def set_cache(name, value):
+        memcache.set(name, value)
+
+        def execute():
+            cache = PersistentCache.get_by_key_name(name)
+            if cache:
+                cache.value = value
+                cache.put()
+            else:
+                PersistentCache(key_name=name, value=value).put()
+
+        db.run_in_transaction(execute)
+
+    @staticmethod
+    def get_cache(name):
+        value = memcache.get(name)
+        if value:
+            return value
+        cache = PersistentCache.get_by_key_name(name)
+        if not cache:
+            return None
+        memcache.set(name, cache.value)
+        return cache.value

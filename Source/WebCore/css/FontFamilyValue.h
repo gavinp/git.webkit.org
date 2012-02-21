@@ -22,7 +22,6 @@
 #define FontFamilyValue_h
 
 #include "CSSPrimitiveValue.h"
-#include "PlatformString.h"
 
 namespace WebCore {
 
@@ -33,16 +32,10 @@ public:
         return adoptRef(new FontFamilyValue(familyName));
     }
 
-    void appendSpaceSeparated(const UChar* characters, unsigned length);
-
-    const String& familyName() const { return m_familyName; }
-
-    String customCssText() const;
+    String familyName() const { return getStringValue(); }
 
 private:
     FontFamilyValue(const String& familyName);
-
-    String m_familyName;
 };
 
 } // namespace

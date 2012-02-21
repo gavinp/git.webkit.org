@@ -118,8 +118,10 @@
             'tests/WebLayerTest.cpp',
             'tests/WebPageNewSerializerTest.cpp',
             'tests/WebPageSerializerTest.cpp',
+            'tests/WebSocketDeflaterTest.cpp',
             'tests/WebSocketExtensionDispatcherTest.cpp',
             'tests/WebURLRequestTest.cpp',
+            'tests/WebURLResponseTest.cpp',
             'tests/WebViewTest.cpp',
         ],
 

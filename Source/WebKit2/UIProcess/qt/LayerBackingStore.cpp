@@ -34,18 +34,34 @@ void LayerBackingStoreTile::swapBuffers(WebCore::TextureMapper* textureMapper)
     if (!m_backBuffer)
         return;
 
-    FloatRect targetRect = m_targetRect;
+    FloatRect targetRect(m_targetRect);
     targetRect.scale(1. / m_scale);
-    setRect(targetRect);
+    bool shouldReset = false;
+    if (targetRect != rect()) {
+        setRect(targetRect);
+        shouldReset = true;
+    }
     RefPtr<BitmapTexture> texture = this->texture();
     if (!texture) {
         texture = textureMapper->createTexture();
         setTexture(texture.get());
+        shouldReset = true;
     }
 
-    texture->reset(enclosingIntRect(m_sourceRect).size(), false);
-    texture->updateContents(m_backBuffer->createQImage().constBits(), IntRect(IntPoint::zero(), m_backBuffer->size()));
+    QImage qImage = m_backBuffer->createQImage();
+
+    if (shouldReset)
+        texture->reset(m_sourceRect.size(), qImage.hasAlphaChannel() ? BitmapTexture::SupportsAlpha : 0);
+
+    texture->updateContents(qImage.constBits(), m_sourceRect);
     m_backBuffer.clear();
+}
+
+void LayerBackingStoreTile::setBackBuffer(const WebCore::IntRect& targetRect, const WebCore::IntRect& sourceRect, ShareableBitmap* buffer)
+{
+    m_sourceRect = sourceRect;
+    m_targetRect = targetRect;
+    m_backBuffer = buffer;
 }
 
 void LayerBackingStore::createTile(int id, float scale)

@@ -48,10 +48,10 @@ namespace JSC { namespace DFG {
 #define FLAG_FOR_MERGE_TO_SUCCESSORS   20
 #define FLAG_FOR_STRUCTURE_CLOBBERING  21
 
-AbstractState::AbstractState(CodeBlock* codeBlock, Graph& graph)
-    : m_codeBlock(codeBlock)
+AbstractState::AbstractState(Graph& graph)
+    : m_codeBlock(graph.m_codeBlock)
     , m_graph(graph)
-    , m_variables(codeBlock->numParameters(), graph.m_localVars)
+    , m_variables(m_codeBlock->numParameters(), graph.m_localVars)
     , m_block(0)
 {
     size_t maxBlockSize = 0;
@@ -104,7 +104,16 @@ void AbstractState::initialize(Graph& graph)
     BasicBlock* root = graph.m_blocks[0].get();
     root->cfaShouldRevisit = true;
     for (size_t i = 0; i < root->valuesAtHead.numberOfArguments(); ++i) {
-        PredictedType prediction = graph[root->variablesAtHead.argument(i)].variableAccessData()->prediction();
+        Node& node = graph[root->variablesAtHead.argument(i)];
+        ASSERT(node.op == SetArgument);
+        if (!node.shouldGenerate()) {
+            // The argument is dead. We don't do any checks for such arguments, and so
+            // for the purpose of the analysis, they contain no value.
+            root->valuesAtHead.argument(i).clear();
+            continue;
+        }
+        
+        PredictedType prediction = node.variableAccessData()->prediction();
         if (isInt32Prediction(prediction))
             root->valuesAtHead.argument(i).set(PredictInt32);
         else if (isArrayPrediction(prediction))
@@ -196,7 +205,7 @@ bool AbstractState::execute(NodeIndex nodeIndex)
     switch (node.op) {
     case JSConstant:
     case WeakJSConstant: {
-        JSValue value = m_graph.valueOfJSConstant(m_codeBlock, nodeIndex);
+        JSValue value = m_graph.valueOfJSConstant(nodeIndex);
         // Have to be careful here! It's tempting to call set(value), but
         // that would be wrong, since that would constitute a proof that this
         // value will always have the same structure. The whole point of a value
@@ -267,7 +276,7 @@ bool AbstractState::execute(NodeIndex nodeIndex)
             
     case ValueAdd:
     case ArithAdd: {
-        if (m_graph.addShouldSpeculateInteger(node, m_codeBlock)) {
+        if (m_graph.addShouldSpeculateInteger(node)) {
             forNode(node.child1()).filter(PredictInt32);
             forNode(node.child2()).filter(PredictInt32);
             forNode(nodeIndex).set(PredictInt32);
@@ -290,7 +299,7 @@ bool AbstractState::execute(NodeIndex nodeIndex)
     }
             
     case ArithSub: {
-        if (m_graph.addShouldSpeculateInteger(node, m_codeBlock)) {
+        if (m_graph.addShouldSpeculateInteger(node)) {
             forNode(node.child1()).filter(PredictInt32);
             forNode(node.child2()).filter(PredictInt32);
             forNode(nodeIndex).set(PredictInt32);

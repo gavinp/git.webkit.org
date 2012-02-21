@@ -104,10 +104,16 @@ WebInspector.Popover.prototype = {
         this._disposed = true;
     },
 
+    setCanShrink: function(canShrink)
+    {
+        this._hasFixedHeight = !canShrink;
+        this._contentDiv.addStyleClass("fixed-height");
+    },
+
     _positionElement: function(anchorElement, preferredWidth, preferredHeight)
     {
         const borderWidth = 25;
-        const scrollerWidth = 11;
+        const scrollerWidth = this._hasFixedHeight ? 0 : 11;
         const arrowHeight = 15;
         const arrowOffset = 10;
         const borderRadius = 10;
@@ -129,15 +135,24 @@ WebInspector.Popover.prototype = {
             if (anchorBox.y > newElementPosition.height + arrowHeight + borderRadius)
                 newElementPosition.y = anchorBox.y - newElementPosition.height - arrowHeight;
             else {
-                newElementPosition.y = borderRadius * 2;
+                newElementPosition.y = borderRadius;
                 newElementPosition.height = anchorBox.y - borderRadius * 2 - arrowHeight;
+                if (this._hasFixedHeight && newElementPosition.height < preferredHeight) {
+                    newElementPosition.y = borderRadius;
+                    newElementPosition.height = preferredHeight;
+                }
             }
             verticalAlignment = "bottom";
         } else {
             // Positioning below the anchor.
             newElementPosition.y = anchorBox.y + anchorBox.height + arrowHeight;
-            if (newElementPosition.y + newElementPosition.height + arrowHeight - borderWidth >= totalHeight)
+            if (newElementPosition.y + newElementPosition.height + arrowHeight - borderWidth >= totalHeight) {
                 newElementPosition.height = totalHeight - anchorBox.y - anchorBox.height - borderRadius * 2 - arrowHeight;
+                if (this._hasFixedHeight && newElementPosition.height < preferredHeight) {
+                    newElementPosition.y = totalHeight - preferredHeight - borderRadius;
+                    newElementPosition.height = preferredHeight;
+                }
+            }
             // Align arrow.
             verticalAlignment = "top";
         }
@@ -152,6 +167,7 @@ WebInspector.Popover.prototype = {
             // Position arrow accurately.
             var arrowRightPosition = Math.max(0, totalWidth - anchorBox.x - anchorBox.width - borderRadius - arrowOffset);
             arrowRightPosition += anchorBox.width / 2;
+            arrowRightPosition = Math.min(arrowRightPosition, newElementPosition.width - borderRadius - arrowOffset);
             this._popupArrowElement.style.right = arrowRightPosition + "px";
         } else {
             newElementPosition.x = borderRadius;

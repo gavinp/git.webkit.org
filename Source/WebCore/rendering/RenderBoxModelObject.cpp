@@ -401,8 +401,26 @@ void RenderBoxModelObject::updateBoxModelInfoFromStyle()
     setHorizontalWritingMode(styleToUse->isHorizontalWritingMode());
 }
 
+enum RelPosAxis { RelPosX, RelPosY };
+
+static LayoutUnit accumulateRelativePositionOffsets(const RenderObject* child, RelPosAxis axis)
+{
+    if (!child->isAnonymousBlock() || !child->isRelPositioned())
+        return 0;
+    LayoutUnit offset = 0;
+    RenderObject* p = toRenderBlock(child)->inlineElementContinuation();
+    while (p && p->isRenderInline()) {
+        if (p->isRelPositioned())
+            offset += (axis == RelPosX) ? toRenderInline(p)->relativePositionOffsetX() : toRenderInline(p)->relativePositionOffsetY();
+        p = p->parent();
+    }
+    return offset;
+}
+
 LayoutUnit RenderBoxModelObject::relativePositionOffsetX() const
 {
+    LayoutUnit offset = accumulateRelativePositionOffsets(this, RelPosX);
+
     // Objects that shrink to avoid floats normally use available line width when computing containing block width.  However
     // in the case of relative positioning using percentages, we can't do this.  The offset should always be resolved using the
     // available width of the containing block.  Therefore we don't use containingBlockLogicalWidthForContent() here, but instead explicitly
@@ -411,19 +429,20 @@ LayoutUnit RenderBoxModelObject::relativePositionOffsetX() const
         RenderBlock* cb = containingBlock();
         if (!style()->right().isAuto() && !cb->style()->isLeftToRightDirection())
             return -style()->right().calcValue(cb->availableWidth());
-        return style()->left().calcValue(cb->availableWidth());
+        return offset + style()->left().calcValue(cb->availableWidth());
     }
     if (!style()->right().isAuto()) {
         RenderBlock* cb = containingBlock();
-        return -style()->right().calcValue(cb->availableWidth());
+        return offset + -style()->right().calcValue(cb->availableWidth());
     }
-    return 0;
+    return offset;
 }
 
 LayoutUnit RenderBoxModelObject::relativePositionOffsetY() const
 {
+    LayoutUnit offset = accumulateRelativePositionOffsets(this, RelPosY);
+    
     RenderBlock* containingBlock = this->containingBlock();
-
     // If the containing block of a relatively positioned element does not
     // specify a height, a percentage top or bottom offset should be resolved as
     // auto. An exception to this is if the containing block has the WinIE quirk
@@ -434,15 +453,15 @@ LayoutUnit RenderBoxModelObject::relativePositionOffsetY() const
         && (!containingBlock->style()->height().isAuto()
             || !style()->top().isPercent()
             || containingBlock->stretchesToViewport()))
-        return style()->top().calcValue(containingBlock->availableHeight());
+        return offset + style()->top().calcValue(containingBlock->availableHeight());
 
     if (!style()->bottom().isAuto()
         && (!containingBlock->style()->height().isAuto()
             || !style()->bottom().isPercent()
             || containingBlock->stretchesToViewport()))
-        return -style()->bottom().calcValue(containingBlock->availableHeight());
+        return offset + -style()->bottom().calcValue(containingBlock->availableHeight());
 
-    return 0;
+    return offset;
 }
 
 LayoutUnit RenderBoxModelObject::offsetLeft() const
@@ -453,7 +472,7 @@ LayoutUnit RenderBoxModelObject::offsetLeft() const
         return 0;
     
     RenderBoxModelObject* offsetPar = offsetParent();
-    LayoutUnit xPos = (isBox() ? toRenderBox(this)->left() : 0);
+    LayoutUnit xPos = (isBox() ? toRenderBox(this)->left() : zeroLayoutUnit);
     
     // If the offsetParent of the element is null, or is the HTML body element,
     // return the distance between the canvas origin and the left border edge 
@@ -487,7 +506,7 @@ LayoutUnit RenderBoxModelObject::offsetTop() const
         return 0;
     
     RenderBoxModelObject* offsetPar = offsetParent();
-    LayoutUnit yPos = (isBox() ? toRenderBox(this)->top() : 0);
+    LayoutUnit yPos = (isBox() ? toRenderBox(this)->top() : zeroLayoutUnit);
     
     // If the offsetParent of the element is null, or is the HTML body element,
     // return the distance between the canvas origin and the top border edge 
@@ -703,10 +722,10 @@ void RenderBoxModelObject::paintFillLayerExtended(const PaintInfo& paintInfo, co
         context->addRoundedRectClip(border);
     }
     
-    LayoutUnit bLeft = includeLeftEdge ? borderLeft() : 0;
-    LayoutUnit bRight = includeRightEdge ? borderRight() : 0;
-    LayoutUnit pLeft = includeLeftEdge ? paddingLeft() : 0;
-    LayoutUnit pRight = includeRightEdge ? paddingRight() : 0;
+    LayoutUnit bLeft = includeLeftEdge ? borderLeft() : zeroLayoutUnit;
+    LayoutUnit bRight = includeRightEdge ? borderRight() : zeroLayoutUnit;
+    LayoutUnit pLeft = includeLeftEdge ? paddingLeft() : zeroLayoutUnit;
+    LayoutUnit pRight = includeRightEdge ? paddingRight() : zeroLayoutUnit;
 
     GraphicsContextStateSaver clipWithScrollingStateSaver(*context, clippedWithLocalScrolling);
     LayoutRect scrolledPaintRect = rect;
@@ -725,10 +744,10 @@ void RenderBoxModelObject::paintFillLayerExtended(const PaintInfo& paintInfo, co
     if (bgLayer->clip() == PaddingFillBox || bgLayer->clip() == ContentFillBox) {
         // Clip to the padding or content boxes as necessary.
         bool includePadding = bgLayer->clip() == ContentFillBox;
-        LayoutRect clipRect = LayoutRect(scrolledPaintRect.x() + bLeft + (includePadding ? pLeft : 0),
-                                   scrolledPaintRect.y() + borderTop() + (includePadding ? paddingTop() : 0),
-                                   scrolledPaintRect.width() - bLeft - bRight - (includePadding ? pLeft + pRight : 0),
-                                   scrolledPaintRect.height() - borderTop() - borderBottom() - (includePadding ? paddingTop() + paddingBottom() : 0));
+        LayoutRect clipRect = LayoutRect(scrolledPaintRect.x() + bLeft + (includePadding ? pLeft : zeroLayoutUnit),
+                                   scrolledPaintRect.y() + borderTop() + (includePadding ? paddingTop() : zeroLayoutUnit),
+                                   scrolledPaintRect.width() - bLeft - bRight - (includePadding ? pLeft + pRight : zeroLayoutUnit),
+                                   scrolledPaintRect.height() - borderTop() - borderBottom() - (includePadding ? paddingTop() + paddingBottom() : zeroLayoutUnit));
         backgroundClipStateSaver.save();
         context->clip(clipRect);
     } else if (bgLayer->clip() == TextFillBox) {
@@ -1429,6 +1448,14 @@ static inline bool includesEdge(BorderEdgeFlags flags, BoxSide side)
     return flags & edgeFlagForSide(side);
 }
 
+static inline bool includesAdjacentEdges(BorderEdgeFlags flags)
+{
+    return (flags & (TopBorderEdge | RightBorderEdge)) == (TopBorderEdge | RightBorderEdge)
+        || (flags & (RightBorderEdge | BottomBorderEdge)) == (RightBorderEdge | BottomBorderEdge)
+        || (flags & (BottomBorderEdge | LeftBorderEdge)) == (BottomBorderEdge | LeftBorderEdge)
+        || (flags & (LeftBorderEdge | TopBorderEdge)) == (LeftBorderEdge | TopBorderEdge);
+}
+
 inline bool edgesShareColor(const BorderEdge& firstEdge, const BorderEdge& secondEdge)
 {
     return firstEdge.color == secondEdge.color;
@@ -1682,7 +1709,7 @@ void RenderBoxModelObject::paintTranslucentBorderSides(GraphicsContext* graphics
                 commonColorEdgeSet |= edgeFlagForSide(currSide);
         }
 
-        bool useTransparencyLayer = commonColor.hasAlpha();
+        bool useTransparencyLayer = includesAdjacentEdges(commonColorEdgeSet) && commonColor.hasAlpha();
         if (useTransparencyLayer) {
             graphicsContext->beginTransparencyLayer(static_cast<float>(commonColor.alpha()) / 255);
             commonColor = Color(commonColor.red(), commonColor.green(), commonColor.blue());

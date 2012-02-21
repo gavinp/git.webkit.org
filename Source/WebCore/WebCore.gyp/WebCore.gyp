@@ -89,6 +89,7 @@
       '../page',
       '../page/animation',
       '../page/chromium',
+      '../page/scrolling',
       '../platform',
       '../platform/animation',
       '../platform/audio',
@@ -813,6 +814,7 @@
               '../css/quirks.css',
               '../css/view-source.css',
               '../css/themeChromium.css', # Chromium only.
+              '../css/themeChromiumAndroid.css', # Chromium only.
               '../css/themeChromiumLinux.css', # Chromium only.
               '../css/themeChromiumSkia.css',  # Chromium only.
               '../css/themeWin.css',
@@ -1170,6 +1172,7 @@
         '<(chromium_src_dir)/third_party/ots/ots.gyp:ots',
         '<(chromium_src_dir)/third_party/sqlite/sqlite.gyp:sqlite',
         '<(chromium_src_dir)/third_party/angle/src/build_angle.gyp:translator_glsl',
+        '<(chromium_src_dir)/third_party/zlib/zlib.gyp:zlib',
         '<(chromium_src_dir)/v8/tools/gyp/v8.gyp:v8',
         '<(libjpeg_gyp_path):libjpeg',
       ],

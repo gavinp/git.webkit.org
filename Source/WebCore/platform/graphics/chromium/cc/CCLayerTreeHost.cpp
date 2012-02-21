@@ -69,9 +69,9 @@ CCLayerTreeHost::CCLayerTreeHost(CCLayerTreeHostClient* client, const CCSettings
     , m_settings(settings)
     , m_visible(true)
     , m_haveWheelEventHandlers(false)
-    , m_pageScale(1)
-    , m_minPageScale(1)
-    , m_maxPageScale(1)
+    , m_pageScaleFactor(1)
+    , m_minPageScaleFactor(1)
+    , m_maxPageScaleFactor(1)
     , m_triggerIdlePaints(true)
     , m_partialTextureUpdateRequests(0)
 {
@@ -179,7 +179,7 @@ void CCLayerTreeHost::finishCommitOnImplThread(CCLayerTreeHostImpl* hostImpl)
     hostImpl->setSourceFrameNumber(frameNumber());
     hostImpl->setHaveWheelEventHandlers(m_haveWheelEventHandlers);
     hostImpl->setViewportSize(viewportSize());
-    hostImpl->setPageScaleFactorAndLimits(pageScale(), m_minPageScale, m_maxPageScale);
+    hostImpl->setPageScaleFactorAndLimits(m_pageScaleFactor, m_minPageScaleFactor, m_maxPageScaleFactor);
 
     m_frameNumber++;
 }
@@ -285,22 +285,14 @@ void CCLayerTreeHost::setViewportSize(const IntSize& viewportSize)
     setNeedsCommit();
 }
 
-void CCLayerTreeHost::setPageScale(float pageScale)
+void CCLayerTreeHost::setPageScaleFactorAndLimits(float pageScaleFactor, float minPageScaleFactor, float maxPageScaleFactor)
 {
-    if (pageScale == m_pageScale)
+    if (pageScaleFactor == m_pageScaleFactor && minPageScaleFactor == m_minPageScaleFactor && maxPageScaleFactor == m_maxPageScaleFactor)
         return;
 
-    m_pageScale = pageScale;
-    setNeedsCommit();
-}
-
-void CCLayerTreeHost::setPageScaleFactorLimits(float minScale, float maxScale)
-{
-    if (minScale == m_minPageScale && maxScale == m_maxPageScale)
-        return;
-
-    m_minPageScale = minScale;
-    m_maxPageScale = maxScale;
+    m_pageScaleFactor = pageScaleFactor;
+    m_minPageScaleFactor = minPageScaleFactor;
+    m_maxPageScaleFactor = maxPageScaleFactor;
     setNeedsCommit();
 }
 
@@ -505,10 +497,18 @@ static void enterTargetRenderSurface(Vector<RenderSurfaceRegion>& stack, RenderS
         stack.append(RenderSurfaceRegion());
         stack.last().surface = newTarget;
     } else if (stack.last().surface != newTarget) {
+        // If we are entering a subtree that is going to move pixels around, then the occlusion we've computed
+        // so far won't apply to the pixels we're drawing here in the same way. We discard the occlusion thus
+        // far to be safe, and ensure we don't cull any pixels that are moved such that they become visible.
+        const RenderSurfaceChromium* oldAncestorThatMovesPixels = stack.last().surface->nearestAncestorThatMovesPixels();
+        const RenderSurfaceChromium* newAncestorThatMovesPixels = newTarget->nearestAncestorThatMovesPixels();
+        bool enteringSubtreeThatMovesPixels = newAncestorThatMovesPixels && newAncestorThatMovesPixels != oldAncestorThatMovesPixels;
+
         stack.append(RenderSurfaceRegion());
         stack.last().surface = newTarget;
         int lastIndex = stack.size() - 1;
-        stack[lastIndex].occludedInScreen = stack[lastIndex - 1].occludedInScreen;
+        if (!enteringSubtreeThatMovesPixels)
+            stack[lastIndex].occludedInScreen = stack[lastIndex - 1].occludedInScreen;
     }
 }
 
@@ -551,7 +551,7 @@ void CCLayerTreeHost::paintLayerContents(const LayerList& renderSurfaceLayerList
             paintMaskAndReplicaForRenderSurface(*it, paintType);
             // FIXME: add the replica layer to the current occlusion
 
-            if (it->maskLayer() || it->renderSurface()->drawOpacity() < 1)
+            if (it->maskLayer() || it->renderSurface()->drawOpacity() < 1 || it->renderSurface()->filters().hasFilterThatAffectsOpacity())
                 targetSurfaceStack.last().occludedInScreen = Region();
         } else if (it.representsItself()) {
             ASSERT(!it->bounds().isEmpty());

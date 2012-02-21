@@ -44,8 +44,7 @@ var Preferences = {
     exposeWorkersInspection: false,
     applicationTitle: "Web Inspector - %s",
     showHeapSnapshotObjectsHiddenProperties: false,
-    showDockToRight: false,
-    useSpectrum: true
+    showDockToRight: false
 }
 
 var Capabilities = {
@@ -135,19 +134,23 @@ WebInspector.Setting.prototype = {
 
     get: function()
     {
-        var value = this._defaultValue;
+        if (typeof this._value !== "undefined")
+            return this._value;
+
+        this._value = this._defaultValue;
         if (window.localStorage != null && this._name in window.localStorage) {
             try {
-                value = JSON.parse(window.localStorage[this._name]);
+                this._value = JSON.parse(window.localStorage[this._name]);
             } catch(e) {
                 window.localStorage.removeItem(this._name);
             }
         }
-        return value;
+        return this._value;
     },
 
     set: function(value)
     {
+        this._value = value;
         if (window.localStorage != null) {
             try {
                 window.localStorage[this._name] = JSON.stringify(value);
@@ -170,9 +173,9 @@ WebInspector.ExperimentsSettings = function()
     
     // Add currently running experiments here.
     this.sourceFrameAlwaysEditable = this._createExperiment("sourceFrameAlwaysEditable", "Make resources always editable");
-    this.freeFlowDOMEditing = this._createExperiment("freeFlowDOMEditing", "Enable free flow DOM editing");
     this.showMemoryCounters = this._createExperiment("showMemoryCounters", "Show memory counters in Timeline panel");
-    this.singleClickEditing = this._createExperiment("singleClickEditing", "Single click CSS editing");
+    // FIXME: Enable http/tests/inspector/indexeddb/resources-panel.html when removed from experiments.
+    this.showIndexedDB = this._createExperiment("showIndexedDB", "Show IndexedDB in Resources panel");
 
     this._cleanUpSetting();
 }

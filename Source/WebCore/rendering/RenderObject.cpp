@@ -158,7 +158,7 @@ RenderObject* RenderObject::createObject(Node* node, RenderStyle* style)
     case RUN_IN:
     case COMPACT:
         // Only non-replaced block elements can become a region.
-        if (!style->regionThread().isEmpty() && doc->renderView())
+        if (doc->cssRegionsEnabled() && !style->regionThread().isEmpty() && doc->renderView())
             return new (arena) RenderRegion(node, doc->renderView()->ensureRenderFlowThreadWithName(style->regionThread()));
         return new (arena) RenderBlock(node);
     case LIST_ITEM:
@@ -266,6 +266,16 @@ static bool isBeforeAfterContentGeneratedByAncestor(RenderObject* renderer, Rend
     return false;
 }
 
+RenderTable* RenderObject::createAnonymousTable() const
+{
+    RefPtr<RenderStyle> newStyle = RenderStyle::createAnonymousStyle(style());
+    newStyle->setDisplay(TABLE);
+
+    RenderTable* table = new (renderArena()) RenderTable(document() /* is anonymous */);
+    table->setStyle(newStyle.release());
+    return table;
+}
+
 void RenderObject::addChild(RenderObject* newChild, RenderObject* beforeChild)
 {
     RenderObjectChildList* children = virtualChildren();
@@ -310,11 +320,7 @@ void RenderObject::addChild(RenderObject* newChild, RenderObject* beforeChild)
         if (afterChild && afterChild->isAnonymous() && afterChild->isTable() && !afterChild->isBeforeContent())
             table = toRenderTable(afterChild);
         else {
-            table = new (renderArena()) RenderTable(document() /* is anonymous */);
-            RefPtr<RenderStyle> newStyle = RenderStyle::create();
-            newStyle->inheritFrom(style());
-            newStyle->setDisplay(TABLE);
-            table->setStyle(newStyle.release());
+            table = createAnonymousTable();
             addChild(table, beforeChild);
         }
         table->addChild(newChild);
@@ -1417,8 +1423,8 @@ bool RenderObject::repaintAfterLayoutIfNeeded(RenderBoxModelObject* repaintConta
         LayoutUnit shadowRight;
         style()->getBoxShadowHorizontalExtent(shadowLeft, shadowRight);
 
-        LayoutUnit borderRight = isBox() ? toRenderBox(this)->borderRight() : LayoutUnit(0);
-        LayoutUnit boxWidth = isBox() ? toRenderBox(this)->width() : LayoutUnit(0);
+        LayoutUnit borderRight = isBox() ? toRenderBox(this)->borderRight() : zeroLayoutUnit;
+        LayoutUnit boxWidth = isBox() ? toRenderBox(this)->width() : zeroLayoutUnit;
         LayoutUnit borderWidth = max<LayoutUnit>(-outlineStyle->outlineOffset(), max(borderRight, max<LayoutUnit>(style()->borderTopRightRadius().width().calcValue(boxWidth), style()->borderBottomRightRadius().width().calcValue(boxWidth)))) + max(ow, shadowRight);
         LayoutRect rightRect(newOutlineBox.x() + min(newOutlineBox.width(), oldOutlineBox.width()) - borderWidth,
             newOutlineBox.y(),
@@ -1436,8 +1442,8 @@ bool RenderObject::repaintAfterLayoutIfNeeded(RenderBoxModelObject* repaintConta
         LayoutUnit shadowBottom;
         style()->getBoxShadowVerticalExtent(shadowTop, shadowBottom);
 
-        LayoutUnit borderBottom = isBox() ? toRenderBox(this)->borderBottom() : LayoutUnit(0);
-        LayoutUnit boxHeight = isBox() ? toRenderBox(this)->height() : LayoutUnit(0);
+        LayoutUnit borderBottom = isBox() ? toRenderBox(this)->borderBottom() : zeroLayoutUnit;
+        LayoutUnit boxHeight = isBox() ? toRenderBox(this)->height() : zeroLayoutUnit;
         LayoutUnit borderHeight = max<LayoutUnit>(-outlineStyle->outlineOffset(), max(borderBottom, max<LayoutUnit>(style()->borderBottomLeftRadius().height().calcValue(boxHeight), style()->borderBottomRightRadius().height().calcValue(boxHeight)))) + max(ow, shadowBottom);
         LayoutRect bottomRect(newOutlineBox.x(),
             min(newOutlineBox.maxY(), oldOutlineBox.maxY()) - borderHeight,
@@ -1931,6 +1937,12 @@ void RenderObject::propagateStyleToAnonymousChildren(bool blockChildrenOnly)
             if (child->style()->columnSpan())
                 newStyle->setColumnSpan(ColumnSpanAll);
         }
+
+        // Preserve the position style of anonymous block continuations as they can have relative position when
+        // they contain block descendants of relative positioned inlines.
+        if (child->isRelPositioned() && toRenderBlock(child)->isAnonymousBlockContinuation())
+            newStyle->setPosition(child->style()->position());
+
         newStyle->setDisplay(child->style()->display());
         child->setStyle(newStyle.release());
     }
@@ -2256,6 +2268,33 @@ void RenderObject::willBeDestroyed()
     if (hasLayer()) {
         setHasLayer(false);
         toRenderBoxModelObject(this)->destroyLayer();
+    }
+}
+
+void RenderObject::destroyAndCleanupAnonymousWrappers()
+{
+    RenderObject* parent = this->parent();
+
+    // If the tree is destroyed or our parent is not anonymous, there is no need for a clean-up phase.
+    if (documentBeingDestroyed() || !parent || !parent->isAnonymous()) {
+        destroy();
+        return;
+    }
+
+    bool parentIsLeftOverAnonymousWrapper = false;
+
+    // Currently we only remove anonymous cells' wrapper but we should remove all unneeded
+    // wrappers. See http://webkit.org/b/52123 as an example where this is needed.
+    if (parent->isTableCell())
+        parentIsLeftOverAnonymousWrapper = parent->firstChild() == this && parent->lastChild() == this;
+
+    destroy();
+
+    // WARNING: |this| is deleted here.
+
+    if (parentIsLeftOverAnonymousWrapper) {
+        ASSERT(!parent->firstChild());
+        parent->destroyAndCleanupAnonymousWrappers();
     }
 }
 

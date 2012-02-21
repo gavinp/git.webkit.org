@@ -4,7 +4,8 @@ description(
 
 function obj()
 {
-    return { a: 1, b: 2 };
+    // Add an accessor property to check 'isFrozen' returns the correct result for objects with accessors.
+    return Object.defineProperty({ a: 1, b: 2 }, 'g', { get: function() { return "getter"; } });
 }
 
 function test(obj)
@@ -68,8 +69,12 @@ shouldBe('test(freeze(obj()))', '"(a:1)(b:2)SF"'); // sealed and frozen, CANNOT 
 // check that we can preventExtensions on a host function.
 shouldBe('Object.preventExtensions(Math.sin)', 'Math.sin');
 
-shouldBeUndefined('var o = {}; Object.preventExtensions(o); o.__proto__ = { newProp: "Should not see this" }; o.newProp;');
-shouldThrow('"use strict"; var o = {}; Object.preventExtensions(o); o.__proto__ = { newProp: "Should not see this" };');
+shouldThrow('var o = {}; Object.preventExtensions(o); o.__proto__ = { newProp: "Should not see this" }; o.newProp;');
+shouldThrow('"use strict"; var o = {}; Object.preventExtensions(o); o.__proto__ = { newProp: "Should not see this" }; o.newProp;');
 
 // check that we can still access static properties on an object after calling preventExtensions.
 shouldBe('Object.preventExtensions(Math); Math.sqrt(4)', '2');
+
+// Should not be able to add properties to a preventExtensions array.
+shouldBeUndefined('var arr = Object.preventExtensions([]); arr[0] = 42; arr[0]');
+shouldBe('var arr = Object.preventExtensions([]); arr[0] = 42; arr.length', '0');

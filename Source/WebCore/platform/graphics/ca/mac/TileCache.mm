@@ -164,6 +164,7 @@ void TileCache::drawLayer(WebTileLayer* layer, CGContextRef context)
 
 void TileCache::setContentsScale(CGFloat contentsScale)
 {
+#if !defined(BUILDING_ON_LEOPARD) && !defined(BUILDING_ON_SNOW_LEOPARD)
     for (TileMap::const_iterator it = m_tiles.begin(), end = m_tiles.end(); it != end; ++it) {
         [it->second.get() setContentsScale:contentsScale];
         [it->second.get() setNeedsDisplay];
@@ -172,6 +173,9 @@ void TileCache::setContentsScale(CGFloat contentsScale)
     PlatformCALayer* platformLayer = PlatformCALayer::platformCALayer(m_tileCacheLayer);
     platformLayer->owner()->platformCALayerDidCreateTiles();
     revalidateTiles();
+#else
+    UNUSED_PARAM(contentsScale);
+#endif
 }
 
 void TileCache::setAcceleratesDrawing(bool acceleratesDrawing)
@@ -350,9 +354,9 @@ RetainPtr<WebTileLayer> TileCache::createTileLayer()
     [layer.get() setBorderColor:m_tileDebugBorderColor.get()];
     [layer.get() setBorderWidth:m_tileDebugBorderWidth];
     [layer.get() setEdgeAntialiasingMask:0];
-    [layer.get() setContentsScale:[m_tileCacheLayer contentsScale]];
 
 #if !defined(BUILDING_ON_LEOPARD) && !defined(BUILDING_ON_SNOW_LEOPARD)
+    [layer.get() setContentsScale:[m_tileCacheLayer contentsScale]];
     [layer.get() setAcceleratesDrawing:m_acceleratesDrawing];
 #endif
 

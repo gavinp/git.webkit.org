@@ -1,3 +1,741 @@
+2012-02-20  Martin Robinson  <mrobinson@igalia.com>
+
+        [UNIX] Plugin information fields are not interpreted as UTF-8
+        https://bugs.webkit.org/show_bug.cgi?id=78635
+
+        Reviewed by Gustavo Noronha Silva.
+
+        Interpret plugin metadata as UTF8 aways. This matches the behavior
+        of Chromium and the Totem plugin.
+
+        * Shared/Plugins/Netscape/x11/NetscapePluginModuleX11.cpp:
+        (WebKit::NetscapePluginModule::getPluginInfoForLoadedPlugin): Use String::fromUTF8.
+
+2012-02-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Adding SOUP_TYPE_PROXY_RESOLVER_DEFAULT feature to soup session makes WebProcess to hang
+        https://bugs.webkit.org/show_bug.cgi?id=79036
+
+        Reviewed by Martin Robinson.
+
+        This looks like a bug in gobject. Initializing the WebProcess
+        before creating the soup session seems to fix the problem. It's
+        actually a workaround, but initializing the WebProcess as sson as
+        possible it's a good idea in any case.
+
+        * WebProcess/gtk/WebProcessMainGtk.cpp:
+        (WebKit::WebProcessMainGtk):
+
+2012-02-20  Michael Brüning  <michael.bruning@nokia.com>
+
+        [Qt][WK2] Implement proxy authentication handling.
+        https://bugs.webkit.org/show_bug.cgi?id=78792
+
+        Reviewed by Simon Hausmann.
+
+        This patch implements the proxy authentication handling
+        for the Qt port in a similar matter to the http authentication
+        implementation.
+
+        Since there is a need to pass the proxy port, which is of type uint16_t,
+        from the WebProcess to the UIProcess, an encoder and a decoder for
+        this type was added because it did not exist.
+        
+        The message that was added to the WebPageProxy is called synchronously
+        as this is needed by the implementation of the network access manager
+        and has also been implemented this way already for the http 
+        authentication.
+
+        * Platform/CoreIPC/ArgumentDecoder.cpp:
+        (CoreIPC::ArgumentDecoder::decodeUInt16):
+        (CoreIPC):
+        * Platform/CoreIPC/ArgumentDecoder.h:
+        (ArgumentDecoder):
+        (CoreIPC::ArgumentDecoder::decode):
+        (CoreIPC):
+        * Platform/CoreIPC/ArgumentEncoder.cpp:
+        (CoreIPC::ArgumentEncoder::encodeUInt16):
+        (CoreIPC):
+        * Platform/CoreIPC/ArgumentEncoder.h:
+        (ArgumentEncoder):
+        (CoreIPC::ArgumentEncoder::encode):
+        (CoreIPC):
+        * UIProcess/API/qt/qquickwebview.cpp:
+        (QQuickWebViewPrivate::QQuickWebViewPrivate):
+        (QQuickWebViewPrivate::handleProxyAuthenticationRequiredRequest):
+        (QQuickWebViewExperimental::proxyAuthenticationDialog):
+        (QQuickWebViewExperimental::setProxyAuthenticationDialog):
+        * UIProcess/API/qt/qquickwebview_p.h:
+        * UIProcess/API/qt/qquickwebview_p_p.h:
+        (QQuickWebViewPrivate):
+        * UIProcess/PageClient.h:
+        (PageClient):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::proxyAuthenticationRequiredRequest):
+        (WebKit):
+        * UIProcess/WebPageProxy.h:
+        (WebPageProxy):
+        * UIProcess/WebPageProxy.messages.in:
+        * UIProcess/qt/QtDialogRunner.cpp:
+        (ProxyAuthenticationDialogContextObject):
+        (ProxyAuthenticationDialogContextObject::ProxyAuthenticationDialogContextObject):
+        (ProxyAuthenticationDialogContextObject::hostname):
+        (ProxyAuthenticationDialogContextObject::port):
+        (ProxyAuthenticationDialogContextObject::prefilledUsername):
+        (ProxyAuthenticationDialogContextObject::accept):
+        (ProxyAuthenticationDialogContextObject::reject):
+        (QtDialogRunner::initForProxyAuthentication):
+        * UIProcess/qt/QtDialogRunner.h:
+        (QtDialogRunner):
+        * UIProcess/qt/QtPageClient.cpp:
+        (QtPageClient::handleProxyAuthenticationRequiredRequest):
+        * UIProcess/qt/QtPageClient.h:
+        (QtPageClient):
+        * WebProcess/WebPage/DecoderAdapter.cpp:
+        (WebKit::DecoderAdapter::decodeUInt16):
+        (WebKit):
+        * WebProcess/WebPage/DecoderAdapter.h:
+        (DecoderAdapter):
+        * WebProcess/WebPage/EncoderAdapter.cpp:
+        (WebKit::EncoderAdapter::encodeUInt16):
+        (WebKit):
+        * WebProcess/WebPage/EncoderAdapter.h:
+        (EncoderAdapter):
+        * WebProcess/qt/QtNetworkAccessManager.cpp:
+        (WebKit::QtNetworkAccessManager::onProxyAuthenticationRequired):
+        (WebKit):
+        * WebProcess/qt/QtNetworkAccessManager.h:
+        (QtNetworkAccessManager):
+
+2012-02-20  Patrick Gansterer  <paroga@webkit.org>
+
+        [CMake] Update and sort list of source files.
+
+        * CMakeLists.txt:
+
+2012-02-20  Martin Robinson  <mrobinson@igalia.com>
+
+        Fix WebKit2GTK+ for 'make distcheck'.
+
+        Instead of conditionally including WebKit2 GNUmakefiles, always
+        include them and conditionally activate the final targets.
+
+        * GNUmakefile.am:
+        * UIProcess/API/gtk/tests/GNUmakefile.am:
+
+2012-02-20  Martin Robinson  <mrobinson@igalia.com>
+
+        [GTK][WK2] WebKit2 does not build if gtk-unix-printing-3.0 is not available
+        https://bugs.webkit.org/show_bug.cgi?id=79011
+
+        Fix the build when gtk-unix-printing-3.0 is not present.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialog):
+        (webkitPrintOperationRunDialogForFrame):
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::WebPrintOperationGtk::create):
+
+2012-02-18  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/10891801> BackingStore::scroll() unnecessarily copies pixels around
+        https://bugs.webkit.org/show_bug.cgi?id=78976
+
+        Reviewed by Anders Carlsson.
+
+        Rather than move pixels in the backing store in response to scrolling, we can maintain a
+        mapping, for the most recently scrolled rect, from backing store coordinates to view
+        client coordinates.
+
+        * UIProcess/BackingStore.h:
+        * UIProcess/mac/BackingStoreMac.mm:
+        (WebKit::BackingStore::performWithScrolledRectTransform): Added. Given a block to be
+        performed on a rect, divides the rect into parts such that for each part the mapping from
+        backing store coordinates to client coordinates is a (uniform) translation, and performs
+        the block on that part, passing it the translation that applies to the part.
+        (WebKit::BackingStore::resetScrolledRect): Added. Copies everything in the scrolled rect
+        back to where it should be under the identity map, and resets the scrolled rect and offset.
+        (WebKit::BackingStore::paint): Changed to call through performWithScrolledRectTransform().
+        (WebKit::BackingStore::incorporateUpdate): Ditto.
+        (WebKit::BackingStore::scroll): Now instead of copying pixels, just updates the scrolled
+        rect and offset.
+
+2012-02-17  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        [Qt][WK2] Allow opaque tiles
+        https://bugs.webkit.org/show_bug.cgi?id=78809
+
+        Apply the SupportsAlpha flag only when the buffers actually have alpha.
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * Shared/ShareableBitmap.h:
+        (ShareableBitmap):
+        * Shared/qt/ShareableBitmapQt.cpp:
+        * UIProcess/qt/LayerBackingStore.cpp:
+        (WebKit::LayerBackingStoreTile::swapBuffers):
+
+2012-02-17  Adam Roben  <aroben@apple.com>
+
+        Clang build fix after r108119
+
+        * WebProcess/WebProcess.cpp:
+        (WebKit::randomCrashThread): Annotate this function with NO_RETURN_DUE_TO_CRASH.
+
+2012-02-17  Kalev Lember  <kalevlember@gmail.com>
+
+        Remove unused parameters from WTF threading API
+        https://bugs.webkit.org/show_bug.cgi?id=78389
+
+        Reviewed by Adam Roben.
+
+        waitForThreadCompletion() had an out param 'void **result' to get the
+        'void *' returned by ThreadFunction. However, the implementation in
+        ThreadingWin.cpp ignored the out param, not filling it in. This had
+        led to a situation where none of the client code made use of the param
+        and just ignored it.
+
+        To clean this up, the patch changes the signature of ThreadFunction to
+        return void instead of void* and drops the the unused 'void **result'
+        parameter from waitForThreadCompletion. Also, all client code is
+        updated for the API change.
+
+        As mentioned in https://bugs.webkit.org/show_bug.cgi?id=78389 , even
+        though the change only affects internal API, Safari is using it
+        directly and we'll need to keep the old versions around for ABI
+        compatibility. For this, the patch adds compatibility wrappers with
+        the old ABI.
+
+        * Platform/WorkQueue.h:
+        (WorkQueue):
+        * Platform/gtk/WorkQueueGtk.cpp:
+        (WorkQueue::startWorkQueueThread):
+        * UIProcess/Launcher/mac/ThreadLauncherMac.mm:
+        (WebKit::webThreadBody):
+        * UIProcess/Launcher/qt/ThreadLauncherQt.cpp:
+        (WebKit::webThreadBody):
+        * UIProcess/Launcher/win/ThreadLauncherWin.cpp:
+        (WebKit::webThreadBody):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::randomCrashThread):
+        * win/WebKit2.def:
+        * win/WebKit2CFLite.def:
+
+2012-02-17  Mihnea Ovidenie  <mihnea@adobe.com>
+
+        CSS regions enabled by default
+        https://bugs.webkit.org/show_bug.cgi?id=78525
+
+        Reviewed by David Hyatt.
+
+        Add a runtime preference to enable/disable regions functionality at runtime(WebKitCSSRegionsEnabled).
+        CSSRegions are still enabled by default.
+        In DRT, use layoutTestController.overridePreference("WebKitCSSRegionsEnabled", "0") to disable the css regions functionality.
+
+        * Shared/WebPreferencesStore.h:
+        (WebKit):
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetCSSRegionsEnabled):
+        (WKPreferencesGetCSSRegionsEnabled):
+        * UIProcess/API/C/WKPreferencesPrivate.h:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::overrideBoolPreferenceForTestRunner):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2012-02-17  Enrica Casucci  <enrica@apple.com>
+
+        Refactor DragData class to use PlatformStrategies in the Mac implementation.
+        https://bugs.webkit.org/show_bug.cgi?id=78768
+
+        Reviewed by Darin Adler.
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp: Added color() method.
+        (WebKit::WebPlatformStrategies::color):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+
+2012-02-17  Martin Robinson  <mrobinson@igalia.com>
+
+        Fix some warnings encountered during the GTK+ build
+        https://bugs.webkit.org/show_bug.cgi?id=78911
+
+        Reviewed by Xan Lopez.
+
+        * UIProcess/API/gtk/WebKitLoaderClient.cpp:
+        (attachLoaderClientToView): Initialize a new member of the loader client struct.
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Allow printing scaled pages in WebKit2 for printers that don't support it
+        https://bugs.webkit.org/show_bug.cgi?id=78823
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialogUnix): Enable scale option in print
+        dialog.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::WebPrintOperationGtk::WebPrintOperationGtk): Initialize
+        manual scale to 1.
+        (WebKit::WebPrintOperationGtk::rotatePageIfNeeded): Renamed and
+        moved the needs rotate check here as an early return.
+        (WebKit::WebPrintOperationGtk::prepareContextToDraw): Scale the
+        page according to the manual scale factor.
+        (WebKit::WebPrintOperationGtk::renderPage): Move rotatePage to
+        prepareContextToDraw.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.h:
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Allow printing multiple copies in WebKit2 for printers that don't support it
+        https://bugs.webkit.org/show_bug.cgi?id=78805
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialogUnix): Enable multiple copies and
+        collate options in print dialog.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::PrintPagesData::PrintPagesData): Initialize number of
+        collated and uncolated copies done and total.
+        (WebKit::PrintPagesData::collatedCopiesLeft): Helper function that
+        returns the number of collated copies left to do.
+        (WebKit::PrintPagesData::uncollatedCopiesLeft): Helper function
+        that returns the number of uncollated copies left to do.
+        (WebKit::PrintPagesData::copiesLeft): Helper function
+        that returns the number of collated or uncollated copies left to
+        do.
+        (WebKit::PrintPagesData::incrementPageSequence): Do not finish the
+        print if there are uncollated copies left, and do not increment
+        sheet number if there are collated copies left.
+        (WebKit::WebPrintOperationGtk::WebPrintOperationGtk): Initialize
+        m_manualCopies to 1 and m_manualCollateCopies to false.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.h:
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Allow printing pages in reverse order in WebKit2 for printers that don't support it
+        https://bugs.webkit.org/show_bug.cgi?id=78799
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialogUnix): Enable printing in reverse
+        order option in print dialog.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::PrintPagesData::PrintPagesData): Initialize sheetNumber
+        and lastPagePosition depending on whether printing is in reverse
+        order or not.
+        (WebKit::PrintPagesData::incrementPageSequence): Use a negative
+        increment step when printing in reverse order. Fix page
+        incrementing when printing only odd/even pages broken in previous
+        commit due to merge conflicts.
+        (WebKit::WebPrintOperationGtk::WebPrintOperationGtk): Initialize
+        reverse printing to false.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.h:
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Allow printing only odd/even pages in WebKit2 for printers that don't support it
+        https://bugs.webkit.org/show_bug.cgi?id=78793
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialogUnix): Enable print odd/even pages
+        option in print dialog.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.h:
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::PrintPagesData::PrintPagesData): Add lastPagePosition and
+        initialize it depending on the page set.
+        (WebKit::PrintPagesData::incrementPageSequence): Use 2 step
+        increment when printing only odd/even pages.
+        (WebKit::WebPrintOperationGtk::WebPrintOperationGtk): Initialize
+        m_manualPageSet to GTK_PAGE_SET_ALL.
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Allow printing multiple pages per sheet in WebKit2 for printers that don't support it
+        https://bugs.webkit.org/show_bug.cgi?id=78715
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialogUnix): Enable multiple pages per
+        sheet options in print dialog.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::PrintPagesData::PrintPagesData): Initialize sheetNumber
+        and numberOfSheets. Move pagePosition to WebPrintOperationGtk.
+        (WebKit::PrintPagesData::incrementPageSequence): Increment current
+        sheet and page position.
+        (WebKit::WebPrintOperationGtk::WebPrintOperationGtk):
+        (WebKit::WebPrintOperationGtk::currentPageIsFirstPageOfSheet):
+        Helper function to check whether current pages is the first one of
+        the current sheet.
+        (WebKit::WebPrintOperationGtk::currentPageIsLastPageOfSheet):
+        Helper function to check whether current pages is the last one of
+        the current sheet.
+        (WebKit::WebPrintOperationGtk::getRowsAndColumnsOfPagesPerSheet):
+        Returns the number of rows and columns of pages per sheet.
+        (WebKit::WebPrintOperationGtk::getPositionOfPageInSheet): Returns
+        the row and column number of the current page in the current sheet.
+        (WebKit::WebPrintOperationGtk::prepareContextToDraw): Translate,
+        scale and rotate accordingly to render every page in the right
+        place of the sheet.
+        (WebKit::WebPrintOperationGtk::renderPage): Call
+        prepareContextToDraw() before drawing the page.
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.h:
+        (WebKit::WebPrintOperationGtk::setNumberOfPagesToPrint):
+        (WebKit::WebPrintOperationGtk::pagePosition):
+        (WebKit::WebPrintOperationGtk::setPagePosition):
+        (WebKit::WebPrintOperationGtk::numberUp):
+        (WebKit::WebPrintOperationGtk::numberUpLayout):
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Rename WebKitPrintOperation::done signal to ::finished in WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=78893
+
+        Reviewed by Gustavo Noronha Silva.
+
+        And it's not emitted anynmore when the print dialog has been
+        cancelled. Since it's not possible to know whether the print
+        dialog was cancelled or not, the enum WebKitPrintOperationResponse
+        has been added, with Print and Cancel values, and it's used as
+        return value of webkit_print_operation_run_dialog().
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkit_print_operation_class_init): Rename done as finished.
+        (webkitPrintOperationRunDialogUnix): Return a
+        WebKitPrintOperationResponse instead of bool.
+        (webkitPrintOperationRunDialogWin32): Ditto.
+        (drawPagesForPrintingCompleted): Emit finished instead of done.
+        (webkitPrintOperationRunDialogForFrame): Do not emit finished if
+        the dialog was cancelled and return a WebKitPrintOperationResponse.
+        (webkit_print_operation_run_dialog): Return
+        WebKitPrintOperationResponse.
+        * UIProcess/API/gtk/WebKitPrintOperation.h: Add
+        WebKitPrintOperationResponse enum.
+        * UIProcess/API/gtk/WebKitPrintOperationPrivate.h:
+        * UIProcess/API/gtk/WebKitWebView.cpp:
+        (webkitWebViewPrintFrame): Check whether the dialog has been
+        cancelled or not and connect to finish when the print operation is
+        in progress to release the print operation object when printing
+        finishes.
+        * UIProcess/API/gtk/docs/webkit2gtk-sections.txt: Add
+        WebKitPrintOperationResponse symbol.
+        * UIProcess/API/gtk/tests/TestPrinting.cpp:
+        (testPrintOperationPrintFinished): Use finished instead of done.
+        (testPrintOperationPrint): Ditto.
+
+2012-02-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Add webkit_print_operation_print() to WebKit2 GTK+ API
+        https://bugs.webkit.org/show_bug.cgi?id=76536
+
+        Reviewed by Gustavo Noronha Silva.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationPrintPagesForFrame): Helper function to call
+        WebPageProxy::drawPagesForPrinting using the given
+        GtkPrintSettings and GtkPageSetup.
+        (webkitPrintOperationRunDialogForFrame): Use
+        webkitPrintOperationPrintPagesForFrame().
+        (webkit_print_operation_print): Print directly using current
+        GtkPrintSettings and GtkPageSetup without showing the print
+        dialog.
+        * UIProcess/API/gtk/WebKitPrintOperation.h:
+        * UIProcess/API/gtk/docs/webkit2gtk-sections.txt: Add new symbols.
+        * UIProcess/API/gtk/tests/GNUmakefile.am:
+        * UIProcess/API/gtk/tests/TestPrinting.cpp:
+        (testPrintOperationPrintLoadChanged):
+        (testPrintOperationPrintDone):
+        (testPrintOperationPrintPrinter):
+        (testPrintOperationPrint):
+        (beforeAll):
+        (afterAll):
+
+2012-02-17  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        [Qt][WK2] Allow partial updates
+        https://bugs.webkit.org/show_bug.cgi?id=78824
+
+        Instead of using UpdateInfo to fill the entire tile's texture, we use it as a patch that
+        contains only the dirty rectangle of the current paint. This requires a lot less memory
+        for small updates, for example when typing a text in an input field.
+        This shows a significant reduction in overhead when testing on Mac with Instruments.
+
+        Reviewed by Simon Hausmann.
+
+        * UIProcess/qt/LayerBackingStore.cpp:
+        (WebKit::LayerBackingStoreTile::swapBuffers):
+        (WebKit::LayerBackingStoreTile::setBackBuffer):
+        (WebKit):
+        (WebKit::LayerBackingStore::updateTile):
+        * UIProcess/qt/LayerBackingStore.h:
+        (LayerBackingStoreTile):
+        * UIProcess/qt/LayerTreeHostProxyQt.cpp:
+        (WebKit::LayerTreeHostProxy::updateTileForLayer):
+        * WebProcess/WebPage/TiledBackingStoreRemoteTile.cpp:
+        (WebKit::TiledBackingStoreRemoteTile::updateBackBuffer):
+
+2012-02-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Make sure print operation object is alive until printing finishes in WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=78829
+
+        Reviewed by Martin Robinson.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (drawPagesForPrintingCompleted): Adopt the WebKitPrintOperation
+        reference so that it's released when the callback finishes.
+        (webkitPrintOperationRunDialogForFrame): Pass a reference of
+        WebKitPrintOperation to the printing callback.
+
+2012-02-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Made Weak<T> single-owner, adding PassWeak<T>
+        https://bugs.webkit.org/show_bug.cgi?id=78740
+
+        Reviewed by Sam Weinig.
+
+        * WebProcess/Plugins/Netscape/NPRuntimeObjectMap.cpp:
+        (WebKit::NPRuntimeObjectMap::getOrCreateJSObject): Use raw pointer and
+        PassWeak<T>, as required by our new hash map API.
+
+2012-02-16  Sergio Villar Senin  <svillar@igalia.com>
+
+        [soup] Move important SoupSession feature initialization to WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=68602
+
+        Reviewed by Martin Robinson.
+
+        Moved content sniffer and decoder initialization from the
+        WebProcess to WebCore because network stuff will not work as
+        expected without them.
+
+        No new tests required as we're just moving stuff from the
+        WebProcess to WebCore.
+
+        * WebProcess/gtk/WebProcessMainGtk.cpp:
+        (WebKit::WebProcessMainGtk):
+
+2012-02-16  Philippe Normand  <pnormand@igalia.com>
+
+        Unreviewed, rolling out r107941.
+        http://trac.webkit.org/changeset/107941
+        https://bugs.webkit.org/show_bug.cgi?id=68602
+
+        Broke 23 http tests on GTK
+
+        * WebProcess/gtk/WebProcessMainGtk.cpp:
+        (WebKit::WebProcessMainGtk):
+
+2012-02-16  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        [Texmap] Improve the way we deal with BGRA extension
+        https://bugs.webkit.org/show_bug.cgi?id=78822
+
+        Get rid of swizzling in the web process. Instead, we moved swizzling back to
+        TextureMapperGL, as we're moving towards a setup where textures are uploaded
+        in the web process.
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * UIProcess/qt/LayerBackingStore.cpp:
+        (WebKit::LayerBackingStoreTile::swapBuffers):
+        * UIProcess/qt/LayerTreeHostProxyQt.cpp:
+        (WebKit::LayerTreeHostProxy::createImage):
+        * WebProcess/WebPage/TiledBackingStoreRemoteTile.cpp:
+        (WebKit::TiledBackingStoreRemoteTile::updateBackBuffer):
+        * WebProcess/WebPage/qt/LayerTreeHostQt.cpp:
+        (WebKit::LayerTreeHostQt::adoptImageBackingStore):
+
+2012-02-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix WebKit2 GTK+ build after r107947.
+
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp:
+        (webkitPrintOperationRunDialogForFrame):
+
+2012-02-16  Alexander Færøy  <ahf@0x90.dk>
+
+        [Qt] Fix linking in debug builds on Mac OS X
+        https://bugs.webkit.org/show_bug.cgi?id=78811
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * UIProcess/API/qt/tests/bytearraytestdata.h:
+
+2012-02-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Page content is incorrectly translated whenh rendering pages for printing in WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=78712
+
+        Reviewed by Martin Robinson.
+
+        * WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp:
+        (WebKit::WebPrintOperationGtk::enumeratePrintersFunction):
+        Simplify the code to select the printer.
+        (WebKit::WebPrintOperationGtk::renderPage): Call cairo_save()
+        before rendering the page and cairo_restore() when page has been
+        rendered.
+
+2012-02-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Add WebKitPrintOperation to WebKit2 GTK+ API
+        https://bugs.webkit.org/show_bug.cgi?id=76448
+
+        Reviewed by Martin Robinson.
+
+        * GNUmakefile.am: Add new files to compilation.
+        * UIProcess/API/gtk/WebKitDefines.h:
+        * UIProcess/API/gtk/WebKitPrintOperation.cpp: Added.
+        (webViewDestroyed): Delete the print operation when the view
+        widget associated is destroyed.
+        (webkitPrintOperationConstructed): Connect to destroy signal of
+        associated web view.
+        (webkitPrintOperationGetProperty):
+        (webkitPrintOperationSetProperty):
+        (webkit_print_operation_init):
+        (webkit_print_operation_class_init):
+        (webkitPrintOperationRunDialogUnix): Use GtkPrintUnixDialog to
+        show the printing dialog in UNIX platforms.
+        (webkitPrintOperationRunDialogWin32): Empty, not implemented yet.
+        (drawPagesForPrintingCompleted): Callback called when printing
+        operation has finished in the web process.
+        (webkitPrintOperationRunDialogForFrame): Run the printing dialog
+        and start printing the given frame.
+        (webkit_print_operation_new): Create a new print operation for the
+        given web view.
+        (webkit_print_operation_get_print_settings):
+        (webkit_print_operation_set_print_settings):
+        (webkit_print_operation_get_page_setup):
+        (webkit_print_operation_set_page_setup):
+        (webkit_print_operation_run_dialog): Run the print dialog to print
+        the web view main frame.
+        * UIProcess/API/gtk/WebKitPrintOperation.h: Added.
+        * UIProcess/API/gtk/WebKitPrintOperationPrivate.h: Added.
+        * UIProcess/API/gtk/WebKitUIClient.cpp:
+        (printFrame): Call webkitWebViewPrintFrame.
+        (attachUIClientToView): Add implementation for
+        printFrame callback.
+        * UIProcess/API/gtk/WebKitWebView.cpp:
+        (webkit_web_view_class_init): Add WebKitWebView::print-requested
+        signal.
+        (webkitWebViewPrintFrame): Emit print-requested and show the print
+        dialog to print the frame when not signal is not handled by user.
+        * UIProcess/API/gtk/WebKitWebView.h:
+        * UIProcess/API/gtk/WebKitWebViewPrivate.h:
+        * UIProcess/API/gtk/docs/webkit2gtk-docs.sgml: Add new section for
+        WebKitPrintOperation.
+        * UIProcess/API/gtk/docs/webkit2gtk-sections.txt: Add new symbols.
+        * UIProcess/API/gtk/tests/GNUmakefile.am:
+        * UIProcess/API/gtk/tests/TestPrinting.cpp: Added.
+        (testPrintOperationPrintSettings):
+        (webViewPrintRequestedCallback):
+        (testWebViewPrintRequested):
+        (beforeAll):
+        (afterAll):
+        * UIProcess/API/gtk/webkit2.h: Include WebKitPrintOperation.h.
+
+2012-02-16  Simon Hausmann  <simon.hausmann@nokia.com>
+
+        [Gtk][Efl][Qt] Move OpenGLShims out of cairo/ subdirectory
+        https://bugs.webkit.org/show_bug.cgi?id=78800
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * UIProcess/qt/LayerTreeHostProxyQt.cpp: Adjust to changed OpenGLShims.h
+        location - no more cairo prefix needed.
+
+2012-02-16  No'am Rosenthal  <noam.rosenthal@nokia.com>
+
+        [Qt][WK2] Allow opaque tiles
+        https://bugs.webkit.org/show_bug.cgi?id=78809
+
+        Set the supportsAlpha flag for TiledBackingStore when the layer has contentsOpaque enabled.
+        Use the flag for ShareableBitmaps created by TiledBackingStore.
+
+        For now this will not have impact on performance/memory, because we allocate the same type
+        of buffers for opaque and transparent tiles.
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        * WebProcess/WebCoreSupport/WebGraphicsLayer.cpp:
+        (WebCore::WebGraphicsLayer::setContentsOpaque):
+        (WebCore::WebGraphicsLayer::setContentsScale):
+        (WebCore::WebGraphicsLayer::createBackingStore):
+        (WebCore):
+        (WebCore::WebGraphicsLayer::updateContentBuffers):
+        * WebProcess/WebCoreSupport/WebGraphicsLayer.h:
+        (WebGraphicsLayer):
+        * WebProcess/WebPage/TiledBackingStoreRemoteTile.cpp:
+        (WebKit::TiledBackingStoreRemoteTile::updateBackBuffer):
+
+2012-02-16  Sergio Villar Senin  <svillar@igalia.com>
+
+        [soup] Move important SoupSession feature initialization to WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=68602
+
+        Reviewed by Martin Robinson.
+
+        Moved content sniffer and decoder initialization from the
+        WebProcess to WebCore because network stuff will not work as
+        expected without them.
+
+        No new tests required as we're just moving stuff from the
+        WebProcess to WebCore.
+
+        * WebProcess/gtk/WebProcessMainGtk.cpp:
+        (WebKit::WebProcessMainGtk):
+
+2012-02-16  Adenilson Cavalcanti  <cavalcantii@gmail.com>
+
+        [Qt][WK2] Split QWebPermissionRequest into QWebSecurityOrigin
+        https://bugs.webkit.org/show_bug.cgi?id=73215
+
+        Reviewed by Kenneth Rohde Christiansen.
+
+        Introducing a new class to expose security origin information
+        (port/scheme/etc), useful for inspecting the origin of permission
+        requests.
+
+        * Target.pri:
+        * UIProcess/API/qt/qtwebsecurityorigin.cpp: Added.
+        (QtWebSecurityOrigin::QtWebSecurityOrigin):
+        (QtWebSecurityOrigin::~QtWebSecurityOrigin):
+        (QtWebSecurityOrigin::host):
+        (QtWebSecurityOrigin::scheme):
+        (QtWebSecurityOrigin::path):
+        (QtWebSecurityOrigin::port):
+        (QtWebSecurityOrigin::setHost):
+        (QtWebSecurityOrigin::setScheme):
+        (QtWebSecurityOrigin::setPath):
+        (QtWebSecurityOrigin::setPort):
+        * UIProcess/API/qt/qtwebsecurityorigin_p.h: Added.
+        * UIProcess/API/qt/tests/qmltests/WebView/tst_origin.qml: Added.
+        * UIProcess/API/qt/qwebpermissionrequest.cpp:
+        (QWebPermissionRequestPrivate::QWebPermissionRequestPrivate):
+        (QWebPermissionRequest::securityOrigin):
+        * UIProcess/API/qt/qwebpermissionrequest_p.h:
+        * UIProcess/API/qt/tests/qmltests/qmltests.pro:
+
+2012-02-16  Patrick Gansterer  <paroga@webkit.org>
+
+        [CMake] Add missing include directories.
+
+        * CMakeLists.txt:
+
+2012-02-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Document that local paths in html loaded with loadHTML might cause the web process to terminate
+        https://bugs.webkit.org/show_bug.cgi?id=78719
+
+        Reviewed by Martin Robinson.
+
+        * UIProcess/API/gtk/WebKitWebView.cpp:
+
 2012-02-15  Anders Carlsson  <andersca@apple.com>
 
         Add TiledCoreAnimationDrawingArea::forceRepaint

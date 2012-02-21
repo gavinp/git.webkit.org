@@ -48,6 +48,8 @@ class ScriptFunctionCall;
 
 typedef String ErrorString;
 
+#if ENABLE(INSPECTOR)
+
 class InjectedScript {
 public:
     InjectedScript();
@@ -108,6 +110,8 @@ private:
     ScriptObject m_injectedScriptObject;
     InspectedStateAccessCheck m_inspectedStateAccessCheck;
 };
+
+#endif
 
 } // namespace WebCore
 

@@ -638,7 +638,7 @@ inline void Element::setAttributeInternal(size_t index, const QualifiedName& nam
     }
 
     if (!old) {
-        attributeData->addAttribute(createAttribute(name, value), this);
+        attributeData->addAttribute(Attribute::create(name, value), this);
         return;
     }
 
@@ -652,11 +652,6 @@ inline void Element::setAttributeInternal(size_t index, const QualifiedName& nam
     didModifyAttribute(old);
 }
 
-PassRefPtr<Attribute> Element::createAttribute(const QualifiedName& name, const AtomicString& value)
-{
-    return Attribute::create(name, value);
-}
-
 void Element::attributeChanged(Attribute* attr)
 {
     if (isIdAttributeName(attr->name()))
@@ -664,12 +659,12 @@ void Element::attributeChanged(Attribute* attr)
     else if (attr->name() == HTMLNames::nameAttr)
         setHasName(!attr->isNull());
 
-    recalcStyleIfNeededAfterAttributeChanged(attr);
-    updateAfterAttributeChanged(attr);
-}
+    if (!needsStyleRecalc() && document()->attached()) {
+        CSSStyleSelector* styleSelector = document()->styleSelectorIfExists();
+        if (!styleSelector || styleSelector->hasSelectorForAttribute(attr->name().localName()))
+            setNeedsStyleRecalc();
+    }
 
-void Element::updateAfterAttributeChanged(Attribute* attr)
-{
     invalidateNodeListsCacheAfterAttributeChanged(attr->name());
 
     if (!AXObjectCache::accessibilityEnabled())
@@ -698,18 +693,6 @@ void Element::updateAfterAttributeChanged(Attribute* attr)
         document()->axObjectCache()->childrenChanged(renderer());
     else if (attrName == aria_invalidAttr)
         document()->axObjectCache()->postNotification(renderer(), AXObjectCache::AXInvalidStatusChanged, true);
-}
-    
-void Element::recalcStyleIfNeededAfterAttributeChanged(Attribute* attr)
-{
-    if (needsStyleRecalc())
-        return;
-    if (!document()->attached())
-        return;
-    CSSStyleSelector* styleSelector = document()->styleSelectorIfExists();
-    if (styleSelector && !styleSelector->hasSelectorForAttribute(attr->name().localName()))
-        return;
-    setNeedsStyleRecalc();
 }
 
 void Element::idAttributeChanged(Attribute* attr)
@@ -1964,7 +1947,9 @@ PassRefPtr<WebKitAnimationList> Element::webkitGetAnimations() const
 
 const AtomicString& Element::webkitRegionOverflow() const
 {
-    if (renderer() && renderer()->isRenderRegion()) {
+    document()->updateLayoutIgnorePendingStylesheets();
+
+    if (document()->cssRegionsEnabled() && renderer() && renderer()->isRenderRegion()) {
         RenderRegion* region = toRenderRegion(renderer());
         switch (region->regionState()) {
         case RenderRegion::RegionFit: {
@@ -2020,7 +2005,7 @@ void Element::willModifyAttribute(const QualifiedName& name, const AtomicString&
 
 #if ENABLE(INSPECTOR)
     if (!isSynchronizingStyleAttribute())
-        InspectorInstrumentation::willModifyDOMAttr(document(), this);
+        InspectorInstrumentation::willModifyDOMAttr(document(), this, oldValue, newValue);
 #endif
 }
 

@@ -110,7 +110,6 @@ static const HashTableValue JSTestObjTableValues[] =
     { "withScriptExecutionContextAndScriptStateAttributeRaises", DontDelete, (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTestObjWithScriptExecutionContextAndScriptStateAttributeRaises), (intptr_t)setJSTestObjWithScriptExecutionContextAndScriptStateAttributeRaises, NoIntrinsic },
     { "withScriptExecutionContextAndScriptStateWithSpacesAttribute", DontDelete, (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute), (intptr_t)setJSTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute, NoIntrinsic },
     { "withScriptArgumentsAndCallStackAttribute", DontDelete, (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTestObjWithScriptArgumentsAndCallStackAttribute), (intptr_t)setJSTestObjWithScriptArgumentsAndCallStackAttribute, NoIntrinsic },
-    { "scriptStringAttr", DontDelete | ReadOnly, (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTestObjScriptStringAttr), (intptr_t)0, NoIntrinsic },
 #if ENABLE(Condition1)
     { "conditionalAttr1", DontDelete, (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTestObjConditionalAttr1), (intptr_t)setJSTestObjConditionalAttr1, NoIntrinsic },
 #endif
@@ -200,6 +199,7 @@ void JSTestObjConstructor::finishCreation(ExecState* exec, JSDOMGlobalObject* gl
     Base::finishCreation(exec->globalData());
     ASSERT(inherits(&s_info));
     putDirect(exec->globalData(), exec->propertyNames().prototype, JSTestObjPrototype::self(exec, globalObject), DontDelete | ReadOnly);
+    putDirect(exec->globalData(), exec->propertyNames().length, jsNumber(0), ReadOnly | DontDelete | DontEnum);
 }
 
 bool JSTestObjConstructor::getOwnPropertySlot(JSCell* cell, ExecState* exec, const Identifier& propertyName, PropertySlot& slot)
@@ -287,6 +287,7 @@ static const HashTableValue JSTestObjPrototypeTableValues[] =
     { "conditionalMethod3", DontDelete | JSC::Function, (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionConditionalMethod3), (intptr_t)0, NoIntrinsic },
 #endif
     { "overloadedMethod", DontDelete | JSC::Function, (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionOverloadedMethod), (intptr_t)2, NoIntrinsic },
+    { "methodWithUnsignedLongArray", DontDelete | JSC::Function, (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithUnsignedLongArray), (intptr_t)1, NoIntrinsic },
     { "getSVGDocument", DontDelete | JSC::Function, (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionGetSVGDocument), (intptr_t)0, NoIntrinsic },
     { "convert1", DontDelete | JSC::Function, (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionConvert1), (intptr_t)1, NoIntrinsic },
     { "convert2", DontDelete | JSC::Function, (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionConvert2), (intptr_t)1, NoIntrinsic },
@@ -713,16 +714,6 @@ JSValue jsTestObjWithScriptArgumentsAndCallStackAttribute(ExecState* exec, JSVal
     RefPtr<ScriptCallStack> callStack(createScriptCallStackForInspector(exec));
     TestObj* impl = static_cast<TestObj*>(castedThis->impl());
     JSValue result = toJS(exec, castedThis->globalObject(), WTF::getPtr(impl->withScriptArgumentsAndCallStackAttribute(callStack)));
-    return result;
-}
-
-
-JSValue jsTestObjScriptStringAttr(ExecState* exec, JSValue slotBase, const Identifier&)
-{
-    JSTestObj* castedThis = static_cast<JSTestObj*>(asObject(slotBase));
-    UNUSED_PARAM(exec);
-    TestObj* impl = static_cast<TestObj*>(castedThis->impl());
-    JSValue result = jsOwnedStringOrNull(exec, impl->scriptStringAttr());
     return result;
 }
 
@@ -2129,6 +2120,23 @@ EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionOverloadedMethod1(ExecS
 }
 
 #endif
+
+EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithUnsignedLongArray(ExecState* exec)
+{
+    JSValue thisValue = exec->hostThisValue();
+    if (!thisValue.inherits(&JSTestObj::s_info))
+        return throwVMTypeError(exec);
+    JSTestObj* castedThis = static_cast<JSTestObj*>(asObject(thisValue));
+    ASSERT_GC_OBJECT_INHERITS(castedThis, &JSTestObj::s_info);
+    TestObj* impl = static_cast<TestObj*>(castedThis->impl());
+    if (exec->argumentCount() < 1)
+        return throwVMError(exec, createTypeError(exec, "Not enough arguments"));
+    Vector<unsigned long> unsignedLongArray(jsUnsignedLongArrayToVector(exec, MAYBE_MISSING_PARAMETER(exec, 0, DefaultIsUndefined)));
+    if (exec->hadException())
+        return JSValue::encode(jsUndefined());
+    impl->methodWithUnsignedLongArray(unsignedLongArray);
+    return JSValue::encode(jsUndefined());
+}
 
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionGetSVGDocument(ExecState* exec)
 {

@@ -41,7 +41,7 @@ from models import NumericIdHolder
 from models import Platform
 from models import Test
 from models import TestResult
-from models import modelFromNumericId
+from models import model_from_numeric_id
 
 
 class RunsHandler(webapp2.RequestHandler):
@@ -61,36 +61,38 @@ class RunsHandler(webapp2.RequestHandler):
         # FIXME: Just fetch builds specified by "days"
         # days = self.request.get('days', 365)
 
-        builds = Build.all()
-        builds.filter('branch =', modelFromNumericId(branch_id, Branch))
-        builds.filter('platform =', modelFromNumericId(platform_id, Platform))
+        branch = model_from_numeric_id(branch_id, Branch)
+        platform = model_from_numeric_id(platform_id, Platform)
+        test = model_from_numeric_id(test_id, Test)
+        assert branch
+        assert platform
+        assert test
 
-        test = modelFromNumericId(test_id, Test)
-        test_name = test.name if test else None
         test_runs = []
         averages = {}
         values = []
         timestamps = []
 
-        for build in builds:
-            results = TestResult.all()
-            results.filter('name =', test_name)
-            results.filter('build =', build)
-            for result in results:
-                builderId = build.builder.key().id()
-                posixTimestamp = mktime(build.timestamp.timetuple())
-                statistics = None
-                if result.valueStdev != None and result.valueMin != None and result.valueMax != None:
-                    statistics = {'stdev': result.valueStdev, 'min': result.valueMin, 'max': result.valueMax}
-                test_runs.append([result.key().id(),
-                    [build.key().id(), build.buildNumber, build.revision],
-                    posixTimestamp, result.value, 0,  # runNumber
-                    [],  # annotations
-                    builderId, statistics])
-                # FIXME: Calculate the average; in practice, we wouldn't have more than one value for a given revision
-                averages[build.revision] = result.value
-                values.append(result.value)
-                timestamps.append(posixTimestamp)
+        for build, result in TestResult.generate_runs(branch, platform, test.name):
+            builderId = build.builder.key().id()
+            posixTimestamp = mktime(build.timestamp.timetuple())
+            statistics = None
+            supplementary_revisions = None
+            if result.valueStdev != None and result.valueMin != None and result.valueMax != None:
+                statistics = {'stdev': result.valueStdev, 'min': result.valueMin, 'max': result.valueMax}
+            if build.chromiumRevision != None:
+                supplementary_revisions = {'Chromium': build.chromiumRevision}
+
+            test_runs.append([result.key().id(),
+                [build.key().id(), build.buildNumber, build.revision, supplementary_revisions],
+                posixTimestamp, result.value, 0,  # runNumber
+                [],  # annotations
+                builderId, statistics])
+
+            # FIXME: Calculate the average; in practice, we wouldn't have more than one value for a given revision
+            averages[build.revision] = result.value
+            values.append(result.value)
+            timestamps.append(posixTimestamp)
 
         result = json.dumps({
             'test_runs': test_runs,

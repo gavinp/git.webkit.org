@@ -197,6 +197,7 @@ InspectorDOMAgent::InspectorDOMAgent(InstrumentingAgents* instrumentingAgents, I
     , m_domListener(0)
     , m_lastNodeId(1)
     , m_searchingForNode(false)
+    , m_suppressAttributeModifiedEvent(false)
 {
 }
 
@@ -538,7 +539,6 @@ void InspectorDOMAgent::setAttributeValue(ErrorString* errorString, int elementI
         return;
 
     m_domEditor->setAttribute(element, name, value, errorString);
-    m_history->markUndoableState();
 }
 
 void InspectorDOMAgent::setAttributesAsText(ErrorString* errorString, int elementId, const String& text, const String* const name)
@@ -569,7 +569,6 @@ void InspectorDOMAgent::setAttributesAsText(ErrorString* errorString, int elemen
     Element* childElement = toElement(child);
     if (!childElement->hasAttributes() && name) {
         m_domEditor->removeAttribute(element, *name, errorString);
-        m_history->markUndoableState();
         return;
     }
 
@@ -585,8 +584,6 @@ void InspectorDOMAgent::setAttributesAsText(ErrorString* errorString, int elemen
 
     if (!foundOriginalAttribute && name && !name->stripWhiteSpace().isEmpty())
         m_domEditor->removeAttribute(element, *name, errorString);
-
-    m_history->markUndoableState();
 }
 
 void InspectorDOMAgent::removeAttribute(ErrorString* errorString, int elementId, const String& name)
@@ -596,7 +593,6 @@ void InspectorDOMAgent::removeAttribute(ErrorString* errorString, int elementId,
         return;
 
     m_domEditor->removeAttribute(element, name, errorString);
-    m_history->markUndoableState();
 }
 
 void InspectorDOMAgent::removeNode(ErrorString* errorString, int nodeId)
@@ -612,7 +608,6 @@ void InspectorDOMAgent::removeNode(ErrorString* errorString, int nodeId)
     }
 
     m_domEditor->removeChild(parentNode, node, errorString);
-    m_history->markUndoableState();
 }
 
 void InspectorDOMAgent::setNodeName(ErrorString* errorString, int nodeId, const String& tagName, int* newId)
@@ -644,7 +639,6 @@ void InspectorDOMAgent::setNodeName(ErrorString* errorString, int nodeId, const 
         return;
     if (!m_domEditor->removeChild(parent, oldNode, errorString))
         return;
-    m_history->markUndoableState();
 
     *newId = pushNodePathToFrontend(newElem.get());
     if (m_childrenRequested.contains(nodeId))
@@ -681,7 +675,6 @@ void InspectorDOMAgent::setOuterHTML(ErrorString* errorString, int nodeId, const
     Node* newNode = 0;
     if (!m_domEditor->setOuterHTML(node, outerHTML, &newNode, errorString))
         return;
-    m_history->markUndoableState();
 
     if (!newNode) {
         // The only child node has been deleted.
@@ -707,7 +700,6 @@ void InspectorDOMAgent::setNodeValue(ErrorString* errorString, int nodeId, const
     }
 
     m_domEditor->replaceWholeText(toText(node), value, errorString);
-    m_history->markUndoableState();
 }
 
 void InspectorDOMAgent::getEventListenersForNode(ErrorString*, int nodeId, RefPtr<InspectorArray>& listenersArray)
@@ -1067,7 +1059,6 @@ void InspectorDOMAgent::moveTo(ErrorString* errorString, int nodeId, int targetE
 
     if (!m_domEditor->insertBefore(targetElement, node, anchorNode, errorString))
         return;
-    m_history->markUndoableState();
 
     *newNodeId = pushNodePathToFrontend(node);
 }
@@ -1411,8 +1402,18 @@ void InspectorDOMAgent::didRemoveDOMNode(Node* node)
     unbind(node, &m_documentNodeToIdMap);
 }
 
+void InspectorDOMAgent::willModifyDOMAttr(Element*, const AtomicString& oldValue, const AtomicString& newValue)
+{
+    m_suppressAttributeModifiedEvent = (oldValue == newValue);
+}
+
 void InspectorDOMAgent::didModifyDOMAttr(Element* element, const AtomicString& name, const AtomicString& value)
 {
+    bool shouldSuppressEvent = m_suppressAttributeModifiedEvent;
+    m_suppressAttributeModifiedEvent = false;
+    if (shouldSuppressEvent)
+        return;
+
     int id = boundNodeId(element);
     // If node is not mapped yet -> ignore the event.
     if (!id)

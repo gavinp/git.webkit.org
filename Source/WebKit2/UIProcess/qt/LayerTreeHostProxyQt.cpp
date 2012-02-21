@@ -36,8 +36,8 @@
 #include "WebLayerTreeInfo.h"
 #include "WebPageProxy.h"
 #include "WebProcessProxy.h"
+#include <OpenGLShims.h>
 #include <QDateTime>
-#include <cairo/OpenGLShims.h>
 
 namespace WebKit {
 
@@ -373,7 +373,7 @@ void LayerTreeHostProxy::updateTile(WebLayerID layerID, int tileID, const IntRec
 void LayerTreeHostProxy::createImage(int64_t imageID, ShareableBitmap* bitmap)
 {
     RefPtr<TextureMapperTiledBackingStore> backingStore = TextureMapperTiledBackingStore::create();
-    backingStore->updateContents(m_textureMapper.get(), bitmap->createImage().get());
+    backingStore->updateContents(m_textureMapper.get(), bitmap->createImage().get(), BitmapTexture::BGRAFormat);
     m_directlyCompositedImages.set(imageID, backingStore);
 }
 
@@ -507,7 +507,8 @@ void LayerTreeHostProxy::updateTileForLayer(int layerID, int tileID, const WebKi
     data.layerID = layerID;
     data.remoteTileID = tileID;
     data.bitmap = ShareableBitmap::create(updateInfo.bitmapHandle);
-    data.sourceRect = IntRect(IntPoint::zero(), updateInfo.updateRectBounds.size());
+    ASSERT(updateInfo.updateRects.size() == 1);
+    data.sourceRect = updateInfo.updateRects.first();
     data.targetRect = updateInfo.updateRectBounds;
     pushUpdateToQueue(UpdateTileMessage::create(data));
 }

@@ -128,6 +128,7 @@ my (
     $tiledBackingStoreSupport,
     $touchEventsSupport,
     $touchIconLoadingSupport,
+    $vibrationSupport,
     $videoSupport,
     $videoTrackSupport,
     $webAudioSupport,
@@ -204,7 +205,7 @@ my @features = (
       define => "ENABLE_FILTERS", default => (isAppleWebKit() || isGtk() || isQt() || isEfl() || isBlackBerry()), value => \$filtersSupport },
 
     { option => "ftpdir", desc => "Toggle FTP directory support",
-      define => "ENABLE_FTPDIR", default => 1, value => \$ftpDirSupport },
+      define => "ENABLE_FTPDIR", default => !isWinCE(), value => \$ftpDirSupport },
 
     { option => "fullscreen-api", desc => "Toggle Fullscreen API support",
       define => "ENABLE_FULLSCREEN_API", default => (isAppleMacWebKit() || isGtk()), value => \$fullscreenAPISupport },
@@ -246,7 +247,7 @@ my @features = (
       define => "ENABLE_INPUT_TYPE_WEEK", default => 0, value => \$inputTypeWeekSupport },
 
     { option => "inspector", desc => "Toggle Web Inspector support",
-      define => "ENABLE_INSPECTOR", default => 1, value => \$webInspectorSupport },
+      define => "ENABLE_INSPECTOR", default => !isWinCE(), value => \$webInspectorSupport },
 
     { option => "javascript-debugger", desc => "Toggle JavaScript Debugger/Profiler support",
       define => "ENABLE_JAVASCRIPT_DEBUGGER", default => 1, value => \$javaScriptDebuggerSupport },
@@ -328,6 +329,9 @@ my @features = (
 
     { option => "touch-icon-loading", desc => "Toggle Touch Icon Loading Support",
       define => "ENABLE_TOUCH_ICON_LOADING", default => 0, value => \$touchIconLoadingSupport },
+
+    { option => "vibration", desc => "Toggle Video support",
+      define => "ENABLE_VIBRATION", default => isEfl(), value => \$vibrationSupport },
 
     { option => "video", desc => "Toggle Video support",
       define => "ENABLE_VIDEO", default => (isAppleWebKit() || isGtk() || isBlackBerry() || isEfl()), value => \$videoSupport },

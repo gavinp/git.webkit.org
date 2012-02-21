@@ -32,9 +32,15 @@
 #include "HTMLContentElement.h"
 #include "HTMLContentSelector.h"
 #include "HTMLNames.h"
+#include "InsertionPoint.h"
 #include "NodeRareData.h"
+#include "ShadowRootList.h"
 #include "SVGNames.h"
 #include "Text.h"
+
+#if ENABLE(SHADOW_DOM)
+#include "RuntimeEnabledFeatures.h"
+#endif
 
 namespace WebCore {
 
@@ -97,7 +103,13 @@ PassRefPtr<ShadowRoot> ShadowRoot::create(Element* element, ExceptionCode& ec)
 
 PassRefPtr<ShadowRoot> ShadowRoot::create(Element* element, ShadowRootCreationPurpose purpose, ExceptionCode& ec)
 {
-    if (!element || element->hasShadowRoot()) {
+#if ENABLE(SHADOW_DOM)
+    bool isMultipleShadowSubtreesEnabled = RuntimeEnabledFeatures::multipleShadowSubtreesEnabled();
+#else
+    bool isMultipleShadowSubtreesEnabled = false;
+#endif
+
+    if (!element || (!isMultipleShadowSubtreesEnabled && element->hasShadowRoot())) {
         ec = HIERARCHY_REQUEST_ERR;
         return 0;
     }
@@ -171,7 +183,7 @@ void ShadowRoot::setNeedsReattachHostChildrenAndShadow()
         shadowHost()->setNeedsStyleRecalc();
 }
 
-HTMLContentElement* ShadowRoot::insertionPointFor(Node* node) const
+InsertionPoint* ShadowRoot::insertionPointFor(Node* node) const
 {
     if (!m_selector)
         return 0;

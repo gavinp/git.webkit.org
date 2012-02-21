@@ -272,7 +272,7 @@ LayoutUnit RenderTable::convertStyleLogicalWidthToComputedWidth(const Length& st
     bool isCSSTable = !node() || !node()->hasTagName(tableTag);
     if (isCSSTable && styleLogicalWidth.isFixed() && styleLogicalWidth.isPositive()) {
         recalcBordersInRowDirection();
-        borders = borderStart() + borderEnd() + (collapseBorders() ? 0 : paddingStart() + paddingEnd());
+        borders = borderStart() + borderEnd() + (collapseBorders() ? zeroLayoutUnit : paddingStart() + paddingEnd());
     }
     return styleLogicalWidth.calcMinValue(availableWidth) + borders;
 }
@@ -370,8 +370,8 @@ void RenderTable::layout()
         }
     }
 
-    LayoutUnit borderAndPaddingBefore = borderBefore() + (collapsing ? 0 : paddingBefore());
-    LayoutUnit borderAndPaddingAfter = borderAfter() + (collapsing ? 0 : paddingAfter());
+    LayoutUnit borderAndPaddingBefore = borderBefore() + (collapsing ? zeroLayoutUnit : paddingBefore());
+    LayoutUnit borderAndPaddingAfter = borderAfter() + (collapsing ? zeroLayoutUnit : paddingAfter());
 
     setLogicalHeight(logicalHeight() + borderAndPaddingBefore);
 
@@ -382,7 +382,7 @@ void RenderTable::layout()
     LayoutUnit computedLogicalHeight = 0;
     if (logicalHeightLength.isFixed()) {
         // HTML tables size as though CSS height includes border/padding, CSS tables do not.
-        LayoutUnit borders = node() && node()->hasTagName(tableTag) ? (borderAndPaddingBefore + borderAndPaddingAfter) : 0;
+        LayoutUnit borders = node() && node()->hasTagName(tableTag) ? (borderAndPaddingBefore + borderAndPaddingAfter) : zeroLayoutUnit;
         computedLogicalHeight = logicalHeightLength.value() - borders;
     } else if (logicalHeightLength.isPercent())
         computedLogicalHeight = computePercentageLogicalHeight(logicalHeightLength);
@@ -390,11 +390,11 @@ void RenderTable::layout()
 
     for (RenderObject* child = firstChild(); child; child = child->nextSibling()) {
         if (child->isTableSection())
-            // FIXME: Distribute extra height between all table body sections instead of giving it all to the first one.
-            toRenderTableSection(child)->layoutRows(child == m_firstBody ? max<LayoutUnit>(0, computedLogicalHeight - totalSectionLogicalHeight) : 0);
+            // FIXME: Distribute the extra logical height between all table sections instead of giving it all to the first one.
+            toRenderTableSection(child)->layoutRows(child == topSection() ? max<LayoutUnit>(0, computedLogicalHeight - totalSectionLogicalHeight) : 0);
     }
 
-    if (!m_firstBody && computedLogicalHeight > totalSectionLogicalHeight && !document()->inQuirksMode()) {
+    if (!topSection() && computedLogicalHeight > totalSectionLogicalHeight && !document()->inQuirksMode()) {
         // Completely empty tables (with no sections or anything) should at least honor specified height
         // in strict mode.
         setLogicalHeight(logicalHeight() + computedLogicalHeight);

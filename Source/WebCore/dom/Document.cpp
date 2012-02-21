@@ -100,6 +100,7 @@
 #include "HitTestRequest.h"
 #include "HitTestResult.h"
 #include "ImageLoader.h"
+#include "InspectorCounters.h"
 #include "InspectorInstrumentation.h"
 #include "Logging.h"
 #include "MediaQueryList.h"
@@ -132,6 +133,7 @@
 #include "ScriptElement.h"
 #include "ScriptEventListener.h"
 #include "ScriptRunner.h"
+#include "ScrollingCoordinator.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicy.h"
 #include "SegmentedString.h"
@@ -200,10 +202,6 @@
 #if ENABLE(MICRODATA)
 #include "MicroDataItemList.h"
 #include "NodeRareData.h"
-#endif
-
-#if ENABLE(THREADED_SCROLLING)
-#include "ScrollingCoordinator.h"
 #endif
 
 using namespace std;
@@ -510,6 +508,7 @@ Document::Document(Frame* frame, const KURL& url, bool isXHTML, bool isHTML)
 #ifndef NDEBUG
     m_updatingStyleSelector = false;
 #endif
+    InspectorCounters::incrementCounter(InspectorCounters::DocumentCounter);
 }
 
 static void histogramMutationEventUsage(const unsigned short& listenerTypes)
@@ -586,6 +585,8 @@ Document::~Document()
     // as well as Node. See a comment on TreeScope.h for the reason.
     if (hasRareData())
         clearRareData();
+
+    InspectorCounters::decrementCounter(InspectorCounters::DocumentCounter);
 }
 
 void Document::removedLastRef()
@@ -1020,8 +1021,15 @@ PassRefPtr<Element> Document::createElement(const QualifiedName& qName, bool cre
     return e.release();
 }
 
+bool Document::cssRegionsEnabled() const
+{
+    return settings() && settings()->cssRegionsEnabled(); 
+}
+
 PassRefPtr<WebKitNamedFlow> Document::webkitGetFlowByName(const String& flowName)
 {
+    if (!cssRegionsEnabled())
+        return 0;
     if (!renderer())
         return 0;
     if (RenderView* view = renderer()->view())
@@ -5371,7 +5379,6 @@ PassRefPtr<TouchList> Document::createTouchList(ExceptionCode&) const
 
 static void wheelEventHandlerCountChanged(Document* document)
 {
-#if ENABLE(THREADED_SCROLLING)
     Page* page = document->page();
     if (!page)
         return;
@@ -5385,9 +5392,6 @@ static void wheelEventHandlerCountChanged(Document* document)
         return;
 
     scrollingCoordinator->frameViewWheelEventHandlerCountChanged(frameView);
-#else
-    UNUSED_PARAM(document);
-#endif
 }
 
 void Document::didAddWheelEventHandler()

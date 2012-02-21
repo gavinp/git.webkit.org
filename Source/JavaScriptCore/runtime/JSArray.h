@@ -28,6 +28,7 @@
 namespace JSC {
 
     class JSArray;
+    class LLIntOffsetsExtractor;
 
     struct SparseArrayEntry : public WriteBarrier<Unknown> {
         typedef WriteBarrier<Unknown> Base;
@@ -122,6 +123,7 @@ namespace JSC {
     };
 
     class JSArray : public JSNonFinalObject {
+        friend class LLIntOffsetsExtractor;
         friend class Walker;
 
     protected:
@@ -244,6 +246,8 @@ namespace JSC {
 
         JS_EXPORT_PRIVATE static void visitChildren(JSCell*, SlotVisitor&);
 
+        void enterDictionaryMode(JSGlobalData&);
+
     protected:
         static const unsigned StructureFlags = OverridesGetOwnPropertySlot | OverridesVisitChildren | OverridesGetPropertyNames | JSObject::StructureFlags;
         static void put(JSCell*, ExecState*, const Identifier& propertyName, JSValue, PutPropertySlot&);
@@ -265,7 +269,6 @@ namespace JSC {
         void setLengthWritable(ExecState*, bool writable);
         void putDescriptor(ExecState*, SparseArrayEntry*, PropertyDescriptor&, PropertyDescriptor& old);
         bool defineOwnNumericProperty(ExecState*, unsigned, PropertyDescriptor&, bool throwException);
-        void enterDictionaryMode(JSGlobalData&);
         void allocateSparseMap(JSGlobalData&);
         void deallocateSparseMap();
 

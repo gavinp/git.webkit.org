@@ -69,11 +69,14 @@ public:
     ShadowRootIfShadowDOMEnabledOrNode* youngestShadowRoot(Element* host, ExceptionCode&);
     ShadowRootIfShadowDOMEnabledOrNode* oldestShadowRoot(Element* host, ExceptionCode&);
     void removeShadowRoot(Element* host, ExceptionCode&);
+    void setMultipleShadowSubtreesEnabled(bool);
     Element* includerFor(Node*, ExceptionCode&);
     String shadowPseudoId(Element*, ExceptionCode&);
     PassRefPtr<Element> createContentElement(Document*, ExceptionCode&);
     Element* getElementByIdInShadowRoot(Node* shadowRoot, const String& id, ExceptionCode&);
     bool isValidContentSelect(Element* contentElement, ExceptionCode&);
+
+    bool attached(Node*, ExceptionCode&);
 
 #if ENABLE(INPUT_COLOR)
     void selectColorInColorChooser(Element*, const String& colorValue);

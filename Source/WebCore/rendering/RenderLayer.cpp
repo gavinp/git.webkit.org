@@ -454,8 +454,9 @@ void RenderLayer::clearRepaintRects()
 
 void RenderLayer::updateLayerPositionsAfterScroll(UpdateLayerPositionsAfterScrollFlags flags)
 {
-    ASSERT(!m_visibleDescendantStatusDirty);
-    ASSERT(!m_visibleContentStatusDirty);
+    // FIXME: This shouldn't be needed, but there are some corner cases where
+    // these flags are still dirty. Update so that the check below is valid.
+    updateVisibilityStatus();
 
     // If we have no visible content and no visible descendants, there is no point recomputing
     // our rectangles as they will be empty. If our visibility changes, we are expected to
@@ -1738,29 +1739,29 @@ void RenderLayer::resize(const PlatformMouseEvent& evt, const LayoutSize& oldOff
     LayoutSize difference = (currentSize + newOffset - adjustedOldOffset).expandedTo(minimumSize) - currentSize;
 
     ASSERT(element->isStyledElement());
-    StylePropertySet* styleDeclaration = static_cast<StyledElement*>(element)->ensureInlineStyleDecl();
+    StyledElement* styledElement = static_cast<StyledElement*>(element);
     bool isBoxSizingBorder = renderer->style()->boxSizing() == BORDER_BOX;
 
     if (resize != RESIZE_VERTICAL && difference.width()) {
         if (element->isFormControlElement()) {
             // Make implicit margins from the theme explicit (see <http://bugs.webkit.org/show_bug.cgi?id=9547>).
-            styleDeclaration->setProperty(CSSPropertyMarginLeft, String::number(renderer->marginLeft() / zoomFactor) + "px", false);
-            styleDeclaration->setProperty(CSSPropertyMarginRight, String::number(renderer->marginRight() / zoomFactor) + "px", false);
+            styledElement->setInlineStyleProperty(CSSPropertyMarginLeft, String::number(renderer->marginLeft() / zoomFactor) + "px", false);
+            styledElement->setInlineStyleProperty(CSSPropertyMarginRight, String::number(renderer->marginRight() / zoomFactor) + "px", false);
         }
-        LayoutUnit baseWidth = renderer->width() - (isBoxSizingBorder ? 0 : renderer->borderAndPaddingWidth());
+        LayoutUnit baseWidth = renderer->width() - (isBoxSizingBorder ? zeroLayoutUnit : renderer->borderAndPaddingWidth());
         baseWidth = baseWidth / zoomFactor;
-        styleDeclaration->setProperty(CSSPropertyWidth, String::number(baseWidth + difference.width()) + "px", false);
+        styledElement->setInlineStyleProperty(CSSPropertyWidth, String::number(baseWidth + difference.width()) + "px", false);
     }
 
     if (resize != RESIZE_HORIZONTAL && difference.height()) {
         if (element->isFormControlElement()) {
             // Make implicit margins from the theme explicit (see <http://bugs.webkit.org/show_bug.cgi?id=9547>).
-            styleDeclaration->setProperty(CSSPropertyMarginTop, String::number(renderer->marginTop() / zoomFactor) + "px", false);
-            styleDeclaration->setProperty(CSSPropertyMarginBottom, String::number(renderer->marginBottom() / zoomFactor) + "px", false);
+            styledElement->setInlineStyleProperty(CSSPropertyMarginTop, String::number(renderer->marginTop() / zoomFactor) + "px", false);
+            styledElement->setInlineStyleProperty(CSSPropertyMarginBottom, String::number(renderer->marginBottom() / zoomFactor) + "px", false);
         }
-        LayoutUnit baseHeight = renderer->height() - (isBoxSizingBorder ? 0 : renderer->borderAndPaddingHeight());
+        LayoutUnit baseHeight = renderer->height() - (isBoxSizingBorder ? zeroLayoutUnit : renderer->borderAndPaddingHeight());
         baseHeight = baseHeight / zoomFactor;
-        styleDeclaration->setProperty(CSSPropertyHeight, String::number(baseHeight + difference.height()) + "px", false);
+        styledElement->setInlineStyleProperty(CSSPropertyHeight, String::number(baseHeight + difference.height()) + "px", false);
     }
 
     document->updateLayout();

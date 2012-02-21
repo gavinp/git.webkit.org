@@ -1762,6 +1762,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\jit\HostCallReturnValue.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\jit\JIT.cpp"
 				>
 			</File>
@@ -1843,6 +1847,14 @@
 			</File>
 			<File
 				RelativePath="..\..\jit\ThunkGenerators.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="llint"
+			>
+			<File
+				RelativePath="..\..\llint\LLIntData.h"
 				>
 			</File>
 		</Filter>
@@ -2038,19 +2050,23 @@
 			Name="heap"
 			>
                             <File
-                                    RelativePath="..\..\heap\BumpBlock.h"
+                                    RelativePath="..\..\heap\CopiedAllocator.h"
                                     >
                             </File>
                             <File
-                                    RelativePath="..\..\heap\BumpSpace.cpp"
+                                    RelativePath="..\..\heap\CopiedBlock.h"
                                     >
                             </File>
                             <File
-                                    RelativePath="..\..\heap\BumpSpace.h"
+                                    RelativePath="..\..\heap\CopiedSpace.cpp"
                                     >
                             </File>
                             <File
-                                    RelativePath="..\..\heap\BumpSpaceInlineMethods.h"
+                                    RelativePath="..\..\heap\CopiedSpace.h"
+                                    >
+                            </File>
+                            <File
+                                    RelativePath="..\..\heap\CopiedSpaceInlineMethods.h"
                                     >
                             </File>
                             <File

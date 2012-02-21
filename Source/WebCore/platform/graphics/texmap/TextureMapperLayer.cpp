@@ -81,7 +81,7 @@ void TextureMapperLayer::computeTransformsRecursive()
         m_state.maskLayer->computeTransformsRecursive();
     if (m_state.replicaLayer)
         m_state.replicaLayer->computeTransformsRecursive();
-    for (int i = 0; i < m_children.size(); ++i)
+    for (size_t i = 0; i < m_children.size(); ++i)
         m_children[i]->computeTransformsRecursive();
 
     // Reorder children if needed on the way back up.
@@ -109,7 +109,9 @@ void TextureMapperLayer::updateBackingStore(TextureMapper* textureMapper, Graphi
     if (!m_backingStore)
         m_backingStore = TextureMapperTiledBackingStore::create();
 
+#if PLATFORM(QT)
     ASSERT(dynamic_cast<TextureMapperTiledBackingStore*>(m_backingStore.get()));
+#endif
 
     // Paint the entire dirty rect into an image buffer. This ensures we only paint once.
     OwnPtr<ImageBuffer> imageBuffer = ImageBuffer::create(dirtyRect.size());
@@ -128,7 +130,7 @@ void TextureMapperLayer::updateBackingStore(TextureMapper* textureMapper, Graphi
     image = imageBuffer->copyImage(CopyBackingStore);
 #endif
 
-    static_cast<TextureMapperTiledBackingStore*>(m_backingStore.get())->updateContents(textureMapper, image.get(), m_size, dirtyRect);
+    static_cast<TextureMapperTiledBackingStore*>(m_backingStore.get())->updateContents(textureMapper, image.get(), m_size, dirtyRect, BitmapTexture::BGRAFormat);
 }
 
 void TextureMapperLayer::paint()
@@ -173,16 +175,19 @@ void TextureMapperLayer::sortByZOrder(Vector<TextureMapperLayer* >& array, int f
 
 void TextureMapperLayer::paintSelfAndChildren(const TextureMapperPaintOptions& options)
 {
-    bool hasClip = m_state.masksToBounds && !m_children.isEmpty();
-    if (hasClip)
-        options.textureMapper->beginClip(TransformationMatrix(options.transform).multiply(m_transform.combined()), FloatRect(0, 0, m_size.width(), m_size.height()));
-
     paintSelf(options);
+
+    if (m_children.isEmpty())
+        return;
+
+    bool shouldClip = m_state.masksToBounds || m_state.maskLayer;
+    if (shouldClip)
+        options.textureMapper->beginClip(TransformationMatrix(options.transform).multiply(m_transform.combined()), FloatRect(0, 0, m_size.width(), m_size.height()));
 
     for (int i = 0; i < m_children.size(); ++i)
         m_children[i]->paintRecursive(options);
 
-    if (hasClip)
+    if (shouldClip)
         options.textureMapper->endClip();
 }
 
@@ -198,7 +203,7 @@ IntRect TextureMapperLayer::intermediateSurfaceRect(const TransformationMatrix& 
     TransformationMatrix localTransform = TransformationMatrix(matrix).multiply(m_transform.combined());
     rect = enclosingIntRect(localTransform.mapRect(layerRect()));
     if (!m_state.masksToBounds && !m_state.maskLayer) {
-        for (int i = 0; i < m_children.size(); ++i)
+        for (size_t i = 0; i < m_children.size(); ++i)
             rect.unite(m_children[i]->intermediateSurfaceRect(matrix));
     }
 

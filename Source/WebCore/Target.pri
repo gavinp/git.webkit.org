@@ -847,6 +847,7 @@ SOURCES += \
     html/shadow/HTMLContentElement.cpp \
     html/shadow/HTMLContentSelector.cpp \
     html/shadow/HTMLShadowElement.cpp \
+    html/shadow/InsertionPoint.cpp \
     html/shadow/MediaControls.cpp \
     html/shadow/MediaControlRootElement.cpp \
     html/shadow/MeterShadowElement.cpp \
@@ -869,6 +870,7 @@ SOURCES += \
     inspector/InspectorClient.cpp \
     inspector/InspectorConsoleAgent.cpp \
     inspector/InspectorController.cpp \
+    inspector/InspectorCounters.cpp \
     inspector/InspectorDatabaseAgent.cpp \
     inspector/InspectorDatabaseResource.cpp \
     inspector/InspectorDebuggerAgent.cpp \
@@ -1009,6 +1011,8 @@ SOURCES += \
     page/PerformanceTiming.cpp \
     page/PrintContext.cpp \
     page/Screen.cpp \
+    page/scrolling/ScrollingCoordinator.cpp \
+    page/scrolling/ScrollingCoordinatorNone.cpp \
     page/SecurityOrigin.cpp \
     page/SecurityPolicy.cpp \
     page/Settings.cpp \
@@ -1038,7 +1042,6 @@ SOURCES += \
     platform/ContentType.cpp \
     platform/CrossThreadCopier.cpp \
     platform/DateComponents.cpp \
-    platform/DefaultLocalizationStrategy.cpp \
     platform/DragData.cpp \
     platform/DragImage.cpp \
     platform/FileChooser.cpp \
@@ -1172,7 +1175,6 @@ SOURCES += \
     platform/UUID.cpp \
     platform/Widget.cpp \
     platform/PlatformStrategies.cpp \
-    platform/LocalizedStrings.cpp \
     plugins/IFrameShimSupport.cpp \
     plugins/PluginDatabase.cpp \
     plugins/PluginDebug.cpp \
@@ -1938,6 +1940,7 @@ HEADERS += \
     inspector/InspectorConsoleAgent.h \
     inspector/InspectorConsoleInstrumentation.h \
     inspector/InspectorController.h \
+    inspector/InspectorCounters.h \
     inspector/InspectorCSSAgent.h \
     inspector/InspectorDatabaseAgent.h \
     inspector/InspectorDatabaseInstrumentation.h \
@@ -2095,7 +2098,6 @@ HEADERS += \
     platform/ContextMenu.h \
     platform/CrossThreadCopier.h \
     platform/DateComponents.h \
-    platform/DefaultLocalizationStrategy.h \
     platform/DragData.h \
     platform/DragImage.h \
     platform/FileChooser.h \
@@ -2828,7 +2830,6 @@ SOURCES += \
     platform/qt/MIMETypeRegistryQt.cpp \
     platform/qt/PasteboardQt.cpp \
     platform/qt/PlatformKeyboardEventQt.cpp \
-    platform/qt/PlatformMouseEventQt.cpp \
     platform/qt/PlatformScreenQt.cpp \
     platform/qt/PlatformTouchEventQt.cpp \
     platform/qt/PlatformTouchPointQt.cpp \
@@ -2840,11 +2841,11 @@ SOURCES += \
     platform/qt/SoundQt.cpp \
     platform/qt/LoggingQt.cpp \
     platform/qt/LanguageQt.cpp \
+    platform/qt/LocalizedStringsQt.cpp \
     platform/qt/TemporaryLinkStubsQt.cpp \
     platform/text/qt/TextBoundariesQt.cpp \
     platform/text/qt/TextBreakIteratorInternalICUQt.cpp \
     platform/text/qt/TextCodecQt.cpp \
-    platform/qt/WheelEventQt.cpp \
     platform/qt/WidgetQt.cpp
 
 !contains(DEFINES, WTF_USE_LIBXML2=1) {
@@ -3665,6 +3666,7 @@ contains(DEFINES, ENABLE_WEB_SOCKETS=1) {
         websockets/WebSocketChannelClient.h \
         websockets/WebSocketExtensionDispatcher.h \
         websockets/WebSocketExtensionProcessor.h \
+        websockets/WebSocketFrame.h \
         websockets/WebSocketHandshake.h \
         websockets/WebSocketHandshakeRequest.h \
         websockets/WebSocketHandshakeResponse.h \
@@ -3981,8 +3983,8 @@ contains(CONFIG, texmap) {
 }
 
 contains(CONFIG, opengl-shims) {
-    HEADERS += platform/graphics/cairo/OpenGLShims.h
-    SOURCES += platform/graphics/cairo/OpenGLShims.cpp
+    HEADERS += platform/graphics/OpenGLShims.h
+    SOURCES += platform/graphics/OpenGLShims.cpp
     DEFINES += QT_OPENGL_SHIMS=1
 }
 

@@ -21,8 +21,8 @@
 #include "config.h"
 #include "Heap.h"
 
-#include "BumpSpace.h"
-#include "BumpSpaceInlineMethods.h"
+#include "CopiedSpace.h"
+#include "CopiedSpaceInlineMethods.h"
 #include "CodeBlock.h"
 #include "ConservativeRoots.h"
 #include "GCActivityCallback.h"
@@ -345,7 +345,7 @@ Heap::~Heap()
         m_blockFreeingThreadShouldQuit = true;
         m_freeBlockCondition.broadcast();
     }
-    waitForThreadCompletion(m_blockFreeingThread, 0);
+    waitForThreadCompletion(m_blockFreeingThread);
 
     // The destroy function must already have been called, so assert this.
     ASSERT(!m_globalData);
@@ -407,10 +407,9 @@ void Heap::waitForRelativeTime(double relative)
     waitForRelativeTimeWhileHoldingLock(relative);
 }
 
-void* Heap::blockFreeingThreadStartFunc(void* heap)
+void Heap::blockFreeingThreadStartFunc(void* heap)
 {
     static_cast<Heap*>(heap)->blockFreeingThreadMain();
-    return 0;
 }
 
 void Heap::blockFreeingThreadMain()

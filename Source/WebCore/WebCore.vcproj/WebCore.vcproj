@@ -22564,6 +22564,54 @@
 			<File
 				RelativePath="$(ConfigurationBuildDir)\obj\$(ProjectName)\DerivedSources\JSWebKitCSSRegionRule.cpp"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_Cairo_CFLite|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Cairo_CFLite|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug_All|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Production|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="$(ConfigurationBuildDir)\obj\$(ProjectName)\DerivedSources\JSWebKitCSSRegionRule.h"
@@ -25761,6 +25809,18 @@
 				RelativePath="..\page\WorkerNavigator.h"
 				>
 			</File>
+			<File
+				RelativePath="..\page\scrolling\ScrollingCoordinator.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\page\scrolling\ScrollingCoordinator.h"
+				>
+			</File>
+			<File
+				RelativePath="..\page\scrolling\ScrollingCoordinatorNone.cpp"
+				>
+			</File>
 			<Filter
 				Name="win"
 				>
@@ -26558,14 +26618,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\platform\DefaultLocalizationStrategy.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\platform\DefaultLocalizationStrategy.h"
-				>
-			</File>
-			<File
 				RelativePath="..\platform\DragData.cpp"
 				>
 			</File>
@@ -26703,10 +26755,6 @@
 			</File>
 			<File
 				RelativePath="..\platform\LinkHash.h"
-				>
-			</File>
-			<File
-				RelativePath="..\platform\LocalizationStrategy.h"
 				>
 			</File>
 			<File
@@ -27522,6 +27570,18 @@
 				</File>
 				<File
 					RelativePath="..\platform\graphics\CrossfadeGeneratedImage.h"
+					>
+				</File>
+				<File
+					RelativePath="..\platform\graphics\FractionalLayoutSize.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\platform\graphics\FractionalLayoutSize.h"
+					>
+				</File>
+				<File
+					RelativePath="..\platform\graphics\FractionalLayoutPoint.h"
 					>
 				</File>
 				<File
@@ -61017,6 +61077,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\html\shadow\InsertionPoint.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\html\shadow\InsertionPoint.h"
+					>
+				</File>
+				<File
 					RelativePath="..\html\shadow\MediaControlElements.cpp"
 					>
 				</File>
@@ -71598,6 +71666,30 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\inspector\InspectorCounters.h"
+				>
+			</File>
+			<File
+				RelativePath="..\inspector\InspectorCounters.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Production|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\inspector\InspectorController.h"
 				>
 			</File>
@@ -73334,6 +73426,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\websockets\WebSocketDeflater.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\websockets\WebSocketDeflater.h"
+				>
+			</File>
+			<File
 				RelativePath="..\websockets\WebSocketExtensionDispatcher.cpp"
 				>
 			</File>
@@ -73343,6 +73443,10 @@
 			</File>
 			<File
 				RelativePath="..\websockets\WebSocketExtensionProcessor.h"
+				>
+			</File>
+			<File
+				RelativePath="..\websockets\WebSocketFrame.h"
 				>
 			</File>
 			<File

@@ -38,6 +38,7 @@
 #include <runtime/ObjectPrototype.h>
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/Vector.h>
 
 namespace WebCore {
 
@@ -131,17 +132,16 @@ enum ParameterDefaultPolicy {
     {
         if (JSDOMWrapper* wrapper = getInlineCachedWrapper(world, domObject))
             return wrapper;
-        return world->m_wrappers.get(domObject).get();
+        return world->m_wrappers.get(domObject);
     }
 
     template <typename DOMClass> inline void cacheWrapper(DOMWrapperWorld* world, DOMClass* domObject, JSDOMWrapper* wrapper)
     {
         if (setInlineCachedWrapper(world, domObject, wrapper))
             return;
-        pair<DOMObjectWrapperMap::iterator, bool> entry = world->m_wrappers.add(domObject, JSC::Weak<JSDOMWrapper>());
-        ASSERT(entry.second);
-        JSC::Weak<JSDOMWrapper> handle(*world->globalData(), wrapper, wrapperOwner(world, domObject), wrapperContext(world, domObject));
-        entry.first->second.swap(handle);
+        JSC::PassWeak<JSDOMWrapper> passWeak(*world->globalData(), wrapper, wrapperOwner(world, domObject), wrapperContext(world, domObject));
+        pair<DOMObjectWrapperMap::iterator, bool> result = world->m_wrappers.add(domObject, passWeak);
+        ASSERT_UNUSED(result, result.second);
     }
 
     template <typename DOMClass> inline void uncacheWrapper(DOMWrapperWorld* world, DOMClass* domObject, JSDOMWrapper* wrapper)
@@ -342,6 +342,23 @@ enum ParameterDefaultPolicy {
         return AtomicString(identifier.impl());
     }
 
+    inline Vector<unsigned long> jsUnsignedLongArrayToVector(JSC::ExecState* exec, JSC::JSValue value)
+    {
+        unsigned length;
+        JSC::JSObject* object = toJSSequence(exec, value, length);
+        if (exec->hadException())
+            return Vector<unsigned long>();
+
+        Vector<unsigned long> result;
+        for (unsigned i = 0; i < length; i++) {
+            JSC::JSValue indexedValue;
+            indexedValue = object->get(exec, i);
+            if (exec->hadException() || indexedValue.isUndefinedOrNull() || !indexedValue.isNumber())
+                return Vector<unsigned long>();
+            result.append(indexedValue.toUInt32(exec));
+        }
+        return result;
+    }
 } // namespace WebCore
 
 #endif // JSDOMBinding_h

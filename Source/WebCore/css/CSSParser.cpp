@@ -991,14 +991,14 @@ bool CSSParser::parseValue(int propId, bool important)
             || id == CSSValueAvoid
             || id == CSSValueLeft
             || id == CSSValueRight)
-            validPrimitive = true;
+            validPrimitive = ((propId == CSSPropertyWebkitRegionBreakAfter) || (propId == CSSPropertyWebkitRegionBreakBefore)) ? cssRegionsEnabled() : true;
         break;
 
     case CSSPropertyPageBreakInside:     // avoid | auto | inherit
     case CSSPropertyWebkitColumnBreakInside:
     case CSSPropertyWebkitRegionBreakInside:
         if (id == CSSValueAuto || id == CSSValueAvoid)
-            validPrimitive = true;
+            validPrimitive = (propId == CSSPropertyWebkitRegionBreakInside) ? cssRegionsEnabled() : true;
         break;
 
     case CSSPropertyEmptyCells:          // show | hide | inherit
@@ -1719,7 +1719,7 @@ bool CSSParser::parseValue(int propId, bool important)
         validPrimitive = id == CSSValueRow || id == CSSValueRowReverse || id == CSSValueColumn || id == CSSValueColumnReverse;
         break;
     case CSSPropertyWebkitFlexWrap:
-        validPrimitive = id == CSSValueNowrap || id == CSSValueWrap || id == CSSValueWrapReverse;
+        validPrimitive = id == CSSValueNone || id == CSSValueWrap || id == CSSValueWrapReverse;
         break;
     case CSSPropertyWebkitMarquee: {
         const int properties[5] = { CSSPropertyWebkitMarqueeDirection, CSSPropertyWebkitMarqueeIncrement,
@@ -1756,11 +1756,15 @@ bool CSSParser::parseValue(int propId, bool important)
             validPrimitive = validUnit(value, FTime | FInteger | FNonNeg, m_strict);
         break;
     case CSSPropertyWebkitFlowInto:
+        if (!cssRegionsEnabled())
+            return false;
         return parseFlowThread(propId, important);
     case CSSPropertyWebkitFlowFrom:
+        if (!cssRegionsEnabled())
+            return false;
         return parseRegionThread(propId, important);
     case CSSPropertyWebkitRegionOverflow:
-        if (id == CSSValueAuto || id == CSSValueBreak)
+        if (cssRegionsEnabled() && (id == CSSValueAuto || id == CSSValueBreak))
             validPrimitive = true;
         break;
 
@@ -2050,6 +2054,10 @@ bool CSSParser::parseValue(int propId, bool important)
         if (id == CSSValueNone || id == CSSValueBaseline || id == CSSValueContain)
             validPrimitive = true;
         break;
+    case CSSPropertyWebkitLineAlign:
+        if (id == CSSValueNone || id == CSSValueEdges)
+            validPrimitive = true;
+        break;
     case CSSPropertyWebkitLocale:
         if (id == CSSValueAuto || value->unit == CSSPrimitiveValue::CSS_STRING)
             validPrimitive = true;
@@ -2092,6 +2100,14 @@ bool CSSParser::parseValue(int propId, bool important)
         }
         break;
 #endif
+
+#if ENABLE(OVERFLOW_SCROLLING)
+    case CSSPropertyWebkitOverflowScrolling:
+        if (id == CSSValueAuto || id == CSSValueTouch)
+            validPrimitive = true;
+        break;
+#endif
+
         /* shorthand properties */
     case CSSPropertyBackground: {
         // Position must come before color in this array because a plain old "0" is a legal color
@@ -4287,12 +4303,43 @@ bool CSSParser::parseFont(bool important)
     return true;
 }
 
+class FontFamilyValueBuilder {
+public:
+    FontFamilyValueBuilder(CSSValueList* list, CSSValuePool* pool)
+        : m_list(list)
+        , m_cssValuePool(pool)
+    {
+    }
+
+    void add(const CSSParserString& string)
+    {
+        if (!m_builder.isEmpty())
+            m_builder.append(' ');
+        m_builder.append(string.characters, string.length);
+    }
+
+    void commit()
+    {
+        if (m_builder.isEmpty())
+            return;
+        m_list->append(m_cssValuePool->createFontFamilyValue(m_builder.toString()));
+        m_builder.clear();
+    }
+
+private:
+    StringBuilder m_builder;
+    CSSValueList* m_list;
+    CSSValuePool* m_cssValuePool;
+};
+
 PassRefPtr<CSSValueList> CSSParser::parseFontFamily()
 {
     RefPtr<CSSValueList> list = CSSValueList::createCommaSeparated();
     CSSParserValue* value = m_valueList->current();
 
-    FontFamilyValue* currFamily = 0;
+    FontFamilyValueBuilder familyBuilder(list.get(), cssValuePool());
+    bool inFamily = false;
+
     while (value) {
         if (value->id == CSSValueInitial || value->id == CSSValueInherit)
             return 0;
@@ -4304,28 +4351,29 @@ PassRefPtr<CSSValueList> CSSParser::parseFontFamily()
             (nextValue->unit == CSSPrimitiveValue::CSS_STRING || nextValue->unit == CSSPrimitiveValue::CSS_IDENT));
 
         if (value->id >= CSSValueSerif && value->id <= CSSValueWebkitBody) {
-            if (currFamily)
-                currFamily->appendSpaceSeparated(value->string.characters, value->string.length);
+            if (inFamily)
+                familyBuilder.add(value->string);
             else if (nextValBreaksFont || !nextValIsFontName)
                 list->append(cssValuePool()->createIdentifierValue(value->id));
             else {
-                RefPtr<FontFamilyValue> newFamily = FontFamilyValue::create(value->string);
-                currFamily = newFamily.get();
-                list->append(newFamily.release());
+                familyBuilder.commit();
+                familyBuilder.add(value->string);
+                inFamily = true;
             }
         } else if (value->unit == CSSPrimitiveValue::CSS_STRING) {
             // Strings never share in a family name.
-            currFamily = 0;
-            list->append(FontFamilyValue::create(value->string));
+            inFamily = false;
+            familyBuilder.commit();
+            list->append(cssValuePool()->createFontFamilyValue(value->string));
         } else if (value->unit == CSSPrimitiveValue::CSS_IDENT) {
-            if (currFamily)
-                currFamily->appendSpaceSeparated(value->string.characters, value->string.length);
+            if (inFamily)
+                familyBuilder.add(value->string);
             else if (nextValBreaksFont || !nextValIsFontName)
-                list->append(FontFamilyValue::create(value->string));
+                list->append(cssValuePool()->createFontFamilyValue(value->string));
             else {
-                RefPtr<FontFamilyValue> newFamily = FontFamilyValue::create(value->string);
-                currFamily = newFamily.get();
-                list->append(newFamily.release());
+                familyBuilder.commit();
+                familyBuilder.add(value->string);
+                inFamily = true;
             }
         } else {
             break;
@@ -4336,13 +4384,16 @@ PassRefPtr<CSSValueList> CSSParser::parseFontFamily()
 
         if (nextValBreaksFont) {
             value = m_valueList->next();
-            currFamily = 0;
+            familyBuilder.commit();
+            inFamily = false;
         }
         else if (nextValIsFontName)
             value = nextValue;
         else
             break;
     }
+    familyBuilder.commit();
+
     if (!list->length())
         list = 0;
     return list.release();
@@ -7020,10 +7071,19 @@ static bool validFlowName(const String& flowName)
     return true;
 }
 
+bool CSSParser::cssRegionsEnabled() const
+{
+    if (Document* document = findDocument())
+        return document->cssRegionsEnabled();
+
+    return false;
+}
+
 // auto | <ident>
 bool CSSParser::parseFlowThread(int propId, bool important)
 {
     ASSERT(propId == CSSPropertyWebkitFlowInto);
+    ASSERT(cssRegionsEnabled());
 
     if (m_valueList->size() != 1)
         return false;
@@ -7055,6 +7115,7 @@ bool CSSParser::parseFlowThread(int propId, bool important)
 bool CSSParser::parseRegionThread(int propId, bool important)
 {
     ASSERT(propId == CSSPropertyWebkitFlowFrom);
+    ASSERT(cssRegionsEnabled());
 
     if (m_valueList->size() != 1)
         return false;
@@ -8182,8 +8243,8 @@ int CSSParser::lex(void* yylvalWithoutType)
     UChar* result;
     bool hasEscape;
 
-    // The input buffer is terminated by two \0, so
-    // it is safe to read two characters ahead anytime.
+    // The input buffer is terminated by a \0 character, so
+    // it is safe to read one character ahead of a known non-null.
 
 #ifndef NDEBUG
     // In debug we check with an ASSERT that the length is > 0 for string types.
@@ -8760,7 +8821,7 @@ CSSRule* CSSParser::createStyleRule(Vector<OwnPtr<CSSParserSelector> >* selector
         rule->adoptSelectorVector(*selectors);
         if (m_hasFontFaceOnlyValues)
             deleteFontFaceOnlyValues();
-        rule->setDeclaration(StylePropertySet::create(rule.get(), m_parsedProperties, m_numParsedProperties));
+        rule->setDeclaration(StylePropertySet::create(m_styleSheet, m_parsedProperties, m_numParsedProperties));
         result = rule.get();
         m_parsedRules.append(rule.release());
         if (m_ruleRangeMap) {
@@ -8799,7 +8860,7 @@ CSSRule* CSSParser::createFontFaceRule()
         }
     }
     RefPtr<CSSFontFaceRule> rule = CSSFontFaceRule::create(m_styleSheet);
-    rule->setDeclaration(StylePropertySet::create(rule.get(), m_parsedProperties, m_numParsedProperties));
+    rule->setDeclaration(StylePropertySet::create(m_styleSheet, m_parsedProperties, m_numParsedProperties));
     clearProperties();
     CSSFontFaceRule* result = rule.get();
     m_parsedRules.append(rule.release());
@@ -8870,7 +8931,7 @@ CSSRule* CSSParser::createPageRule(PassOwnPtr<CSSParserSelector> pageSelector)
         Vector<OwnPtr<CSSParserSelector> > selectorVector;
         selectorVector.append(pageSelector);
         rule->adoptSelectorVector(selectorVector);
-        rule->setDeclaration(StylePropertySet::create(rule.get(), m_parsedProperties, m_numParsedProperties));
+        rule->setDeclaration(StylePropertySet::create(m_styleSheet, m_parsedProperties, m_numParsedProperties));
         pageRule = rule.get();
         m_parsedRules.append(rule.release());
     }
@@ -8886,7 +8947,7 @@ void CSSParser::setReusableRegionSelectorVector(Vector<OwnPtr<CSSParserSelector>
 
 CSSRule* CSSParser::createRegionRule(Vector<OwnPtr<CSSParserSelector> >* regionSelector, CSSRuleList* rules)
 {
-    if (!regionSelector || !rules)
+    if (!cssRegionsEnabled() || !regionSelector || !rules)
         return 0;
 
     m_allowImportRules = m_allowNamespaceDeclarations = false;
@@ -8954,7 +9015,7 @@ WebKitCSSKeyframeRule* CSSParser::createKeyframeRule(CSSParserValueList* keys)
 
     RefPtr<WebKitCSSKeyframeRule> keyframe = WebKitCSSKeyframeRule::create(m_styleSheet);
     keyframe->setKeyText(keyString);
-    keyframe->setDeclaration(StylePropertySet::create(keyframe.get(), m_parsedProperties, m_numParsedProperties));
+    keyframe->setDeclaration(StylePropertySet::create(m_styleSheet, m_parsedProperties, m_numParsedProperties));
 
     clearProperties();
 
@@ -9077,14 +9138,8 @@ static int cssPropertyID(const UChar* propertyName, unsigned length)
             memcpy(buffer, "-webkit", 7);
             ++length;
         }
-
 #if PLATFORM(IOS)
-        if (!strcmp(buffer, "-webkit-hyphenate-locale")) {
-            // Worked in iOS 4.2.
-            const char* const webkitLocale = "-webkit-locale";
-            name = webkitLocale;
-            length = strlen(webkitLocale);
-        }
+        cssPropertyNameIOSAliasing(buffer, name, length);
 #endif
     }
 
@@ -9101,6 +9156,18 @@ int cssPropertyID(const CSSParserString& string)
 {
     return cssPropertyID(string.characters, string.length);
 }
+
+#if PLATFORM(IOS)
+void cssPropertyNameIOSAliasing(const char* propertyName, const char*& propertyNameAlias, unsigned& newLength)
+{
+    if (!strcmp(propertyName, "-webkit-hyphenate-locale")) {
+        // Worked in iOS 4.2.
+        static const char* const webkitLocale = "-webkit-locale";
+        propertyNameAlias = webkitLocale;
+        newLength = strlen(webkitLocale);
+    }
+}
+#endif
 
 int cssValueKeywordID(const CSSParserString& string)
 {
@@ -9189,6 +9256,11 @@ static bool isCSSTokenizerURL(const String& string)
 // We use single quotes for now because markup.cpp uses double quotes.
 String quoteCSSString(const String& string)
 {
+    // This function expands each character to at most 3 characters ('\u0010' -> '\' '1' '0') as well as adds
+    // 2 quote characters (before and after). Make sure the resulting size (3 * length + 2) will not overflow unsigned.
+    if (string.length() >= (std::numeric_limits<unsigned>::max() / 3) - 2)
+        return "";
+
     // For efficiency, we first pre-calculate the length of the quoted string, then we build the actual one.
     // Please see below for the actual logic.
     unsigned quotedStringSize = 2; // Two quotes surrounding the entire string.

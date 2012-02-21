@@ -1288,8 +1288,8 @@ template<> inline CSSPrimitiveValue::CSSPrimitiveValue(EFlexWrap e)
 {
     m_primitiveUnitType = CSS_IDENT;
     switch (e) {
-    case FlexNoWrap:
-        m_value.ident = CSSValueNowrap;
+    case FlexWrapNone:
+        m_value.ident = CSSValueNone;
         break;
     case FlexWrap:
         m_value.ident = CSSValueWrap;
@@ -1303,15 +1303,15 @@ template<> inline CSSPrimitiveValue::CSSPrimitiveValue(EFlexWrap e)
 template<> inline CSSPrimitiveValue::operator EFlexWrap() const
 {
     switch (m_value.ident) {
-    case CSSValueNowrap:
-        return FlexNoWrap;
+    case CSSValueNone:
+        return FlexWrapNone;
     case CSSValueWrap:
         return FlexWrap;
     case CSSValueWrapReverse:
         return FlexWrapReverse;
     default:
         ASSERT_NOT_REACHED();
-        return FlexNoWrap;
+        return FlexWrapNone;
     }
 }
 
@@ -3187,6 +3187,33 @@ template<> inline CSSPrimitiveValue::operator LineSnap() const
     default:
         ASSERT_NOT_REACHED();
         return LineSnapNone;
+    }
+}
+
+template<> inline CSSPrimitiveValue::CSSPrimitiveValue(LineAlign lineAlign)
+    : CSSValue(PrimitiveClass)
+{
+    m_primitiveUnitType = CSS_IDENT;
+    switch (lineAlign) {
+    case LineAlignNone:
+        m_value.ident = CSSValueNone;
+        break;
+    case LineAlignEdges:
+        m_value.ident = CSSValueEdges;
+        break;
+    }
+}
+
+template<> inline CSSPrimitiveValue::operator LineAlign() const
+{
+    switch (m_value.ident) {
+    case CSSValueNone:
+        return LineAlignNone;
+    case CSSValueEdges:
+        return LineAlignEdges;
+    default:
+        ASSERT_NOT_REACHED();
+        return LineAlignNone;
     }
 }
 

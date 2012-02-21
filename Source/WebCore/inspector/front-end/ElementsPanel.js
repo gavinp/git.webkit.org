@@ -414,6 +414,7 @@ WebInspector.ElementsPanel.prototype = {
         function showPopover(imageElement, dimensions)
         {
             var contents = buildPopoverContents(imageElement, dimensions);
+            popover.setCanShrink(false);
             popover.show(contents, anchor);
         }
 
@@ -1050,11 +1051,13 @@ WebInspector.ElementsPanel.prototype = {
 
         if (WebInspector.KeyboardShortcut.eventHasCtrlOrMeta(event) && event.keyIdentifier === "U+005A") { // Z key
             WebInspector.domAgent.undo(this._updateSidebars.bind(this));
+            event.handled = true;
             return;
         }
 
         if (WebInspector.KeyboardShortcut.eventHasCtrlOrMeta(event) && event.keyIdentifier === "U+0059") { // Y key
             DOMAgent.redo(this._updateSidebars.bind(this));
+            event.handled = true;
             return;
         }
 

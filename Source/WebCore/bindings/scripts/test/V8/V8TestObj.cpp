@@ -716,13 +716,6 @@ static void withScriptArgumentsAndCallStackAttributeAttrSetter(v8::Local<v8::Str
     return;
 }
 
-static v8::Handle<v8::Value> scriptStringAttrAttrGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
-{
-    INC_STATS("DOM.TestObj.scriptStringAttr._get");
-    TestObj* imp = V8TestObj::toNative(info.Holder());
-    return v8StringOrNull(imp->scriptStringAttr());
-}
-
 #if ENABLE(Condition1)
 
 static v8::Handle<v8::Value> conditionalAttr1AttrGetter(v8::Local<v8::String> name, const v8::AccessorInfo& info)
@@ -1083,7 +1076,7 @@ static v8::Handle<v8::Value> idbKeyCallback(const v8::Arguments& args)
         return throwError("Not enough arguments", V8Proxy::TypeError);
     TestObj* imp = V8TestObj::toNative(args.Holder());
     EXCEPTION_BLOCK(RefPtr<IDBKey>, key, createIDBKeyFromValue(MAYBE_MISSING_PARAMETER(args, 0, DefaultIsUndefined)));
-    imp->idbKey(key);
+    imp->idbKey(key.get());
     return v8::Handle<v8::Value>();
 }
 
@@ -1816,8 +1809,6 @@ static const BatchedAttribute TestObjAttrs[] = {
     {"withScriptExecutionContextAndScriptStateWithSpacesAttribute", TestObjInternal::withScriptExecutionContextAndScriptStateWithSpacesAttributeAttrGetter, TestObjInternal::withScriptExecutionContextAndScriptStateWithSpacesAttributeAttrSetter, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
     // Attribute 'withScriptArgumentsAndCallStackAttribute' (Type: 'attribute' ExtAttr: 'CallWith')
     {"withScriptArgumentsAndCallStackAttribute", TestObjInternal::withScriptArgumentsAndCallStackAttributeAttrGetter, TestObjInternal::withScriptArgumentsAndCallStackAttributeAttrSetter, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
-    // Attribute 'scriptStringAttr' (Type: 'readonly attribute' ExtAttr: 'ConvertScriptString')
-    {"scriptStringAttr", TestObjInternal::scriptStringAttrAttrGetter, 0, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
 #if ENABLE(Condition1)
     // Attribute 'conditionalAttr1' (Type: 'attribute' ExtAttr: 'Conditional')
     {"conditionalAttr1", TestObjInternal::conditionalAttr1AttrGetter, TestObjInternal::conditionalAttr1AttrSetter, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
@@ -1850,7 +1841,7 @@ static const BatchedAttribute TestObjAttrs[] = {
     {"floatArray", TestObjInternal::floatArrayAttrGetter, TestObjInternal::floatArrayAttrSetter, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
     // Attribute 'doubleArray' (Type: 'attribute' ExtAttr: '')
     {"doubleArray", TestObjInternal::doubleArrayAttrGetter, TestObjInternal::doubleArrayAttrSetter, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
-    // Attribute 'contentDocument' (Type: 'readonly attribute' ExtAttr: 'CheckAccessToNode')
+    // Attribute 'contentDocument' (Type: 'readonly attribute' ExtAttr: 'CheckSecurityForNode')
     {"contentDocument", TestObjInternal::contentDocumentAttrGetter, 0, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},
     // Attribute 'mutablePoint' (Type: 'attribute' ExtAttr: '')
     {"mutablePoint", TestObjInternal::mutablePointAttrGetter, TestObjInternal::mutablePointAttrSetter, 0 /* no data */, static_cast<v8::AccessControl>(v8::DEFAULT), static_cast<v8::PropertyAttribute>(v8::None), 0 /* on instance */},

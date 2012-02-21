@@ -136,9 +136,6 @@ module test {
         void    methodWithCallbackAndOptionalArg(in [Callback, Optional] TestCallback callback);
 #endif
 
-        // 'ConvertScriptString' extended attribute
-        readonly attribute [ConvertScriptString] DOMString scriptStringAttr;
-
         // 'Conditional' extended attribute
         attribute [Conditional=Condition1] long conditionalAttr1;
         attribute [Conditional=Condition1&Condition2] long conditionalAttr2;
@@ -194,8 +191,12 @@ module test {
         attribute double[]                  doubleArray;
 #endif
 
-        readonly attribute [CheckAccessToNode] Document contentDocument;
-        [CheckAccessToNode] SVGDocument getSVGDocument()
+#if defined(TESTING_JS)
+        void methodWithUnsignedLongArray(in unsigned long[] unsignedLongArray);
+#endif
+
+        readonly attribute [CheckSecurityForNode] Document contentDocument;
+        [CheckSecurityForNode] SVGDocument getSVGDocument()
             raises(DOMException);
 
         void convert1(in [TreatReturnedNullStringAs=Null] a);

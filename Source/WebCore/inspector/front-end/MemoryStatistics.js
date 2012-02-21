@@ -55,7 +55,7 @@ WebInspector.MemoryStatistics = function(timelinePanel, sidebarWidth)
 
     // Populate sidebar
     this._counterSidebarElements = [];
-    this._domGroups = this._createCounterSidebarElement(WebInspector.UIString("DOM group count:"), true);
+    this._documents = this._createCounterSidebarElement(WebInspector.UIString("Document count:"), true);
     this._domNodes = this._createCounterSidebarElement(WebInspector.UIString("DOM node count:"), true);
     this._listeners = this._createCounterSidebarElement(WebInspector.UIString("Event listener count:"), false);
 
@@ -122,28 +122,12 @@ WebInspector.MemoryStatistics.prototype = {
 
     addTimlineEvent: function(event)
     {
-        var time = event.data.endTime;
-        var domGroups = event.data["domGroups"];
-
-        var nodeCount = 0;
-        for (var i = 0; i < domGroups.length; i++) {
-            var counters = domGroups[i].nodeCount;
-            for (var j = 0; j < counters.length; j++)
-                nodeCount += counters[j].count;
-        }
-
-        var listenerCount = 0;
-        for (var i = 0; i < domGroups.length; i++) {
-            var counters = domGroups[i].listenerCount;
-            for (var j = 0; j < counters.length; j++)
-                listenerCount += counters[j].count;
-        }
-
+        var counters = event.data["counters"];
         this._counters.push({
-            time: time,
-            domGroupCount: domGroups.length,
-            nodeCount: nodeCount,
-            listenerCount: listenerCount
+            time: event.data.endTime,
+            documentCount: counters.documents,
+            nodeCount: counters.nodes,
+            listenerCount: counters.jsEventListeners
         });
     },
 
@@ -154,12 +138,12 @@ WebInspector.MemoryStatistics.prototype = {
         this._clear();
         var graphHeight = Math.round(this._canvas.height / 3);
 
-        function getGroupCount(entry)
+        function getDocumentCount(entry)
         {
-            return entry.domGroupCount;
+            return entry.documentCount;
         }
         this._setVerticalClip(0 * graphHeight + 2, graphHeight - 4);
-        this._drawPolyline(getGroupCount, "rgba(100,0,0,0.8)");
+        this._drawPolyline(getDocumentCount, "rgba(100,0,0,0.8)");
         this._drawBottomBound("rgba(20,20,20,0.8)");
 
 
@@ -184,18 +168,27 @@ WebInspector.MemoryStatistics.prototype = {
         var calculator = this._timelinePanel.calculator;
         var start = calculator.minimumBoundary * 1000;
         var end = calculator.maximumBoundary * 1000;
-        var firstIndex;
-        var lastIndex;
+        var firstIndex = 0;
+        var lastIndex = this._counters.length - 1;
         for (var i = 0; i < this._counters.length; i++) {
             var time = this._counters[i].time;
-            if (start <= time && time <= end) {
-                if (firstIndex === undefined)
-                    firstIndex = i;
+            if (time <= start) {
+                firstIndex = i;
+            } else {
+                if (end < time)
+                    break;
                 lastIndex = i;
             }
         }
+        // Maximum index of element whose time <= start.
         this._minimumIndex = firstIndex;
+
+        // Maximum index of element whose time <= end.
         this._maximumIndex = lastIndex;
+
+        // Current window bounds.
+        this._minTime = start;
+        this._maxTime = end;
     },
 
     _onMouseOver: function(event)
@@ -216,7 +209,7 @@ WebInspector.MemoryStatistics.prototype = {
                 break;
         }
         i--;
-        this._domGroups._value.textContent = this._counters[i].domGroupCount;
+        this._documents._value.textContent = this._counters[i].documentCount;
         this._domNodes._value.textContent = this._counters[i].nodeCount;
         this._listeners._value.textContent = this._counters[i].listenerCount;
     },
@@ -257,15 +250,12 @@ WebInspector.MemoryStatistics.prototype = {
         if (!this._counters.length)
             return;
 
-        var minTime = this._counters[this._minimumIndex].time;
-        var maxTime = this._counters[this._maximumIndex].time;
-
         var width = this._canvas.width;
-        var xFactor = width / (maxTime - minTime);
+        var xFactor = width / (this._maxTime - this._minTime);
 
         this._counters[this._minimumIndex].x = 0;
         for (var i = this._minimumIndex + 1; i < this._maximumIndex; i++)
-             this._counters[i].x = xFactor * (this._counters[i].time - minTime);
+             this._counters[i].x = xFactor * (this._counters[i].time - this._minTime);
         this._counters[this._maximumIndex].x = width;
     },
 
@@ -301,16 +291,19 @@ WebInspector.MemoryStatistics.prototype = {
 
         var originalValue = valueGetter(this._counters[this._minimumIndex]);
 
-        var yFactor = height / (2 * Math.max(maxValue - originalValue, originalValue - minValue));
+        var maxYRange = Math.max(maxValue - originalValue, originalValue - minValue);
+        var yFactor = maxYRange ? height / (2 * maxYRange) : 0.5;
 
         ctx.beginPath();
-        ctx.moveTo(0, originY + height / 2);
+        var currentY = originY + height / 2;
+        ctx.moveTo(0, currentY);
         for (var i = this._minimumIndex; i <= this._maximumIndex; i++) {
              var x = this._counters[i].x;
-             var y = originY + (height / 2 - (valueGetter(this._counters[i])- originalValue) * yFactor);
-             ctx.lineTo(x, y);
+             ctx.lineTo(x, currentY);
+             currentY = originY + (height / 2 - (valueGetter(this._counters[i])- originalValue) * yFactor);
+             ctx.lineTo(x, currentY);
         }
-        ctx.lineTo(width, originY + (height / 2 - (valueGetter(this._counters[this._maximumIndex]) - originalValue) * yFactor));
+        ctx.lineTo(width, currentY);
         ctx.lineWidth = 1;
         ctx.strokeStyle = color;
         ctx.stroke();

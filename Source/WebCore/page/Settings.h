@@ -313,6 +313,9 @@ namespace WebCore {
         void setCSSCustomFilterEnabled(bool enabled) { m_isCSSCustomFilterEnabled = enabled; }
         bool isCSSCustomFilterEnabled() const { return m_isCSSCustomFilterEnabled; }
 
+        void setCSSRegionsEnabled(bool enabled) { m_cssRegionsEnabled = enabled; }
+        bool cssRegionsEnabled() const { return m_cssRegionsEnabled; }
+
         void setAcceleratedCompositingEnabled(bool);
         bool acceleratedCompositingEnabled() const { return m_acceleratedCompositingEnabled; }
 
@@ -518,13 +521,15 @@ namespace WebCore {
         void setPartialSwapEnabled(bool enabled) { m_partialSwapEnabled = enabled; }
         bool partialSwapEnabled() const { return m_partialSwapEnabled; }
 
-#if ENABLE(THREADED_SCROLLING)
         void setScrollingCoordinatorEnabled(bool enabled) { m_scrollingCoordinatorEnabled = enabled; }
         bool scrollingCoordinatorEnabled() const { return m_scrollingCoordinatorEnabled; }
-#endif
 
         void setNotificationsEnabled(bool enabled) { m_notificationsEnabled = enabled; }
         bool notificationsEnabled() const { return m_notificationsEnabled; }
+
+        // Some apps needs isLoadingInAPISense to account for active subresource loaders.
+        void setNeedsIsLoadingInAPISenseQuirk(bool enabled) { m_needsIsLoadingInAPISenseQuirk = enabled; }
+        bool needsIsLoadingInAPISenseQuirk() const { return m_needsIsLoadingInAPISenseQuirk; }
 
 #if ENABLE(TOUCH_EVENTS)
         void setTouchEventEmulationEnabled(bool enabled) { m_touchEventEmulationEnabled = enabled; }
@@ -612,6 +617,7 @@ namespace WebCore {
         bool m_acceleratedDrawingEnabled : 1;
         bool m_acceleratedFiltersEnabled : 1;
         bool m_isCSSCustomFilterEnabled : 1;
+        bool m_cssRegionsEnabled : 1;
         bool m_downloadableBinaryFontsEnabled : 1;
         bool m_xssAuditorEnabled : 1;
         bool m_acceleratedCompositingEnabled : 1;
@@ -672,11 +678,10 @@ namespace WebCore {
         bool m_perTileDrawingEnabled : 1;
         bool m_partialSwapEnabled : 1;
 
-#if ENABLE(THREADED_SCROLLING)
         bool m_scrollingCoordinatorEnabled : 1;
-#endif
 
         bool m_notificationsEnabled : 1;
+        bool m_needsIsLoadingInAPISenseQuirk : 1;
 
 #if ENABLE(TOUCH_EVENTS)
         bool m_touchEventEmulationEnabled : 1;

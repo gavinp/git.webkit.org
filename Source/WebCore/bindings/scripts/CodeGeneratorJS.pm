@@ -274,6 +274,8 @@ sub AddIncludesForType
     } elsif ($type eq "DOMString[]") {
         # FIXME: Add proper support for T[], T[]?, sequence<T>
         $includesRef->{"JSDOMStringList.h"} = 1;
+    } elsif ($type eq "unsigned long[]") {
+        $includesRef->{"<wtf/Vector.h>"} = 1;
     } elsif ($isCallback) {
         $includesRef->{"JS${type}.h"} = 1;
     } elsif (IsTypedArrayType($type)) {
@@ -495,7 +497,7 @@ sub GenerateGetOwnPropertyDescriptorBody
     my $namespaceMaybe = ($inlined ? "JSC::" : "");
     
     my @getOwnPropertyDescriptorImpl = ();
-    if ($dataNode->extendedAttributes->{"CheckDomainSecurity"}) {
+    if ($dataNode->extendedAttributes->{"CheckSecurity"}) {
         if ($interfaceName eq "DOMWindow") {
             push(@implContent, "    if (!thisObject->allowsAccessFrom(exec))\n");
         } else {
@@ -1686,16 +1688,16 @@ sub GenerateImplementation
                     $needsMarkChildren = 1;
                 }
 
-                if ($dataNode->extendedAttributes->{"CheckDomainSecurity"} && 
-                        !$attribute->signature->extendedAttributes->{"DoNotCheckDomainSecurity"} &&
-                        !$attribute->signature->extendedAttributes->{"DoNotCheckDomainSecurityOnGetter"}) {
+                if ($dataNode->extendedAttributes->{"CheckSecurity"} && 
+                        !$attribute->signature->extendedAttributes->{"DoNotCheckSecurity"} &&
+                        !$attribute->signature->extendedAttributes->{"DoNotCheckSecurityOnGetter"}) {
                     push(@implContent, "    if (!castedThis->allowsAccessFrom(exec))\n");
                     push(@implContent, "        return jsUndefined();\n");
                 }
 
                 if ($attribute->signature->extendedAttributes->{"Custom"} || $attribute->signature->extendedAttributes->{"JSCustom"} || $attribute->signature->extendedAttributes->{"CustomGetter"} || $attribute->signature->extendedAttributes->{"JSCustomGetter"}) {
                     push(@implContent, "    return castedThis->$implGetterFunctionName(exec);\n");
-                } elsif ($attribute->signature->extendedAttributes->{"CheckAccessToNode"}) {
+                } elsif ($attribute->signature->extendedAttributes->{"CheckSecurityForNode"}) {
                     $implIncludes{"JSDOMBinding.h"} = 1;
                     push(@implContent, "    $implClassName* impl = static_cast<$implClassName*>(castedThis->impl());\n");
                     push(@implContent, "    return shouldAllowAccessToNode(exec, impl->" . $attribute->signature->name . "()) ? " . NativeToJSValue($attribute->signature, 0, $implClassName, "impl->$implGetterFunctionName()", "castedThis") . " : jsUndefined();\n");
@@ -1801,7 +1803,7 @@ sub GenerateImplementation
                 push(@implContent, "{\n");
                 push(@implContent, "    ${className}* domObject = static_cast<$className*>(asObject(slotBase));\n");
 
-                if ($dataNode->extendedAttributes->{"CheckDomainSecurity"}) {
+                if ($dataNode->extendedAttributes->{"CheckSecurity"}) {
                     push(@implContent, "    if (!domObject->allowsAccessFrom(exec))\n");
                     push(@implContent, "        return jsUndefined();\n");
                 }
@@ -1872,7 +1874,7 @@ sub GenerateImplementation
                         push(@implContent, "void ${putFunctionName}(ExecState* exec, JSObject* thisObject, JSValue value)\n");
                         push(@implContent, "{\n");
 
-                        if ($dataNode->extendedAttributes->{"CheckDomainSecurity"} && !$attribute->signature->extendedAttributes->{"DoNotCheckDomainSecurity"}) {
+                        if ($dataNode->extendedAttributes->{"CheckSecurity"} && !$attribute->signature->extendedAttributes->{"DoNotCheckSecurity"}) {
                             if ($interfaceName eq "DOMWindow") {
                                 push(@implContent, "    if (!static_cast<$className*>(thisObject)->allowsAccessFrom(exec))\n");
                             } else {
@@ -1997,7 +1999,7 @@ sub GenerateImplementation
 
                 push(@implContent, "void ${constructorFunctionName}(ExecState* exec, JSObject* thisObject, JSValue value)\n");
                 push(@implContent, "{\n");
-                if ($dataNode->extendedAttributes->{"CheckDomainSecurity"}) {
+                if ($dataNode->extendedAttributes->{"CheckSecurity"}) {
                     if ($interfaceName eq "DOMWindow") {
                         push(@implContent, "    if (!static_cast<$className*>(thisObject)->allowsAccessFrom(exec))\n");
                     } else {
@@ -2088,8 +2090,8 @@ sub GenerateImplementation
 
             push(@implContent, "    ASSERT_GC_OBJECT_INHERITS(castedThis, &${className}::s_info);\n") unless ($function->isStatic);
 
-            if ($dataNode->extendedAttributes->{"CheckDomainSecurity"} and
-                !$function->signature->extendedAttributes->{"DoNotCheckDomainSecurity"} and
+            if ($dataNode->extendedAttributes->{"CheckSecurity"} and
+                !$function->signature->extendedAttributes->{"DoNotCheckSecurity"} and
                 !$function->isStatic) {
                 push(@implContent, "    if (!castedThis->allowsAccessFrom(exec))\n");
                 push(@implContent, "        return JSValue::encode(jsUndefined());\n");
@@ -2114,7 +2116,7 @@ sub GenerateImplementation
                     push(@implContent, "    ExceptionCode ec = 0;\n");
                 }
 
-                if ($function->signature->extendedAttributes->{"CheckAccessToNode"} and !$function->isStatic) {
+                if ($function->signature->extendedAttributes->{"CheckSecurityForNode"} and !$function->isStatic) {
                     push(@implContent, "    if (!shouldAllowAccessToNode(exec, impl->" . $function->signature->name . "(" . (@{$function->raisesExceptions} ? "ec" : "") .")))\n");
                     push(@implContent, "        return JSValue::encode(jsUndefined());\n");
                     $implIncludes{"JSDOMBinding.h"} = 1;
@@ -2762,7 +2764,8 @@ my %nativeType = (
     "long long" => "long long",
     "unsigned long long" => "unsigned long long",
     "MediaQueryListListener" => "RefPtr<MediaQueryListListener>",
-    "DOMTimeStamp" => "DOMTimeStamp"
+    "DOMTimeStamp" => "DOMTimeStamp",
+    "unsigned long[]" => "Vector<unsigned long>"
 );
 
 sub GetNativeType
@@ -2891,6 +2894,11 @@ sub JSValueToNative
         return "toDOMStringList($value)";
     }
 
+    if ($type eq "unsigned long[]") {
+        AddToImplIncludes("JSDOMBinding.h", $conditional);
+        return "jsUnsignedLongArrayToVector(exec, $value)";
+    }
+
     AddToImplIncludes("HTMLOptionElement.h", $conditional) if $type eq "HTMLOptionElement";
     AddToImplIncludes("JSCustomVoidCallback.h", $conditional) if $type eq "VoidCallback";
     AddToImplIncludes("Event.h", $conditional) if $type eq "Event";
@@ -2937,12 +2945,10 @@ sub NativeToJSValue
 
             die "Unknown value for TreatReturnedNullStringAs extended attribute";
         }
-        $conv = $signature->extendedAttributes->{"ConvertScriptString"};
-        return "jsOwnedStringOrNull(exec, $value)" if $conv;
         AddToImplIncludes("<runtime/JSString.h>", $conditional);
         return "jsString(exec, $value)";
     }
-    
+
     my $globalObject = "$thisValue->globalObject()";
 
     if ($type eq "CSSStyleDeclaration") {
@@ -2967,6 +2973,8 @@ sub NativeToJSValue
     } elsif ($type eq "SerializedScriptValue" or $type eq "any") {
         AddToImplIncludes("SerializedScriptValue.h", $conditional);
         return "$value ? $value->deserialize(exec, castedThis->globalObject(), 0) : jsNull()";
+    } elsif ($type eq "unsigned long[]") {
+        AddToImplIncludes("<wrt/Vector.h>", $conditional);
     } else {
         # Default, include header with same name.
         AddToImplIncludes("JS$type.h", $conditional);

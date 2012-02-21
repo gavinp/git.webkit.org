@@ -31,18 +31,14 @@
 #ifndef HTMLContentElement_h
 #define HTMLContentElement_h
 
-#include "HTMLContentSelector.h"
-#include "HTMLElement.h"
+#include "InsertionPoint.h"
 #include <wtf/Forward.h>
 
 namespace WebCore {
 
-class ContentSelectorQuery;
-class HTMLContentSelectionList;
-
 // NOTE: Current implementation doesn't support dynamic insertion/deletion of HTMLContentElement.
 // You should create HTMLContentElement during the host construction.
-class HTMLContentElement : public HTMLElement {
+class HTMLContentElement : public InsertionPoint {
 public:
     static PassRefPtr<HTMLContentElement> create(const QualifiedName&, Document*);
     static PassRefPtr<HTMLContentElement> create(Document*);
@@ -60,9 +56,6 @@ public:
     // See https://bugs.webkit.org/show_bug.cgi?id=76261
     void setSelect(const AtomicString&);
 
-    const HTMLContentSelectionList* selections() const { return m_selections.get(); }
-    bool hasSelection() const { return selections()->first(); }
-
     virtual bool isSelectValid() const;
 
 protected:
@@ -74,8 +67,6 @@ private:
     virtual RenderObject* createRenderer(RenderArena*, RenderStyle*) { return 0; }
 
     virtual void parseAttribute(Attribute*) OVERRIDE;
-
-    OwnPtr<HTMLContentSelectionList> m_selections;
 };
 
 inline HTMLContentElement* toHTMLContentElement(Node* node)

@@ -44,7 +44,9 @@ WebInspector.TimelinePanel = function()
     this._presentationModel.addEventListener(WebInspector.TimelinePresentationModel.Events.WindowChanged, this._scheduleRefresh.bind(this, false));
     this._presentationModel.addEventListener(WebInspector.TimelinePresentationModel.Events.CategoryVisibilityChanged, this._scheduleRefresh.bind(this, true));
 
-    this.element.appendChild(this._createTopPane());
+    this._overviewPane = new WebInspector.TimelineOverviewPane(this._presentationModel);
+
+    this.element.appendChild(this._overviewPane.element);
     this.element.addEventListener("contextmenu", this._contextMenu.bind(this), true);
     this.element.tabIndex = 0;
 
@@ -63,6 +65,7 @@ WebInspector.TimelinePanel = function()
         this._timelineMemorySplitter.addEventListener("mousedown", this._startSplitterDragging.bind(this), false);
         this._timelineMemorySplitter.addStyleClass("hidden");
         this._memoryStatistics = new WebInspector.MemoryStatistics(this, this.splitView.preferredSidebarWidth());
+        this._overviewPane.addEventListener(WebInspector.TimelineOverviewPane.Events.ModeChanged, this._timelinesOverviewModeChanged, this);
     }
 
     var itemsTreeElement = new WebInspector.SidebarSectionTreeElement(WebInspector.UIString("RECORDS"), {}, true);
@@ -188,37 +191,6 @@ WebInspector.TimelinePanel.prototype = {
         return this._linkifyLocation(callFrame.url, callFrame.lineNumber, callFrame.columnNumber);
     },
 
-    _createTopPane: function() {
-        var topPaneElement = document.createElement("div");
-        topPaneElement.id = "timeline-overview-panel";
-
-        this._topPaneSidebarElement = document.createElement("div");
-        this._topPaneSidebarElement.id = "timeline-overview-sidebar";
-
-        var overviewTreeElement = document.createElement("ol");
-        overviewTreeElement.className = "sidebar-tree";
-        this._topPaneSidebarElement.appendChild(overviewTreeElement);
-        topPaneElement.appendChild(this._topPaneSidebarElement);
-
-        var topPaneSidebarTree = new TreeOutline(overviewTreeElement);
-        var timelinesOverviewItem = new WebInspector.SidebarTreeElement("resources-time-graph-sidebar-item", WebInspector.UIString("Timelines"));
-        topPaneSidebarTree.appendChild(timelinesOverviewItem);
-        timelinesOverviewItem.revealAndSelect(false);
-        timelinesOverviewItem.onselect = this._timelinesOverviewItemSelected.bind(this);
-
-        var memoryOverviewItem = new WebInspector.SidebarTreeElement("resources-size-graph-sidebar-item", WebInspector.UIString("Memory"));
-        topPaneSidebarTree.appendChild(memoryOverviewItem);
-        memoryOverviewItem.onselect = this._memoryOverviewItemSelected.bind(this);
-
-        this._overviewPane = new WebInspector.TimelineOverviewPane(this._presentationModel);
-        topPaneElement.appendChild(this._overviewPane.element);
-
-        var separatorElement = document.createElement("div");
-        separatorElement.id = "timeline-overview-separator";
-        topPaneElement.appendChild(separatorElement);
-        return topPaneElement;
-    },
-
     get calculator()
     {
         return this._calculator;
@@ -231,11 +203,7 @@ WebInspector.TimelinePanel.prototype = {
 
     get statusBarItems()
     {
-        var result = [this.toggleFilterButton.element, this.toggleTimelineButton.element, this.garbageCollectButton.element, this.clearButton.element];
-        if (this._memoryStatisticsButton)
-            result.push(this._memoryStatisticsButton.element);
-        result.push(this.statusBarFilters);
-        return result;
+        return [this.toggleFilterButton.element, this.toggleTimelineButton.element, this.garbageCollectButton.element, this.clearButton.element, this.statusBarFilters];
     },
 
     get defaultFocusedElement()
@@ -292,11 +260,6 @@ WebInspector.TimelinePanel.prototype = {
 
         this.garbageCollectButton = new WebInspector.StatusBarButton(WebInspector.UIString("Collect Garbage"), "garbage-collect-status-bar-item");
         this.garbageCollectButton.addEventListener("click", this._garbageCollectButtonClicked, this);
-
-        if (WebInspector.experimentsSettings.showMemoryCounters.isEnabled()) {
-            this._memoryStatisticsButton = new WebInspector.StatusBarButton(WebInspector.UIString("Toggle DOM counters graphs"), "dom-counters-status-bar-item");
-            this._memoryStatisticsButton.addEventListener("click", this._toggleMemoryStatistics, this);
-        }
 
         this.recordsCounter = document.createElement("span");
         this.recordsCounter.className = "timeline-records-counter";
@@ -441,14 +404,22 @@ WebInspector.TimelinePanel.prototype = {
         return eventDividerPadding;
     },
 
-    _timelinesOverviewItemSelected: function(event)
+    _timelinesOverviewModeChanged: function(event)
     {
-        this._overviewPane.showTimelines();
-    },
-
-    _memoryOverviewItemSelected: function(event)
-    {
-        this._overviewPane.showMemoryGraph(this._rootRecord.children);
+        if (!this._memoryStatistics)
+            return;
+        if (event.data === WebInspector.TimelineOverviewPane.Mode.Events && this._memoryStatistics.visible()) {
+            this._timelineMemorySplitter.addStyleClass("hidden");
+            this._memoryStatistics.hide();
+            this.splitView.element.style.height = "auto";
+            this.splitView.element.style.bottom = "0";
+            this.onResize();
+        } else {
+            this._timelineMemorySplitter.removeStyleClass("hidden");
+            this._memoryStatistics.show();
+            this.splitView.element.style.bottom = "auto";
+            this._setSplitterPosition(600);
+        }
     },
 
     _toggleTimelineButtonClicked: function()
@@ -475,28 +446,12 @@ WebInspector.TimelinePanel.prototype = {
         ProfilerAgent.collectGarbage();
     },
 
-    _toggleMemoryStatistics: function()
-    {
-        if (this._memoryStatistics.visible()) {
-            this._timelineMemorySplitter.addStyleClass("hidden");
-            this._memoryStatistics.hide();
-            this.splitView.element.style.height = "auto";
-            this.splitView.element.style.bottom = "0";
-            this.onResize();
-        } else {
-            this._timelineMemorySplitter.removeStyleClass("hidden");
-            this._memoryStatistics.show();
-            this.splitView.element.style.bottom = "auto";
-            this._setSplitterPosition(600);
-        }
-    },
-
     _onTimelineEventRecorded: function(event)
     {
         this._innerAddRecordToTimeline(event.data, this._rootRecord);
         this._scheduleRefresh(false);
 
-        if (this._memoryStatistics && event.data["domGroups"])
+        if (this._memoryStatistics && event.data["counters"])
             this._memoryStatistics.addTimlineEvent(event);
     },
 
@@ -585,10 +540,10 @@ WebInspector.TimelinePanel.prototype = {
                     parent._aggregatedStats[category] += formattedRecord._aggregatedStats[category];
                 record = parent;
             } while (record.parent);
-        } else
+        } else {
             if (parentRecord !== this._rootRecord)
                 parentRecord._selfTime -= formattedRecord.endTime - formattedRecord.startTime;
-
+        }
         // Keep bar entry for mark timeline since nesting might be interesting to the user.
         if (record.type === recordTypes.TimeStamp)
             this._timeStampRecords.push(formattedRecord);
@@ -598,7 +553,6 @@ WebInspector.TimelinePanel.prototype = {
     {
         var width = event.data;
         this._sidebarBackgroundElement.style.width = width + "px";
-        this._topPaneSidebarElement.style.width = width + "px";
         this._scheduleRefresh(false);
         this._overviewPane.sidebarResized(width);
         // Min width = <number of buttons on the left> * 31

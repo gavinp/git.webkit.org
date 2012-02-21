@@ -30,15 +30,16 @@
 #define JSGlobalData_h
 
 #include "CachedTranscendentalFunction.h"
-#include "Intrinsic.h"
 #include "DateInstanceCache.h"
 #include "ExecutableAllocator.h"
 #include "Heap.h"
-#include "Strong.h"
+#include "Intrinsic.h"
 #include "JITStubs.h"
 #include "JSValue.h"
+#include "LLIntData.h"
 #include "NumericStrings.h"
 #include "SmallStrings.h"
+#include "Strong.h"
 #include "Terminator.h"
 #include "TimeoutChecker.h"
 #include "WeakRandom.h"
@@ -65,6 +66,7 @@ namespace JSC {
     class JSGlobalObject;
     class JSObject;
     class Keywords;
+    class LLIntOffsetsExtractor;
     class NativeExecutable;
     class ParserArena;
     class RegExpCache;
@@ -217,7 +219,7 @@ namespace JSC {
 
 #if !ENABLE(JIT)
         bool canUseJIT() { return false; } // interpreter only
-#elif !ENABLE(INTERPRETER)
+#elif !ENABLE(CLASSIC_INTERPRETER)
         bool canUseJIT() { return true; } // jit only
 #else
         bool canUseJIT() { return m_canUseJIT; }
@@ -241,7 +243,12 @@ namespace JSC {
         Heap heap;
 
         JSValue exception;
-#if ENABLE(JIT)
+
+        const ClassInfo* const jsArrayClassInfo;
+        const ClassInfo* const jsFinalObjectClassInfo;
+
+        LLInt::Data llintData;
+
         ReturnAddressPtr exceptionLocation;
         JSValue hostCallReturnValue;
         CallFrame* callFrameForThrow;
@@ -270,7 +277,6 @@ namespace JSC {
             
             return scratchBuffers.last();
         }
-#endif
 #endif
 
         HashMap<OpaqueJSClass*, OwnPtr<OpaqueJSClassContextData> > opaqueJSClassData;
@@ -346,10 +352,12 @@ namespace JSC {
 #undef registerTypedArrayFunction
 
     private:
+        friend class LLIntOffsetsExtractor;
+        
         JSGlobalData(GlobalDataType, ThreadStackType, HeapSize);
         static JSGlobalData*& sharedInstanceInternal();
         void createNativeThunk();
-#if ENABLE(JIT) && ENABLE(INTERPRETER)
+#if ENABLE(JIT) && ENABLE(CLASSIC_INTERPRETER)
         bool m_canUseJIT;
 #endif
 #if ENABLE(GC_VALIDATION)

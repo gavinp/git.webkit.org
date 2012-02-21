@@ -54,6 +54,12 @@
 #include "SpellChecker.h"
 #include "TextIterator.h"
 
+#if ENABLE(SHADOW_DOM)
+#include "RuntimeEnabledFeatures.h"
+#else
+#include <wtf/UnusedParam.h>
+#endif
+
 #if ENABLE(INPUT_COLOR)
 #include "ColorChooser.h"
 #endif
@@ -150,6 +156,16 @@ bool Internals::isValidContentSelect(Element* contentElement, ExceptionCode& ec)
     return toHTMLContentElement(contentElement)->isSelectValid();
 }
 
+bool Internals::attached(Node* node, ExceptionCode& ec)
+{
+    if (!node) {
+        ec = INVALID_ACCESS_ERR;
+        return false;
+    }
+
+    return node->attached();
+}
+
 String Internals::elementRenderTreeAsText(Element* element, ExceptionCode& ec)
 {
     if (!element) {
@@ -233,6 +249,15 @@ void Internals::removeShadowRoot(Element* host, ExceptionCode& ec)
     }
 
     host->removeShadowRoot();
+}
+
+void Internals::setMultipleShadowSubtreesEnabled(bool enabled)
+{
+#if ENABLE(SHADOW_DOM)
+    RuntimeEnabledFeatures::setMultipleShadowSubtreesEnabled(enabled);
+#else
+    UNUSED_PARAM(enabled);
+#endif
 }
 
 Element* Internals::includerFor(Node* node, ExceptionCode& ec)

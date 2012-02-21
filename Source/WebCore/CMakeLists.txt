@@ -27,6 +27,7 @@ SET(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/notifications"
     "${WEBCORE_DIR}/page"
     "${WEBCORE_DIR}/page/animation"
+    "${WEBCORE_DIR}/page/scrolling"
     "${WEBCORE_DIR}/platform"
     "${WEBCORE_DIR}/platform/animation"
     "${WEBCORE_DIR}/platform/audio"
@@ -74,6 +75,7 @@ SET(WebCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/debugger"
     "${JAVASCRIPTCORE_DIR}/interpreter"
     "${JAVASCRIPTCORE_DIR}/jit"
+    "${JAVASCRIPTCORE_DIR}/llint"
     "${JAVASCRIPTCORE_DIR}/parser"
     "${JAVASCRIPTCORE_DIR}/profiler"
     "${JAVASCRIPTCORE_DIR}/runtime"
@@ -282,9 +284,6 @@ SET(WebCore_IDL_FILES
     html/MediaController.idl
     html/MediaError.idl
     html/TextMetrics.idl
-    html/TextTrack.idl
-    html/TextTrackCue.idl
-    html/TextTrackCueList.idl
     html/TimeRanges.idl
     html/ValidityState.idl
     html/VoidCallback.idl
@@ -309,6 +308,9 @@ SET(WebCore_IDL_FILES
     html/shadow/HTMLContentElement.idl
     html/shadow/HTMLShadowElement.idl
 
+    html/track/TextTrack.idl
+    html/track/TextTrackCue.idl
+    html/track/TextTrackCueList.idl
     html/track/TextTrackList.idl
     html/track/TrackEvent.idl
 
@@ -868,6 +870,7 @@ SET(WebCore_SOURCES
     html/shadow/HTMLContentElement.cpp
     html/shadow/HTMLContentSelector.cpp
     html/shadow/HTMLShadowElement.cpp
+    html/shadow/InsertionPoint.cpp
     html/shadow/MediaControls.cpp
     html/shadow/MediaControlRootElement.cpp
     html/shadow/MeterShadowElement.cpp
@@ -892,6 +895,7 @@ SET(WebCore_SOURCES
     inspector/InspectorClient.cpp
     inspector/InspectorConsoleAgent.cpp
     inspector/InspectorController.cpp
+    inspector/InspectorCounters.cpp
     inspector/InspectorDOMAgent.cpp
     inspector/InspectorDOMDebuggerAgent.cpp
     inspector/InspectorDOMStorageAgent.cpp
@@ -1049,6 +1053,9 @@ SET(WebCore_SOURCES
     page/animation/ImplicitAnimation.cpp
     page/animation/KeyframeAnimation.cpp
 
+    page/scrolling/ScrollingCoordinator.cpp
+    page/scrolling/ScrollingCoordinatorNone.cpp
+
     platform/Arena.cpp
     platform/CalculationValue.cpp
     platform/Clock.cpp
@@ -1057,7 +1064,6 @@ SET(WebCore_SOURCES
     platform/ContentType.cpp
     platform/CrossThreadCopier.cpp
     platform/DateComponents.cpp
-    platform/DefaultLocalizationStrategy.cpp
     platform/DragData.cpp
     platform/DragImage.cpp
     platform/FileChooser.cpp
@@ -1075,7 +1081,6 @@ SET(WebCore_SOURCES
     platform/MIMETypeRegistry.cpp
     platform/MemoryPressureHandler.cpp
     platform/PlatformEvent.cpp
-    platform/RunLoop.cpp
     platform/RuntimeApplicationChecks.cpp
     platform/ScrollAnimator.cpp
     platform/ScrollableArea.cpp
@@ -1098,6 +1103,7 @@ SET(WebCore_SOURCES
     platform/graphics/BitmapImage.cpp
     platform/graphics/Color.cpp
     platform/graphics/CrossfadeGeneratedImage.cpp
+    platform/graphics/FractionalLayoutSize.cpp
     platform/graphics/FloatPoint.cpp
     platform/graphics/FloatPoint3D.cpp
     platform/graphics/FloatQuad.cpp
@@ -2107,10 +2113,10 @@ ENDIF ()
 IF (ENABLE_VIDEO_TRACK)
     LIST(APPEND WebCore_SOURCES
         html/HTMLTrackElement.cpp
-        html/LoadableTextTrack.cpp
-        html/TextTrack.cpp
-        html/TextTrackCue.cpp
-        html/TextTrackCueList.cpp
+        html/track/LoadableTextTrack.cpp
+        html/track/TextTrack.cpp
+        html/track/TextTrackCue.cpp
+        html/track/TextTrackCueList.cpp
         html/track/TextTrackList.cpp
         html/track/TrackBase.cpp
         html/track/TrackEvent.cpp
@@ -2243,6 +2249,19 @@ IF (ENABLE_REQUEST_ANIMATION_FRAME)
     )
     LIST(APPEND WebCore_SOURCES
         dom/ScriptedAnimationController.cpp
+    )
+ENDIF ()
+
+IF (ENABLE_VIBRATION)
+    LIST(APPEND WebCore_INCLUDE_DIRECTORIES
+        ${WEBCORE_DIR}/Modules/vibration
+    )
+    LIST(APPEND WebCore_IDL_FILES
+        Modules/vibration/NavigatorVibration.idl
+    )
+    LIST(APPEND WebCore_SOURCES
+        Modules/vibration/NavigatorVibration.cpp
+        Modules/vibration/Vibration.cpp
     )
 ENDIF ()
 
