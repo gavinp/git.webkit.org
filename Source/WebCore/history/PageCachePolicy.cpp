@@ -1,3 +1,33 @@
+/*
+ * Copyright (C) 2012 Google Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following disclaimer
+ * in the documentation and/or other materials provided with the
+ * distribution.
+ *     * Neither the name of Google Inc. nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 #include "config.h"
 #include "PageCachePolicy.h"
@@ -66,6 +96,67 @@ void PageCachePolicy::PolicyLog(const String& message)
     LOG(PageCache, "%*s%s", m_logIndentLevel*4, "", message.utf8().data());
 }
 
+
+bool PageCachePolicy::CanCacheFrame(Frame* frame)
+{
+    ++m_logIndentLevel;
+
+    for (Frame* child = frame->tree()->firstChild(); child; child = child->tree()->nextSibling()) {
+        KURL currentURL = frame->loader()->documentLoader() ? frame->loader()->documentLoader()->url() : KURL();
+        KURL newURL = frame->loader()->provisionalDocumentLoader() ? frame->loader()->provisionalDocumentLoader()->url() : KURL();
+        if (newURL.isEmpty())
+            PolicyLog(makeString(" Determining if subframe with URL(", currentURL.string(), ") can be cached:"));
+        else
+            PolicyLog(makeString(" Determining if frame can be cached navigating from (", currentURL.string(), ") to (", newURL.string(), "):"));
+                      
+        if (!CanCacheFrame(child)) {
+            PolicyLog(" Frame CANNOT be cached");
+            --m_logIndentLevel;
+            return false;
+        }
+        PolicyLog(" Frame CAN be cached");
+    }
+
+    --m_logIndentLevel;
+    if (!frame->loader()->documentLoader()) {
+        PolicyLog(" -There is no DocumentLoader object");
+        return false;
+    }
+    else {
+        FrameData framedata;
+
+        framedata.isErrorPage = frame->loader()->documentLoader()->substituteData().isValid() &&
+                                !frame->loader()->documentLoader()->substituteData().failingURL().isEmpty();
+        framedata.pageCacheSupportsPlugins = frame->page()->settings()->pageCacheSupportsPlugins();
+        framedata.hasDocumentLoader = frame->loader()->documentLoader();
+        if (framedata.hasDocumentLoader) {
+            framedata.mainDocumentError = frame->loader()->documentLoader()->mainDocumentError().isNull();
+            framedata.isLoadingInAPISense = frame->loader()->documentLoader()->isLoadingInAPISense();
+            framedata.loaderIsStopping = frame->loader()->documentLoader()->isStopping();
+            framedata.appCacheDenied = !frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache();
+        }
+        framedata.containsPlugins = frame->loader()->subframeLoader()->containsPlugins();
+        framedata.protocol = frame->document()->url().protocol();
+        framedata.responseDenies = frame->loader()->documentLoader()->response().cacheControlContainsNoCache() ||
+                                   frame->loader()->documentLoader()->response().cacheControlContainsNoStore();
+        framedata.hasUnloadListener = frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent);
+#if ENABLE(SQL_DATABASE)
+        framedata.hasOpenDatabase = frame->document()->hasOpenDatabases();
+#endif
+#if ENABLE(SHARED_WORKERS)
+        framedata.hasSharedWorkers = SharedWorkerRepository::hasSharedWorkers(frame->document());
+#endif
+        framedata.usesGeolocation = frame->document()->usingGeolocation();
+        framedata.hasHistoryCurrentItem = frame->loader()->history()->currentItem();
+        framedata.quickRedirectComing = frame->loader()->quickRedirectComing();
+        framedata.canSuspendActiveDOMObjects = frame->document()->canSuspendActiveDOMObjects();
+        framedata.canCachePage = frame->loader()->client()->canCachePage();
+
+        return CanCacheFrameImpl(framedata);
+    }
+}
+
+// These *Impl functions implement the default page cache policy.
 bool PageCachePolicy::CanCachePageImpl() {
     bool canCachePage = true;
 
@@ -114,12 +205,20 @@ bool PageCachePolicy::CanCacheFrameImpl(const FrameData& framedata) {
         PolicyLog("   -Main document has an error");
         canCacheFrame = false;
     }
+    if (framedata.isErrorPage) {
+        PolicyLog("   -Frame is an error page");
+        canCacheFrame = false;
+    }
     if (framedata.containsPlugins && !framedata.pageCacheSupportsPlugins) {
         PolicyLog("   -Frame contains plugins, and the page cache settings do not support plugins.");
         canCacheFrame = false;
     }
     if (framedata.protocol == "https") {
         PolicyLog("   -Frame is HTTPS");
+        canCacheFrame = false;
+    }
+    if (framedata.responseDenies) {
+        PolicyLog("   -Frame response contains NoCache or NoStore");
         canCacheFrame = false;
     }
     if (framedata.hasUnloadListener) {
@@ -173,63 +272,5 @@ bool PageCachePolicy::CanCacheFrameImpl(const FrameData& framedata) {
     
     return canCacheFrame;
 }
-
-bool PageCachePolicy::CanCacheFrame(Frame* frame)
-{
-    ++m_logIndentLevel;
-
-    for (Frame* child = frame->tree()->firstChild(); child; child = child->tree()->nextSibling()) {
-        KURL currentURL = frame->loader()->documentLoader() ? frame->loader()->documentLoader()->url() : KURL();
-        KURL newURL = frame->loader()->provisionalDocumentLoader() ? frame->loader()->provisionalDocumentLoader()->url() : KURL();
-        if (newURL.isEmpty())
-            PolicyLog(makeString(" Determining if subframe with URL(", currentURL.string(), ") can be cached:"));
-        else
-            PolicyLog(makeString(" Determining if frame can be cached navigating from (", currentURL.string(), ") to (", newURL.string(), "):"));
-                      
-        if (!CanCacheFrame(child)) {
-            PolicyLog(" Frame CANNOT be cached");
-            --m_logIndentLevel;
-            return false;
-        }
-        PolicyLog(" Frame CAN be cached");
-    }
-
-    --m_logIndentLevel;
-    if (!frame->loader()->documentLoader()) {
-        PolicyLog(" -There is no DocumentLoader object");
-        return false;
-    }
-    else {
-        FrameData framedata;
-
-        // error pages?
-
-        framedata.pageCacheSupportsPlugins = frame->page()->settings()->pageCacheSupportsPlugins();
-        framedata.hasDocumentLoader = frame->loader()->documentLoader();
-        if (framedata.hasDocumentLoader) {
-            framedata.mainDocumentError = frame->loader()->documentLoader()->mainDocumentError().isNull();
-            framedata.isLoadingInAPISense = frame->loader()->documentLoader()->isLoadingInAPISense();
-            framedata.loaderIsStopping = frame->loader()->documentLoader()->isStopping();
-            framedata.appCacheDenied = !frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache();
-        }
-        framedata.containsPlugins = frame->loader()->subframeLoader()->containsPlugins();
-        framedata.protocol = frame->document()->url().protocol();
-        framedata.hasUnloadListener = frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent);
-#if ENABLE(SQL_DATABASE)
-        framedata.hasOpenDatabase = frame->document()->hasOpenDatabases();
-#endif
-#if ENABLE(SHARED_WORKERS)
-        framedata.hasSharedWorkers = SharedWorkerRepository::hasSharedWorkers(frame->document());
-#endif
-        framedata.usesGeolocation = frame->document()->usingGeolocation();
-        framedata.hasHistoryCurrentItem = frame->loader()->history()->currentItem();
-        framedata.quickRedirectComing = frame->loader()->quickRedirectComing();
-        framedata.canSuspendActiveDOMObjects = frame->document()->canSuspendActiveDOMObjects();
-        framedata.canCachePage = frame->loader()->client()->canCachePage();
-
-        return CanCacheFrameImpl(framedata);
-    }
-}
-
 
 } // namespace WebCore
