@@ -25,8 +25,8 @@ PageCachePolicy::PageCachePolicy(Page* page)
     : m_backForwardIsActive(page->backForward()->isActive())
     , m_settingsAllowPageCache(page->settings()->usesPageCache())
 #if ENABLE(DEVICE_ORIENTATION)
-    , m_deviceMotionIsActive(page->deviceMotionController() && page->deviceMotionController()->isActive())
-    , m_deviceOrientationIsActive(page->deviceOrientationController() && page->deviceOrientationController()->isActive())
+    , m_deviceMotionIsActive(DeviceMotionController::isActiveAt(page))
+    , m_deviceOrientationIsActive(DeviceMotionController::isActiveAt(page))
 #endif
     , m_loadType(page->mainFrame()->loader()->loadType())
     , m_page(page)
@@ -43,12 +43,16 @@ PageCachePolicy::FactoryFunction* PageCachePolicy::GetFactory() {
     return s_factory;
 }
 
+void PageCachePolicy::SetFactory(FactoryFunction* newfactory) {
+    s_factory = newfactory;
+}
+
 bool PageCachePolicy::CanCachePage()
 {
     PolicyLog("--------\n Determining if page can be cached:");
 
-    bool canCacheMainFrame = CanCacheFrame(m_page->mainFrame());
-    bool canCachePage = CanCachePageImpl();
+    const bool canCachePage = CanCachePageImpl();
+    const bool canCacheMainFrame = CanCacheFrame(m_page->mainFrame());
 
     if (canCacheMainFrame && canCachePage)
         PolicyLog(" Page CAN be cached\n--------");

@@ -27,7 +27,7 @@ namespace WebCore {
         PageCachePolicy(Page*);
         bool CanCachePage();
 
-        static PassOwnPtr<PageCachePolicy> DefaultFactoryFunction(Page*);
+        static void SetFactory(FactoryFunction*);
         static FactoryFunction* GetFactory();
 
     protected:
@@ -72,6 +72,7 @@ namespace WebCore {
         FrameLoadType m_loadType;
 
     private:
+        static PassOwnPtr<PageCachePolicy> DefaultFactoryFunction(Page*);
         bool CanCacheFrame(Frame*);
         
         static FactoryFunction* s_factory;
