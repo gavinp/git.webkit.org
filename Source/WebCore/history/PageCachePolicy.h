@@ -37,7 +37,7 @@
 #include <wtf/Noncopyable.h>
 #include <wtf/PassOwnPtr.h>
 #include <wtf/text/WTFString.h>
-#include <loader/FrameLoaderTypes.h>
+#include "FrameLoaderTypes.h"
 
 namespace WebCore {
     class Frame;
