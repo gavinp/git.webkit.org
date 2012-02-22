@@ -42,6 +42,7 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
+#include "Logging.h"
 #include "Settings.h"
 #include "SharedWorkerRepository.h"
 
@@ -95,7 +96,6 @@ void PageCachePolicy::PolicyLog(const String& message)
 {
     LOG(PageCache, "%*s%s", m_logIndentLevel*4, "", message.utf8().data());
 }
-
 
 bool PageCachePolicy::CanCacheFrame(Frame* frame)
 {

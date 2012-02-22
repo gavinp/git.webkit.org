@@ -49,6 +49,7 @@ namespace WebCore {
         typedef PassOwnPtr<PageCachePolicy> (FactoryFunction)(Page*);
 
         PageCachePolicy(Page*);
+        virtual ~PageCachePolicy();
         bool CanCachePage();
 
         static void SetFactory(FactoryFunction*);
