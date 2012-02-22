@@ -81,8 +81,8 @@ bool PageCachePolicy::CanCachePage()
 {
     PolicyLog("--------\n Determining if page can be cached:");
 
-    const bool canCachePage = CanCachePageImpl();
     const bool canCacheMainFrame = CanCacheFrame(m_page->mainFrame());
+    const bool canCachePage = CanCachePageImpl();
 
     if (canCacheMainFrame && canCachePage)
         PolicyLog(" Page CAN be cached\n--------");
@@ -122,38 +122,36 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
         PolicyLog(" -There is no DocumentLoader object");
         return false;
     }
-    else {
-        FrameData framedata;
+    FrameData framedata;
 
-        framedata.isErrorPage = frame->loader()->documentLoader()->substituteData().isValid() &&
-                                !frame->loader()->documentLoader()->substituteData().failingURL().isEmpty();
-        framedata.pageCacheSupportsPlugins = frame->page()->settings()->pageCacheSupportsPlugins();
-        framedata.hasDocumentLoader = frame->loader()->documentLoader();
-        if (framedata.hasDocumentLoader) {
-            framedata.mainDocumentError = frame->loader()->documentLoader()->mainDocumentError().isNull();
-            framedata.isLoadingInAPISense = frame->loader()->documentLoader()->isLoadingInAPISense();
-            framedata.loaderIsStopping = frame->loader()->documentLoader()->isStopping();
-            framedata.appCacheDenied = !frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache();
-        }
-        framedata.containsPlugins = frame->loader()->subframeLoader()->containsPlugins();
-        framedata.protocol = frame->document()->url().protocol();
-        framedata.responseDenies = frame->loader()->documentLoader()->response().cacheControlContainsNoCache() ||
-                                   frame->loader()->documentLoader()->response().cacheControlContainsNoStore();
-        framedata.hasUnloadListener = frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent);
+    framedata.isErrorPage = frame->loader()->documentLoader()->substituteData().isValid() &&
+                            !frame->loader()->documentLoader()->substituteData().failingURL().isEmpty();
+    framedata.pageCacheSupportsPlugins = frame->page()->settings()->pageCacheSupportsPlugins();
+    framedata.hasDocumentLoader = frame->loader()->documentLoader();
+    if (framedata.hasDocumentLoader) {
+        framedata.mainDocumentError = frame->loader()->documentLoader()->mainDocumentError().isNull();
+        framedata.isLoadingInAPISense = frame->loader()->documentLoader()->isLoadingInAPISense();
+        framedata.loaderIsStopping = frame->loader()->documentLoader()->isStopping();
+        framedata.appCacheDenied = !frame->loader()->documentLoader()->applicationCacheHost()->canCacheInPageCache();
+    }
+    framedata.containsPlugins = frame->loader()->subframeLoader()->containsPlugins();
+    framedata.protocol = frame->document()->url().protocol();
+    framedata.responseDenies = frame->loader()->documentLoader()->response().cacheControlContainsNoCache() ||
+                               frame->loader()->documentLoader()->response().cacheControlContainsNoStore();
+    framedata.hasUnloadListener = frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent);
 #if ENABLE(SQL_DATABASE)
-        framedata.hasOpenDatabase = frame->document()->hasOpenDatabases();
+    framedata.hasOpenDatabase = frame->document()->hasOpenDatabases();
 #endif
 #if ENABLE(SHARED_WORKERS)
-        framedata.hasSharedWorkers = SharedWorkerRepository::hasSharedWorkers(frame->document());
+    framedata.hasSharedWorkers = SharedWorkerRepository::hasSharedWorkers(frame->document());
 #endif
-        framedata.usesGeolocation = frame->document()->usingGeolocation();
-        framedata.hasHistoryCurrentItem = frame->loader()->history()->currentItem();
-        framedata.quickRedirectComing = frame->loader()->quickRedirectComing();
-        framedata.canSuspendActiveDOMObjects = frame->document()->canSuspendActiveDOMObjects();
-        framedata.canCachePage = frame->loader()->client()->canCachePage();
+    framedata.usesGeolocation = frame->document()->usingGeolocation();
+    framedata.hasHistoryCurrentItem = frame->loader()->history()->currentItem();
+    framedata.quickRedirectComing = frame->loader()->quickRedirectComing();
+    framedata.canSuspendActiveDOMObjects = frame->document()->canSuspendActiveDOMObjects();
+    framedata.canCachePage = frame->loader()->client()->canCachePage();
 
-        return CanCacheFrameImpl(framedata);
-    }
+    return CanCacheFrameImpl(framedata);
 }
 
 // These *Impl functions implement the default page cache policy.

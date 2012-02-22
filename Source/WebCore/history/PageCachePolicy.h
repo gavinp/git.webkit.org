@@ -39,10 +39,6 @@
 #include <wtf/text/WTFString.h>
 #include <loader/FrameLoaderTypes.h>
 
-/* encapsulate policy for page cache, plus give implementations
- * a chance to instrument for perf measurement
- */
-
 namespace WebCore {
     class Frame;
     class Page;
