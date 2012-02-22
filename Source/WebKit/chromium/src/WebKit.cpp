@@ -39,7 +39,6 @@
 #include "V8Binding.h"
 #include "WebKitMutationObserver.h"
 #include "platform/WebKitPlatformSupport.h"
-#include "platform/chromium/PageCachePolicyChromium.h"
 #include "WebMediaPlayerClientImpl.h"
 #include "WebSocket.h"
 #include "platform/WebThread.h"
@@ -123,8 +122,6 @@ void initializeWithoutV8(WebKitPlatformSupport* webKitPlatformSupport)
     WTF::initializeThreading();
     WTF::initializeMainThread();
     WTF::AtomicString::init();
-
-    WebCore::InitPageCachePolicyChromium();
 
     // There are some code paths (for example, running WebKit in the browser
     // process and calling into LocalStorage before anything else) where the

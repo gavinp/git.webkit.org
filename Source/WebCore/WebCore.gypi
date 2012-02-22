@@ -2930,8 +2930,6 @@
             'platform/chromium/LanguageChromium.cpp',
             'platform/chromium/LinkHashChromium.cpp',
             'platform/chromium/MIMETypeRegistryChromium.cpp',
-            'platform/chromium/PageCachePolicyChromium.cpp',
-            'platform/chromium/PageCachePolicyChromium.h',
             'platform/chromium/PasteboardChromium.cpp',
             'platform/chromium/PasteboardPrivate.h',
             'platform/chromium/PlatformCursor.h',
