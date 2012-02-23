@@ -1,3 +1,38 @@
+2012-02-22  Gavin Peters  <gavinp@chromium.org>
+
+        Separate PageCachePolicy from PageCache action
+        https://bugs.webkit.org/show_bug.cgi?id=79269
+
+        Reviewed by NOBODY (OOPS!).
+
+        This refactor separates out pagecache policy from the page cache
+        itself.  It also adds a factory mechanism, so that ports that want
+        to have distinct policies can override the default.
+
+        No new tests: it's a refactor.
+
+        * WebCore.gypi:
+        * history/PageCache.cpp:
+        (WebCore):
+        (WebCore::PageCache::canCache):
+        * history/PageCache.h:
+        (PageCache):
+        * history/PageCachePolicy.cpp: Added.
+        (WebCore):
+        (WebCore::PageCachePolicy::PageCachePolicy):
+        (WebCore::PageCachePolicy::DefaultFactoryFunction):
+        (WebCore::PageCachePolicy::GetFactory):
+        (WebCore::PageCachePolicy::SetFactory):
+        (WebCore::PageCachePolicy::CanCachePage):
+        (WebCore::PageCachePolicy::PolicyLog):
+        (WebCore::PageCachePolicy::CanCacheFrame):
+        (WebCore::PageCachePolicy::CanCachePageImpl):
+        (WebCore::PageCachePolicy::CanCacheFrameImpl):
+        * history/PageCachePolicy.h: Added.
+        (WebCore):
+        (PageCachePolicy):
+        (FrameData):
+
 2012-02-20  Adam Barth  <abarth@webkit.org>
 
         Unite TextTrack-related files with their friends in WebCore/html/track

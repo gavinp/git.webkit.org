@@ -33,7 +33,6 @@
 #include "PageCachePolicy.h"
 
 #include "ApplicationCacheHost.h"
-#include "Page.h"
 #include "BackForwardController.h"
 #include "DeviceMotionController.h"
 #include "DeviceOrientationController.h"
@@ -42,6 +41,7 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
+#include "Page.h"
 #include "Settings.h"
 #include "SharedWorkerRepository.h"
 
@@ -60,7 +60,7 @@ PageCachePolicy::PageCachePolicy(Page* page)
 #endif
     , m_loadType(page->mainFrame()->loader()->loadType())
     , m_page(page)
-    , m_logIndentLevel( 0)
+    , m_logIndentLevel(0)
 {
 }
 
@@ -69,11 +69,13 @@ PassOwnPtr<PageCachePolicy> PageCachePolicy::DefaultFactoryFunction(Page* page)
     return adoptPtr(new PageCachePolicy(page));
 }
 
-PageCachePolicy::FactoryFunction* PageCachePolicy::GetFactory() {
+PageCachePolicy::FactoryFunction* PageCachePolicy::GetFactory()
+{
     return s_factory;
 }
 
-void PageCachePolicy::SetFactory(FactoryFunction* newfactory) {
+void PageCachePolicy::SetFactory(FactoryFunction* newfactory)
+{
     s_factory = newfactory;
 }
 
@@ -124,8 +126,8 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
     }
     FrameData framedata;
 
-    framedata.isErrorPage = frame->loader()->documentLoader()->substituteData().isValid() &&
-                            !frame->loader()->documentLoader()->substituteData().failingURL().isEmpty();
+    framedata.isErrorPage = frame->loader()->documentLoader()->substituteData().isValid()
+                            && !frame->loader()->documentLoader()->substituteData().failingURL().isEmpty();
     framedata.pageCacheSupportsPlugins = frame->page()->settings()->pageCacheSupportsPlugins();
     framedata.hasDocumentLoader = frame->loader()->documentLoader();
     if (framedata.hasDocumentLoader) {
@@ -136,8 +138,8 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
     }
     framedata.containsPlugins = frame->loader()->subframeLoader()->containsPlugins();
     framedata.protocol = frame->document()->url().protocol();
-    framedata.responseDenies = frame->loader()->documentLoader()->response().cacheControlContainsNoCache() ||
-                               frame->loader()->documentLoader()->response().cacheControlContainsNoStore();
+    framedata.responseDenies = frame->loader()->documentLoader()->response().cacheControlContainsNoCache()
+                               || frame->loader()->documentLoader()->response().cacheControlContainsNoStore();
     framedata.hasUnloadListener = frame->domWindow() && frame->domWindow()->hasEventListeners(eventNames().unloadEvent);
 #if ENABLE(SQL_DATABASE)
     framedata.hasOpenDatabase = frame->document()->hasOpenDatabases();
@@ -155,7 +157,8 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
 }
 
 // These *Impl functions implement the default page cache policy.
-bool PageCachePolicy::CanCachePageImpl() {
+bool PageCachePolicy::CanCachePageImpl()
+{
     bool canCachePage = true;
 
     if (!m_backForwardIsActive) {
@@ -179,12 +182,10 @@ bool PageCachePolicy::CanCachePageImpl() {
     if (m_loadType == FrameLoadTypeReload) {
         PolicyLog("   -Load type is: Reload");
         canCachePage = false;
-    }
-    else if (m_loadType == FrameLoadTypeReloadFromOrigin) {
+    } else if (m_loadType == FrameLoadTypeReloadFromOrigin) {
         PolicyLog("   -Load type is: Reload from origin");
         canCachePage = false;
-    }
-    else if (m_loadType == FrameLoadTypeSame) {
+    } else if (m_loadType == FrameLoadTypeSame) {
         PolicyLog("   -Load type is: Same");
         canCachePage = false;
     }
@@ -193,7 +194,8 @@ bool PageCachePolicy::CanCachePageImpl() {
     return canCachePage;
 }
 
-bool PageCachePolicy::CanCacheFrameImpl(const FrameData& framedata) {
+bool PageCachePolicy::CanCacheFrameImpl(const FrameData& framedata)
+{
     if (!framedata.hasDocumentLoader) {
         PolicyLog("   -There is no DocumentLoader object");
         return false;

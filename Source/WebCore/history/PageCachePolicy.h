@@ -32,77 +32,79 @@
 #ifndef PageCachePolicy_h
 #define PageCachePolicy_h
 
+#include <loader/FrameLoaderTypes.h>
 #include <wtf/FastAllocBase.h>
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/PassOwnPtr.h>
 #include <wtf/text/WTFString.h>
-#include <loader/FrameLoaderTypes.h>
 
 namespace WebCore {
-    class Frame;
-    class Page;
 
-    class PageCachePolicy  {
-        WTF_MAKE_NONCOPYABLE(PageCachePolicy); WTF_MAKE_FAST_ALLOCATED;
-    public:
-        typedef PassOwnPtr<PageCachePolicy> (FactoryFunction)(Page*);
+class Frame;
+class Page;
 
-        PageCachePolicy(Page*);
-        bool CanCachePage();
+class PageCachePolicy  {
+    WTF_MAKE_NONCOPYABLE(PageCachePolicy);
+    WTF_MAKE_FAST_ALLOCATED;
+public:
+    typedef PassOwnPtr<PageCachePolicy> (FactoryFunction)(Page*);
 
-        static void SetFactory(FactoryFunction*);
-        static FactoryFunction* GetFactory();
+    PageCachePolicy(Page*);
+    bool CanCachePage();
 
-    protected:
-        struct FrameData {
-            bool isErrorPage;
-            bool pageCacheSupportsPlugins;
-            bool hasDocumentLoader;
-            bool mainDocumentError;
-            bool containsPlugins;
-            String protocol;
-            bool responseDenies;
-            bool hasUnloadListener;
+    static void SetFactory(FactoryFunction*);
+    static FactoryFunction* GetFactory();
+
+protected:
+    struct FrameData {
+        bool isErrorPage;
+        bool pageCacheSupportsPlugins;
+        bool hasDocumentLoader;
+        bool mainDocumentError;
+        bool containsPlugins;
+        String protocol;
+        bool responseDenies;
+        bool hasUnloadListener;
 #if ENABLE(SQL_DATABASE)
-            bool hasOpenDatabase;
+        bool hasOpenDatabase;
 #endif
 #if ENABLE(SHARED_WORKERS)
-            bool hasSharedWorkers;
+        bool hasSharedWorkers;
 #endif                                   
-            bool usesGeolocation;
-            bool hasHistoryCurrentItem;
-            bool quickRedirectComing;
-            bool isLoadingInAPISense;
-            bool loaderIsStopping;
-            bool canSuspendActiveDOMObjects;
-            bool appCacheDenied;
-            bool canCachePage;
-        };
-
-        void PolicyLog(const String&);
-
-        // Override these two functions for alternative policies.
-        virtual bool CanCacheFrameImpl(const FrameData&);
-        virtual bool CanCachePageImpl();
-
-        // Page level parameters
-        bool m_backForwardIsActive;
-        bool m_settingsAllowPageCache;
-        bool m_settingsAllowsPlugins;
-#if ENABLE(DEVICE_ORIENTATION)
-        bool m_deviceMotionIsActive;
-        bool m_deviceOrientationIsActive;
-#endif
-        FrameLoadType m_loadType;
-    private:
-        static PassOwnPtr<PageCachePolicy> DefaultFactoryFunction(Page*);
-        bool CanCacheFrame(Frame*);
-        
-        static FactoryFunction* s_factory;
-        Page* m_page;
-        int m_logIndentLevel;
+        bool usesGeolocation;
+        bool hasHistoryCurrentItem;
+        bool quickRedirectComing;
+        bool isLoadingInAPISense;
+        bool loaderIsStopping;
+        bool canSuspendActiveDOMObjects;
+        bool appCacheDenied;
+        bool canCachePage;
     };
+
+    void PolicyLog(const String&);
+
+    // Override these two functions for alternative policies.
+    virtual bool CanCacheFrameImpl(const FrameData&);
+    virtual bool CanCachePageImpl();
+
+    // Page level parameters
+    bool m_backForwardIsActive;
+    bool m_settingsAllowPageCache;
+    bool m_settingsAllowsPlugins;
+#if ENABLE(DEVICE_ORIENTATION)
+    bool m_deviceMotionIsActive;
+    bool m_deviceOrientationIsActive;
+#endif
+    FrameLoadType m_loadType;
+private:
+    static PassOwnPtr<PageCachePolicy> DefaultFactoryFunction(Page*);
+    bool CanCacheFrame(Frame*);
+        
+    static FactoryFunction* s_factory;
+    Page* m_page;
+    int m_logIndentLevel;
+};
 
 } // namespace WebCore
 
