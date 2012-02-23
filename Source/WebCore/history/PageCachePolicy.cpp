@@ -65,6 +65,10 @@ PageCachePolicy::PageCachePolicy(Page* page)
 {
 }
 
+PageCachePolicy::~PageCachePolicy()
+{
+}
+
 PassOwnPtr<PageCachePolicy> PageCachePolicy::DefaultFactoryFunction(Page* page)
 {
     return adoptPtr(new PageCachePolicy(page));
