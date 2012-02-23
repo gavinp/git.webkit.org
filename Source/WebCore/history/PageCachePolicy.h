@@ -32,12 +32,12 @@
 #ifndef PageCachePolicy_h
 #define PageCachePolicy_h
 
-#include <loader/FrameLoaderTypes.h>
 #include <wtf/FastAllocBase.h>
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/PassOwnPtr.h>
 #include <wtf/text/WTFString.h>
+#include "FrameLoaderTypes.h"
 
 namespace WebCore {
 
@@ -51,6 +51,7 @@ public:
     typedef PassOwnPtr<PageCachePolicy> (FactoryFunction)(Page*);
 
     PageCachePolicy(Page*);
+    virtual ~PageCachePolicy();
     bool CanCachePage();
 
     static void SetFactory(FactoryFunction*);
