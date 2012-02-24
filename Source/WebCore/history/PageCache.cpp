@@ -78,11 +78,7 @@ bool PageCache::canCache(Page* page)
 {
     if (!page)
         return false;
-    
-    PageCachePolicy::FactoryFunction* pageCachePolicyFactory = PageCachePolicy::GetFactory();
-    OwnPtr<PageCachePolicy> pageCachePolicy = pageCachePolicyFactory(page);
-
-    return pageCachePolicy->CanCachePage();
+    return PageCachePolicy(page).canCachePage();
 }
 
 void PageCache::setCapacity(int capacity)

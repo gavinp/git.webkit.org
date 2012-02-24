@@ -50,8 +50,6 @@ using namespace std;
 
 namespace WebCore {
 
-PageCachePolicy::FactoryFunction* PageCachePolicy::s_factory = PageCachePolicy::DefaultFactoryFunction;
-
 PageCachePolicy::PageCachePolicy(Page* page) 
     : m_backForwardIsActive(page->backForward()->isActive())
     , m_settingsAllowPageCache(page->settings()->usesPageCache())
@@ -65,45 +63,26 @@ PageCachePolicy::PageCachePolicy(Page* page)
 {
 }
 
-PageCachePolicy::~PageCachePolicy()
+bool PageCachePolicy::canCachePage()
 {
-}
+    policyLog("--------\n Determining if page can be cached:");
 
-PassOwnPtr<PageCachePolicy> PageCachePolicy::DefaultFactoryFunction(Page* page)
-{
-    return adoptPtr(new PageCachePolicy(page));
-}
-
-PageCachePolicy::FactoryFunction* PageCachePolicy::GetFactory()
-{
-    return s_factory;
-}
-
-void PageCachePolicy::SetFactory(FactoryFunction* newfactory)
-{
-    s_factory = newfactory;
-}
-
-bool PageCachePolicy::CanCachePage()
-{
-    PolicyLog("--------\n Determining if page can be cached:");
-
-    const bool canCacheMainFrame = CanCacheFrame(m_page->mainFrame());
-    const bool canCachePage = CanCachePageImpl();
+    const bool canCacheMainFrame = canCacheFrame(m_page->mainFrame());
+    const bool canCachePage = canCachePageImpl();
 
     if (canCacheMainFrame && canCachePage)
-        PolicyLog(" Page CAN be cached\n--------");
+        policyLog(" Page CAN be cached\n--------");
     else
-        PolicyLog(" Page CANNOT be cached\n--------");
+        policyLog(" Page CANNOT be cached\n--------");
     return canCacheMainFrame && canCachePage;
 }
 
-void PageCachePolicy::PolicyLog(const String& message)
+void PageCachePolicy::policyLog(const String& message)
 {
     LOG(PageCache, "%*s%s", m_logIndentLevel*4, "", message.utf8().data());
 }
 
-bool PageCachePolicy::CanCacheFrame(Frame* frame)
+bool PageCachePolicy::canCacheFrame(Frame* frame)
 {
     ++m_logIndentLevel;
 
@@ -111,21 +90,21 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
         KURL currentURL = frame->loader()->documentLoader() ? frame->loader()->documentLoader()->url() : KURL();
         KURL newURL = frame->loader()->provisionalDocumentLoader() ? frame->loader()->provisionalDocumentLoader()->url() : KURL();
         if (newURL.isEmpty())
-            PolicyLog(makeString(" Determining if subframe with URL(", currentURL.string(), ") can be cached:"));
+            policyLog(makeString(" Determining if subframe with URL(", currentURL.string(), ") can be cached:"));
         else
-            PolicyLog(makeString(" Determining if frame can be cached navigating from (", currentURL.string(), ") to (", newURL.string(), "):"));
+            policyLog(makeString(" Determining if frame can be cached navigating from (", currentURL.string(), ") to (", newURL.string(), "):"));
                       
-        if (!CanCacheFrame(child)) {
-            PolicyLog(" Frame CANNOT be cached");
+        if (!canCacheFrame(child)) {
+            policyLog(" Frame CANNOT be cached");
             --m_logIndentLevel;
             return false;
         }
-        PolicyLog(" Frame CAN be cached");
+        policyLog(" Frame CAN be cached");
     }
 
     --m_logIndentLevel;
     if (!frame->loader()->documentLoader()) {
-        PolicyLog(" -There is no DocumentLoader object");
+        policyLog(" -There is no DocumentLoader object");
         return false;
     }
     FrameData framedata;
@@ -157,40 +136,40 @@ bool PageCachePolicy::CanCacheFrame(Frame* frame)
     framedata.canSuspendActiveDOMObjects = frame->document()->canSuspendActiveDOMObjects();
     framedata.canCachePage = frame->loader()->client()->canCachePage();
 
-    return CanCacheFrameImpl(framedata);
+    return canCacheFrameImpl(framedata);
 }
 
 // These *Impl functions implement the default page cache policy.
-bool PageCachePolicy::CanCachePageImpl()
+bool PageCachePolicy::canCachePageImpl()
 {
     bool canCachePage = true;
 
     if (!m_backForwardIsActive) {
-        PolicyLog("   -The back/forward list is disabled or has 0 capacity.");
+        policyLog("   -The back/forward list is disabled or has 0 capacity.");
         canCachePage = false;
     }
     if (!m_settingsAllowPageCache) {
-        PolicyLog("   -Page settings says b/f cache disabled");
+        policyLog("   -Page settings says b/f cache disabled");
         canCachePage = false;
     }
 #if ENABLE(DEVICE_ORIENTATION)
     if (m_deviceMotionIsActive) {
-        PolicyLog("   -Page is using DeviceMotion");
+        policyLog("   -Page is using DeviceMotion");
         canCachePage = false;
     }
     if (m_deviceOrientationIsActive) {
-        PolicyLog("   -Page is using DeviceOrientation");
+        policyLog("   -Page is using DeviceOrientation");
         canCachePage = false;
     }
 #endif
     if (m_loadType == FrameLoadTypeReload) {
-        PolicyLog("   -Load type is: Reload");
+        policyLog("   -Load type is: Reload");
         canCachePage = false;
     } else if (m_loadType == FrameLoadTypeReloadFromOrigin) {
-        PolicyLog("   -Load type is: Reload from origin");
+        policyLog("   -Load type is: Reload from origin");
         canCachePage = false;
     } else if (m_loadType == FrameLoadTypeSame) {
-        PolicyLog("   -Load type is: Same");
+        policyLog("   -Load type is: Same");
         canCachePage = false;
     }
 
@@ -198,79 +177,79 @@ bool PageCachePolicy::CanCachePageImpl()
     return canCachePage;
 }
 
-bool PageCachePolicy::CanCacheFrameImpl(const FrameData& framedata)
+bool PageCachePolicy::canCacheFrameImpl(const FrameData& framedata)
 {
     if (!framedata.hasDocumentLoader) {
-        PolicyLog("   -There is no DocumentLoader object");
+        policyLog("   -There is no DocumentLoader object");
         return false;
     }
     bool canCacheFrame = true;
     if (framedata.mainDocumentError) {
-        PolicyLog("   -Main document has an error");
+        policyLog("   -Main document has an error");
         canCacheFrame = false;
     }
     if (framedata.isErrorPage) {
-        PolicyLog("   -Frame is an error page");
+        policyLog("   -Frame is an error page");
         canCacheFrame = false;
     }
     if (framedata.containsPlugins && !framedata.pageCacheSupportsPlugins) {
-        PolicyLog("   -Frame contains plugins, and the page cache settings do not support plugins.");
+        policyLog("   -Frame contains plugins, and the page cache settings do not support plugins.");
         canCacheFrame = false;
     }
     if (framedata.protocol == "https") {
-        PolicyLog("   -Frame is HTTPS");
+        policyLog("   -Frame is HTTPS");
         canCacheFrame = false;
     }
     if (framedata.responseDenies) {
-        PolicyLog("   -Frame response contains NoCache or NoStore");
+        policyLog("   -Frame response contains NoCache or NoStore");
         canCacheFrame = false;
     }
     if (framedata.hasUnloadListener) {
-        PolicyLog("   -Frame has an unload event listener");
+        policyLog("   -Frame has an unload event listener");
         canCacheFrame = false;
     }
 #if ENABLE(SQL_DATABASE)
     if (framedata.hasOpenDatabase) {
-        PolicyLog("   -Frame has one or more open database handles");
+        policyLog("   -Frame has one or more open database handles");
         canCacheFrame = false;
     }
 #endif
 #if ENABLE(SHARED_WORKERS)
     if (framedata.hasSharedWorkers) {
-        PolicyLog("   -Frame has associated SharedWorkers");
+        policyLog("   -Frame has associated SharedWorkers");
         canCacheFrame = false;
     }
 #endif
     if (framedata.usesGeolocation) {
-        PolicyLog("   -Frame uses Geolocation");
+        policyLog("   -Frame uses Geolocation");
         canCacheFrame = false;
     }
     if (framedata.hasHistoryCurrentItem) {
-        PolicyLog("   -No current history item");
+        policyLog("   -No current history item");
         canCacheFrame = false;
     }
     if (framedata.quickRedirectComing) {
-        PolicyLog("   -Quick redirect is coming");
+        policyLog("   -Quick redirect is coming");
         canCacheFrame = false;
     }
     if (framedata.isLoadingInAPISense) {
-        PolicyLog("   -DocumentLoader is still loading in API sense");
+        policyLog("   -DocumentLoader is still loading in API sense");
         canCacheFrame = false;
     }
     if (framedata.loaderIsStopping) {
-        PolicyLog("   -DocumentLoader is in the middle of stopping");
+        policyLog("   -DocumentLoader is in the middle of stopping");
         canCacheFrame = false;
     }
     if (!framedata.canSuspendActiveDOMObjects) {
-        PolicyLog("   -The document cannot suspend its active DOM Objects");
+        policyLog("   -The document cannot suspend its active DOM Objects");
         canCacheFrame = false;
     }
     if (framedata.appCacheDenied) {
-        PolicyLog("   -The application cache denied the page cache.");
+        policyLog("   -The application cache denied the page cache.");
         canCacheFrame = false;
     }
     if (!framedata.canCachePage) {
-        PolicyLog("   -The client says this frame cannot be cached");
+        policyLog("   -The client says this frame cannot be cached");
         canCacheFrame = false;
     }
     

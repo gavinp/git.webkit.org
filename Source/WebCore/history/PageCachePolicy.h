@@ -48,16 +48,10 @@ class PageCachePolicy  {
     WTF_MAKE_NONCOPYABLE(PageCachePolicy);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    typedef PassOwnPtr<PageCachePolicy> (FactoryFunction)(Page*);
+    explicit PageCachePolicy(Page*);
 
-    PageCachePolicy(Page*);
-    virtual ~PageCachePolicy();
-    bool CanCachePage();
-
-    static void SetFactory(FactoryFunction*);
-    static FactoryFunction* GetFactory();
-
-protected:
+    bool canCachePage();
+private:
     struct FrameData {
         bool isErrorPage;
         bool pageCacheSupportsPlugins;
@@ -83,11 +77,11 @@ protected:
         bool canCachePage;
     };
 
-    void PolicyLog(const String&);
+    bool canCacheFrame(Frame*);
+    void policyLog(const String&);
 
-    // Override these two functions for alternative policies.
-    virtual bool CanCacheFrameImpl(const FrameData&);
-    virtual bool CanCachePageImpl();
+    bool canCacheFrameImpl(const FrameData&);
+    bool canCachePageImpl();
 
     // Page level parameters
     bool m_backForwardIsActive;
@@ -98,11 +92,7 @@ protected:
     bool m_deviceOrientationIsActive;
 #endif
     FrameLoadType m_loadType;
-private:
-    static PassOwnPtr<PageCachePolicy> DefaultFactoryFunction(Page*);
-    bool CanCacheFrame(Frame*);
         
-    static FactoryFunction* s_factory;
     Page* m_page;
     int m_logIndentLevel;
 };
