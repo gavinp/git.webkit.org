@@ -124,6 +124,9 @@ public:
     WEBKIT_EXPORT void setChildren(const WebVector<WebHistoryItem>&);
     WEBKIT_EXPORT void appendToChildren(const WebHistoryItem&);
 
+    WEBKIT_EXPORT void setShouldValidate(bool);
+    WEBKIT_EXPORT bool shouldValidate() const;
+
 #if WEBKIT_IMPLEMENTATION
     WebHistoryItem(const WTF::PassRefPtr<WebCore::HistoryItem>&);
     WebHistoryItem& operator=(const WTF::PassRefPtr<WebCore::HistoryItem>&);

@@ -210,6 +210,9 @@ public:
 
     void markForFullStyleRecalc();
 
+    void setShouldValidate(const bool shouldValidate) { m_shouldValidate = shouldValidate; }
+    bool shouldValidate() const { return m_shouldValidate; }
+
 private:
     HistoryItem();
     HistoryItem(const String& urlString, const String& title, double lastVisited);
@@ -289,6 +292,7 @@ private:
     QVariant m_userData;
 #endif
 
+    bool m_shouldValidate; // Do not serialize this, instead set it based on session, etc...
 }; //class HistoryItem
 
 } //namespace WebCore

@@ -2576,8 +2576,6 @@ void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadTyp
             request.setCachePolicy(UseProtocolCachePolicy);
     } else if (loadType == FrameLoadTypeReload || loadType == FrameLoadTypeReloadFromOrigin || request.isConditional())
         request.setCachePolicy(ReloadIgnoringCacheData);
-    else if (isBackForwardLoadType(loadType) && m_stateMachine.committedFirstRealDocumentLoad())
-        request.setCachePolicy(ReturnCacheDataElseLoad);
         
     if (request.cachePolicy() == ReloadIgnoringCacheData) {
         if (loadType == FrameLoadTypeReload)
@@ -3148,10 +3146,12 @@ void FrameLoader::loadDifferentDocumentItem(HistoryItem* item, FrameLoadType loa
             case FrameLoadTypeBack:
             case FrameLoadTypeForward:
             case FrameLoadTypeIndexedBackForward:
-                // If the first load within a frame is a navigation within a back/forward list that was attached 
-                // without any of the items being loaded then we should use the default caching policy (<rdar://problem/8131355>).
-                if (m_stateMachine.committedFirstRealDocumentLoad() && !itemURL.protocolIs("https"))
-                    request.setCachePolicy(ReturnCacheDataElseLoad);
+#if !PLATFORM(CHROMIUM) 
+                // On platforms that do not set shouldValidate() based on session history, we use the state machine
+                // as a proxy for if this history item has been loaded in this session.
+                if (!m_stateMachine.committedFirstRealDocumentLoad())
+                    item->setShouldValidate(false);
+#endif    
                 break;
             case FrameLoadTypeStandard:
             case FrameLoadTypeRedirectWithLockedBackForwardList:
@@ -3167,6 +3167,9 @@ void FrameLoader::loadDifferentDocumentItem(HistoryItem* item, FrameLoadType loa
         requestForOriginalURL.setURL(itemOriginalURL);
         action = NavigationAction(requestForOriginalURL, loadType, false);
     }
+
+    if (!item->shouldValidate())
+        request.setCachePolicy(ReturnCacheDataElseLoad);
 
     loadWithNavigationAction(request, action, false, loadType, 0);
 }

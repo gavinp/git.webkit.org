@@ -69,6 +69,7 @@ HistoryItem::HistoryItem()
     , m_documentSequenceNumber(generateSequenceNumber())
     , m_next(0)
     , m_prev(0)
+    , m_shouldValidate(false)
 {
 }
 
@@ -86,6 +87,7 @@ HistoryItem::HistoryItem(const String& urlString, const String& title, double ti
     , m_documentSequenceNumber(generateSequenceNumber())
     , m_next(0)
     , m_prev(0)
+    , m_shouldValidate(false)
 {    
     iconDatabase().retainIconForPageURL(m_urlString);
 }
@@ -105,6 +107,7 @@ HistoryItem::HistoryItem(const String& urlString, const String& title, const Str
     , m_documentSequenceNumber(generateSequenceNumber())
     , m_next(0)
     , m_prev(0)
+    , m_shouldValidate(false)
 {
     iconDatabase().retainIconForPageURL(m_urlString);
 }
@@ -125,6 +128,7 @@ HistoryItem::HistoryItem(const KURL& url, const String& target, const String& pa
     , m_documentSequenceNumber(generateSequenceNumber())
     , m_next(0)
     , m_prev(0)
+    , m_shouldValidate(false)
 {    
     iconDatabase().retainIconForPageURL(m_urlString);
 }
@@ -156,6 +160,7 @@ inline HistoryItem::HistoryItem(const HistoryItem& item)
     , m_itemSequenceNumber(item.m_itemSequenceNumber)
     , m_documentSequenceNumber(item.m_documentSequenceNumber)
     , m_formContentType(item.m_formContentType)
+    , m_shouldValidate(item.m_shouldValidate)
 {
     if (item.m_formData)
         m_formData = item.m_formData->copy();
@@ -204,6 +209,8 @@ void HistoryItem::reset()
 
     m_formData = 0;
     m_formContentType = String();
+
+    m_shouldValidate = false;
 
     clearChildren();
 }

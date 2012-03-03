@@ -287,6 +287,17 @@ void WebHistoryItem::appendToChildren(const WebHistoryItem& item)
     m_private->addChildItem(item);
 }
 
+void WebHistoryItem::setShouldValidate(const bool shouldValidate)
+{
+    ensureMutable();
+    m_private->setShouldValidate(shouldValidate);
+}
+
+bool WebHistoryItem::shouldValidate() const
+{
+    return m_private->shouldValidate();
+}
+
 WebHistoryItem::WebHistoryItem(const PassRefPtr<HistoryItem>& item)
     : m_private(item)
 {
