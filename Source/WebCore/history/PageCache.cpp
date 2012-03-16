@@ -272,6 +272,30 @@ static void logCanCachePageDecision(Page* page)
             HistogramSupport::histogramEnumeration("PageCache.FrameRejectReasonByPage", i, NumberOfReasonsFramesCannotBeInPageCache);
         }
     }
+#if PLATFORM(CHROMIUM)
+    // This strangely specific histogram is particular to chromium: as of 2012-03-16, the FrameClientImpl always denies caching, so
+    // of particular interest are solitary reasons other than the frameRejectReasons. If we didn't get to the ClientDeniesCaching, we
+    // took the early exit for the boring reason NoDocumentLoader, so we should have only one reason, and not two.
+    // FIXME: remove this histogram after data is gathered.
+    if (frameReasonCount == 2) {
+        ASSERT(frameRejectReasons & (1 << ClientDeniesCaching));
+        const unsigned v = frameRejectReasons & ~(1 << ClientDeniesCaching);
+        // find the index of the single bit set in v.
+        int index = 0;
+        if (v & 0xFFFF0000)
+            index = 16;
+        if (v & 0xFF00FF00)
+            index += 8;
+        if (v & 0xF0F0F0F0)
+            index += 4;
+        if (v & 0xCCCCCCCC)
+            index += 2;
+        if (v & 0xAAAAAAAA)
+            index += 1;
+        HistogramSupport::histogramEnumeration("PageCache.FrameRejectReasonByPageWhenSingleExcludingFrameClient", index, NumberOfReasonsPagesCannotBeInPageCache);
+    }
+#endif
+
     HistogramSupport::histogramEnumeration("PageCache.FrameRejectReasonCountByPage", frameReasonCount, 1 + NumberOfReasonsFramesCannotBeInPageCache);
 }
 
