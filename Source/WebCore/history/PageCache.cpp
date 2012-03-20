@@ -83,6 +83,21 @@ enum ReasonFrameCannotBeInPageCache {
 };
 COMPILE_ASSERT(NumberOfReasonsFramesCannotBeInPageCache <= sizeof(unsigned)*8, ReasonFrameCannotBeInPageCacheDoesNotFitInBitmap);
 
+static int indexOfSingleBit(int32 v) {
+    int index = 0;
+    if (v & 0xFFFF0000)
+        index = 16;
+    if (v & 0xFF00FF00)
+        index += 8;
+    if (v & 0xF0F0F0F0)
+        index += 4;
+    if (v & 0xCCCCCCCC)
+        index += 2;
+    if (v & 0xAAAAAAAA)
+        index += 1;
+    return index;
+}
+
 static unsigned logCanCacheFrameDecision(Frame* frame, int indentLevel)
 {
 #ifdef NDEBUG
@@ -279,19 +294,9 @@ static void logCanCachePageDecision(Page* page)
     // FIXME: remove this histogram after data is gathered.
     if (frameReasonCount == 2) {
         ASSERT(frameRejectReasons & (1 << ClientDeniesCaching));
-        const unsigned v = frameRejectReasons & ~(1 << ClientDeniesCaching);
-        // find the index of the single bit set in v.
-        int index = 0;
-        if (v & 0xFFFF0000)
-            index = 16;
-        if (v & 0xFF00FF00)
-            index += 8;
-        if (v & 0xF0F0F0F0)
-            index += 4;
-        if (v & 0xCCCCCCCC)
-            index += 2;
-        if (v & 0xAAAAAAAA)
-            index += 1;
+        const unsigned singleReasonForRejectingFrameOtherThanClientDeniesCaching = frameRejectReasons & ~(1 << ClientDeniesCaching);
+        COMPILE_ASSERT(NumberOfReasonsPagesCannotBeInPageCache <= 32, ReasonPageCannotBeInPageCacheDoesNotFitInInt32);
+        const int index = indexOfSingleBit(static_cast<int32_t>(singleReasonForRejectingFrameOtherThanClientDeniesCaching));
         HistogramSupport::histogramEnumeration("PageCache.FrameRejectReasonByPageWhenSingleExcludingFrameClient", index, NumberOfReasonsPagesCannotBeInPageCache);
     }
 #endif
