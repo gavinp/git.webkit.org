@@ -34,6 +34,7 @@
 #include "WebCommon.h"
 #include "WebGraphicsContext3D.h"
 #include "WebLocalizedString.h"
+#include "WebReferrerPolicy.h"
 #include "WebSerializedScriptValue.h"
 #include "WebString.h"
 #include "WebURL.h"

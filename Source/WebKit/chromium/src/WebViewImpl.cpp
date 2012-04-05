@@ -322,6 +322,11 @@ void WebViewImpl::setSpellCheckClient(WebSpellCheckClient* spellCheckClient)
     m_spellCheckClient = spellCheckClient;
 }
 
+void WebViewImpl::setPrerendererClient(WebPrerendererClient* prerendererClient)
+{
+    m_prerendererClient = prerendererClient;
+}
+
 void WebViewImpl::addTextFieldDecoratorClient(WebTextFieldDecoratorClient* client)
 {
     ASSERT(client);
@@ -339,6 +344,7 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
     , m_autofillClient(0)
     , m_permissionClient(0)
     , m_spellCheckClient(0)
+    , m_prerendererClient(0)
     , m_chromeClientImpl(this)
     , m_contextMenuClientImpl(this)
     , m_dragClientImpl(this)

@@ -35,6 +35,7 @@
 #include "WebCommon.h"
 #include "WebData.h"
 #include "WebGamepads.h"
+#include "WebReferrerPolicy.h"
 #include "WebString.h"
 
 namespace WebKit {
@@ -51,6 +52,7 @@ class WebURL;
 class WebURLLoader;
 class WebSocketStreamHandle;
 class WebThread;
+struct WebSize;
 
 class Platform {
 public:
@@ -283,6 +285,10 @@ public:
     // Enumeration histogram buckets are linear, boundaryValue should be larger than any possible sample value.
     virtual void histogramEnumeration(const char* name, int sample, int boundaryValue) { }
 
+    // Prerender
+    virtual void addPrerender(int id, const WebURL&, const WebString& referrer, WebReferrerPolicy, const WebSize&, int requestorID) { }
+    virtual void cancelPrerender(int id) { }
+    virtual void abandonPrerender(int id) { }
 
     // WebRTC ----------------------------------------------------------
 

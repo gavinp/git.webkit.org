@@ -207,6 +207,10 @@
 #include "NodeRareData.h"
 #endif
 
+#if ENABLE(LINK_PRERENDER)
+#include "Prerenderer.h"
+#endif
+
 using namespace std;
 using namespace WTF;
 using namespace Unicode;
@@ -470,7 +474,7 @@ Document::Document(Frame* frame, const KURL& url, bool isXHTML, bool isHTML)
 #endif
     , m_loadEventDelayCount(0)
     , m_loadEventDelayTimer(this, &Document::loadEventDelayTimerFired)
-    , m_referrerPolicy(SecurityPolicy::ReferrerPolicyDefault)
+    , m_referrerPolicy(ReferrerPolicyDefault)
     , m_directionSetOnDocumentElement(false)
     , m_writingModeSetOnDocumentElement(false)
     , m_writeRecursionIsTooDeep(false)
@@ -503,7 +507,10 @@ Document::Document(Frame* frame, const KURL& url, bool isXHTML, bool isHTML)
     m_markers = adoptPtr(new DocumentMarkerController);
 
     m_cachedResourceLoader = adoptPtr(new CachedResourceLoader(this));
-
+#if ENABLE(LINK_PRERENDER)
+    m_prerenderer = adoptPtr(new Prerenderer(this));
+    m_prerenderer->suspendIfNeeded();
+#endif // ENABLE(LINK_PRERENDER)
     m_visuallyOrdered = false;
     m_bParsing = false;
     m_wellFormed = false;
@@ -2936,14 +2943,14 @@ void Document::processReferrerPolicy(const String& policy)
 {
     ASSERT(!policy.isNull());
 
-    m_referrerPolicy = SecurityPolicy::ReferrerPolicyDefault;
+    m_referrerPolicy = ReferrerPolicyDefault;
 
     if (equalIgnoringCase(policy, "never"))
-        m_referrerPolicy = SecurityPolicy::ReferrerPolicyNever;
+        m_referrerPolicy = ReferrerPolicyNever;
     else if (equalIgnoringCase(policy, "always"))
-        m_referrerPolicy = SecurityPolicy::ReferrerPolicyAlways;
+        m_referrerPolicy = ReferrerPolicyAlways;
     else if (equalIgnoringCase(policy, "origin"))
-        m_referrerPolicy = SecurityPolicy::ReferrerPolicyOrigin;
+        m_referrerPolicy = ReferrerPolicyOrigin;
 }
 
 MouseEventWithHitTestResults Document::prepareMouseEvent(const HitTestRequest& request, const LayoutPoint& documentPoint, const PlatformMouseEvent& event)

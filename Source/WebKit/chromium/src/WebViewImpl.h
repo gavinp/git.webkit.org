@@ -154,6 +154,7 @@ public:
     virtual void setDevToolsAgentClient(WebDevToolsAgentClient*);
     virtual void setPermissionClient(WebPermissionClient*);
     virtual void setSpellCheckClient(WebSpellCheckClient*);
+    virtual void setPrerendererClient(WebPrerendererClient*);
     virtual void addTextFieldDecoratorClient(WebTextFieldDecoratorClient*) OVERRIDE;
     virtual WebSettings* settings();
     virtual WebString pageEncoding() const;
@@ -308,6 +309,11 @@ public:
     WebSpellCheckClient* spellCheckClient()
     {
         return m_spellCheckClient;
+    }
+
+    WebPrerendererClient* prerendererClient()
+    {
+        return m_prerendererClient;
     }
 
     const Vector<OwnPtr<WebCore::TextFieldDecorator> >& textFieldDecorators() const { return m_textFieldDecorators; }
@@ -593,6 +599,7 @@ private:
     WebAutofillClient* m_autofillClient;
     WebPermissionClient* m_permissionClient;
     WebSpellCheckClient* m_spellCheckClient;
+    WebPrerendererClient* m_prerendererClient;
     Vector<OwnPtr<WebCore::TextFieldDecorator> > m_textFieldDecorators;
 
     ChromeClientImpl m_chromeClientImpl;
