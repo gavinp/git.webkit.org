@@ -254,6 +254,8 @@ void HTMLLinkElement::removedFromDocument()
 {
     HTMLElement::removedFromDocument();
 
+    m_linkLoader.released();
+
     if (m_isInShadowTree) {
         ASSERT(!m_sheet);
         return;

@@ -42,8 +42,8 @@
 #include "PageVisibilityState.h"
 #include "PlatformScreen.h"
 #include "QualifiedName.h"
+#include "ReferrerPolicy.h"
 #include "ScriptExecutionContext.h"
-#include "SecurityPolicy.h"
 #include "StringWithDirection.h"
 #include "Timer.h"
 #include "TreeScope.h"
@@ -164,6 +164,10 @@ class ScriptedAnimationController;
 
 #if ENABLE(MICRODATA)
 class MicroDataItemList;
+#endif
+
+#if ENABLE(LINK_PRERENDER)
+class Prerenderer;
 #endif
 
 typedef int ExceptionCode;
@@ -326,7 +330,7 @@ public:
 
     ViewportArguments viewportArguments() const { return m_viewportArguments; }
 
-    SecurityPolicy::ReferrerPolicy referrerPolicy() const { return m_referrerPolicy; }
+    ReferrerPolicy referrerPolicy() const { return m_referrerPolicy; }
 
     DocumentType* doctype() const { return m_docType.get(); }
 
@@ -1135,6 +1139,10 @@ public:
 
     IntSize viewportSize() const;
 
+#if ENABLE(LINK_PRERENDER)
+    Prerenderer* prerenderer() { return m_prerenderer.get(); }
+#endif
+
 protected:
     Document(Frame*, const KURL&, bool isXHTML, bool isHTML);
 
@@ -1453,7 +1461,7 @@ private:
 
     ViewportArguments m_viewportArguments;
 
-    SecurityPolicy::ReferrerPolicy m_referrerPolicy;
+    ReferrerPolicy m_referrerPolicy;
 
     bool m_directionSetOnDocumentElement;
     bool m_writingModeSetOnDocumentElement;
@@ -1471,7 +1479,11 @@ private:
 #endif
 
     Timer<Document> m_pendingTasksTimer;
-    Vector<OwnPtr<Task> > m_pendingTasks;    
+    Vector<OwnPtr<Task> > m_pendingTasks;
+
+#if ENABLE(LINK_PRERENDER)
+    OwnPtr<Prerenderer> m_prerenderer;
+#endif
 };
 
 // Put these methods here, because they require the Document definition, but we really want to inline them.
