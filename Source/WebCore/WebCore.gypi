@@ -3098,6 +3098,7 @@
             'platform/PlatformTouchEvent.h',
             'platform/PlatformTouchPoint.h',
             'platform/PurgeableBuffer.h',
+            'platform/ReferrerPolicy.h'
             'platform/RunLoopTimer.h',
             'platform/RuntimeApplicationChecks.cpp',
             'platform/RuntimeApplicationChecks.h',
