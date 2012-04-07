@@ -103,7 +103,7 @@ bool LinkLoader::loadLink(const LinkRelAttribute& relAttribute, const String& ty
     }
 
 #if ENABLE(LINK_PREFETCH)
-    if ((relAttribute.m_isLinkPrefetch || relAttribute.m_isLinkPrerender || relAttribute.m_isLinkSubresource) && href.isValid() && document->frame()) {
+    if ((relAttribute.m_isLinkPrefetch || relAttribute.m_isLinkSubresource) && href.isValid() && document->frame()) {
         if (!m_client->shouldLoadLink())
             return false;
         ResourceLoadPriority priority = ResourceLoadPriorityUnresolved;
@@ -113,9 +113,7 @@ bool LinkLoader::loadLink(const LinkRelAttribute& relAttribute, const String& ty
         if (relAttribute.m_isLinkSubresource) {
             priority = ResourceLoadPriorityLow;
             type = CachedResource::LinkSubresource;
-        } else if (relAttribute.m_isLinkPrerender)
-            type = CachedResource::LinkPrerender;
-
+        } 
         ResourceRequest linkRequest(document->completeURL(href));
         
         if (m_cachedLinkResource) {
