@@ -69,7 +69,6 @@ public:
         TargetIsWorker = 9,
         TargetIsSharedWorker = 10,
         TargetIsPrefetch = 11,
-        TargetIsPrerender = 12,
         TargetIsFavicon = 13,
         TargetIsXHR = 14,
         TargetIsTextTrack = 15,
