@@ -49,6 +49,7 @@ class WebPeerConnectionHandler;
 class WebPeerConnectionHandlerClient;
 class WebURL;
 class WebURLLoader;
+class WebPrerenderingInterface;
 class WebSocketStreamHandle;
 class WebThread;
 
@@ -283,6 +284,8 @@ public:
     // Enumeration histogram buckets are linear, boundaryValue should be larger than any possible sample value.
     virtual void histogramEnumeration(const char* name, int sample, int boundaryValue) { }
 
+    // Prerender
+    virtual WebPrerenderingInterface* createPrerenderingInterface() { return 0; }
 
     // WebRTC ----------------------------------------------------------
 

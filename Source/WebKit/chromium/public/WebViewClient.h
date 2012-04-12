@@ -65,6 +65,7 @@ class WebInputElement;
 class WebKeyboardEvent;
 class WebNode;
 class WebNotificationPresenter;
+class WebPrerendererClient;
 class WebRange;
 class WebSpeechInputController;
 class WebSpeechInputListener;
@@ -325,6 +326,10 @@ public:
     // Access the embedder API for device orientation services.
     virtual WebDeviceOrientationClient* deviceOrientationClient() { return 0; }
 
+
+    // Prerender -----------------------------------------------------------
+    // Access the embedder API for prerenders.
+    virtual WebPrerendererClient* prerendererClient() { return 0; }
 
     // Zoom ----------------------------------------------------------------
 

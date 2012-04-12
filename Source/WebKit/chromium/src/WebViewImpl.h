@@ -85,6 +85,7 @@ class DeviceOrientationClientProxy;
 class DragScrollTimer;
 class GeolocationClientProxy;
 class NonCompositedContentHost;
+class PrerendererClientImpl;
 class SpeechInputClientImpl;
 class SpeechRecognitionClientProxy;
 class UserMediaClientImpl;
@@ -758,6 +759,8 @@ private:
     WebPoint m_lastWheelPosition;
     WebPoint m_lastWheelGlobalPosition;
     int m_flingModifier;
+
+    OwnPtr<PrerendererClientImpl> m_prerendererClient;
 };
 
 } // namespace WebKit

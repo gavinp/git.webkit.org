@@ -96,6 +96,7 @@
 #include "PointerLockController.h"
 #include "PopupContainer.h"
 #include "PopupMenuClient.h"
+#include "PrerendererClientImpl.h"
 #include "ProgressTracker.h"
 #include "RenderLayerCompositor.h"
 #include "RenderView.h"
@@ -390,6 +391,7 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
     , m_userMediaClientImpl(this)
 #endif
     , m_flingModifier(0)
+    , m_prerendererClient(adoptPtr(new PrerendererClientImpl(client ? client->prerendererClient() : 0)))
 {
     // WebKit/win/WebView.cpp does the same thing, except they call the
     // KJS specific wrapper around this method. We need to have threading
@@ -426,6 +428,8 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
     provideGeolocationTo(m_page.get(), m_geolocationClientProxy.get());
     m_geolocationClientProxy->setController(GeolocationController::from(m_page.get()));
     
+    providePrerendererClientTo(m_page.get(), m_prerendererClient.get());
+
     m_page->setGroupName(pageGroupName);
 
 #if ENABLE(PAGE_VISIBILITY_API)

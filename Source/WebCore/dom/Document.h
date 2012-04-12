@@ -166,6 +166,10 @@ class ScriptedAnimationController;
 class MicroDataItemList;
 #endif
 
+#if ENABLE(LINK_PRERENDER)
+class Prerenderer;
+#endif
+
 typedef int ExceptionCode;
 
 class FormElementKey {
@@ -1137,6 +1141,10 @@ public:
 
     IntSize viewportSize() const;
 
+#if ENABLE(LINK_PRERENDER)
+    Prerenderer* prerenderer() { return m_prerenderer.get(); }
+#endif
+
 protected:
     Document(Frame*, const KURL&, bool isXHTML, bool isHTML);
 
@@ -1474,7 +1482,11 @@ private:
 #endif
 
     Timer<Document> m_pendingTasksTimer;
-    Vector<OwnPtr<Task> > m_pendingTasks;    
+    Vector<OwnPtr<Task> > m_pendingTasks;
+
+#if ENABLE(LINK_PRERENDER)
+    OwnPtr<Prerenderer> m_prerenderer;
+#endif
 };
 
 // Put these methods here, because they require the Document definition, but we really want to inline them.
