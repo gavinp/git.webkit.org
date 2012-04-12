@@ -46,6 +46,9 @@ public:
     bool m_isLinkPrefetch;
     bool m_isLinkSubresource;
 #endif
+#if ENABLE(LINK_PRERENDER)
+    bool m_isLinkPrerender;
+#endif
 
     LinkRelAttribute();
     explicit LinkRelAttribute(const String&);
